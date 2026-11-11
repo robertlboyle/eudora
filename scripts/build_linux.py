@@ -57,7 +57,7 @@ SUMMARY = "Eudora: a fast email client for huge mailboxes"
 DESCRIPTION = ("Eudora reads, searches, sorts, and writes mail from Microsoft 365, Gmail, IMAP, and POP3 "
                "accounts in one library, with a calendar, contacts, and To Do. Free to use, with no ads "
                "and no data collection. From Planet Networks.")
-HOMEPAGE = os.environ.get("EUDORA_HOMEPAGE", "")
+HOMEPAGE = os.environ.get("EUDORA_HOMEPAGE", "https://github.com/robertlboyle/eudora")
 DESKTOP = """[Desktop Entry]
 Type=Application
 Name=Eudora
