@@ -21,6 +21,42 @@ open, scroll, and search.
 
 Ready-made versions: [software.planet.net](https://software.planet.net/eudora.html).
 
+## Official versions and builds from this source
+
+To use Eudora day to day, install the official version from
+[software.planet.net](https://software.planet.net/eudora.html): it's always the newest version,
+and it keeps itself up to date, installing each new version as it comes out. Anything built from this
+repository, including the packages GitHub Actions makes on each commit (a run's page ▸
+Artifacts), is the same program but differs from an official version:
+
+- **No Microsoft 365 or Outlook.com sign-in.** Microsoft accepts sign-ins only from a registered
+  app, and the official app ID isn't in the published source. To use those accounts, register an
+  app of your own in Microsoft Entra and build with its ID (see
+  [BUILDING.md](BUILDING.md#a-microsoft-app-registration)). Microsoft then shows your app's name in
+  its consent prompt, marked "unverified", and some organizations allow only apps their
+  administrator has approved.
+- **No Google sign-in** (Gmail's own API, Google contacts and calendars) until you build with a
+  Google OAuth client of your own (see [BUILDING.md](BUILDING.md#a-google-oauth-client)). A
+  Google client that hasn't passed Google's review signs in only the test users you list, for 7
+  days at a time. Gmail still works over IMAP with a Google app password.
+- **No automatic updates.** The update server is left out, so a build doesn't look for or install
+  new versions until you set up your own (see
+  [BUILDING.md](BUILDING.md#your-own-update-server)). Install a newer build yourself.
+- **Not signed.** Windows SmartScreen warns about the installer (choose **More info ▸ Run
+  anyway**). macOS refuses to open a downloaded app that isn't signed and notarized: after the
+  first try, choose **Open Anyway** in System Settings ▸ Privacy & Security, or clear its
+  quarantine flag with `xattr -dr com.apple.quarantine /Applications/Eudora.app`. The official Mac version is signed and notarized by Planet Networks; official
+  Windows installers aren't code-signed yet either.
+- **Linux packages don't add Eudora's apt or dnf repository**, so they aren't kept up to date by
+  the system's updates.
+- **Font Awesome Free icons** replace the Pro icons of official versions, so a few icons look
+  different.
+
+Everything else works the same: IMAP, POP3, and SMTP accounts, imports, search, the spam filter,
+rules, Views, backups, the command line, the API, and plugins. Both kinds open the same library
+(not at the same time), so you can switch between them; a Microsoft or Google sign-in belongs to
+the app that made it, so after switching you sign in to those accounts again.
+
 ## Building
 
 See **[BUILDING.md](BUILDING.md)**: setting up a computer (scripts for each platform), building,

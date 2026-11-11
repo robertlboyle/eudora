@@ -1230,7 +1230,7 @@ mod tests {
         let src = dir.path().join("src");
         std::fs::create_dir_all(&src).unwrap();
         let mail = |from: &str, id: &str, mailer: &str, day: u32| {
-            format!("From: {from}\r\nTo: other@x.com\r\nSubject: note {id}\r\nMessage-ID: <{id}@x>\r\nX-Mailer: {mailer}\r\nDate: Fri, {day} Dec 1999 20:38:46 -0500\r\n\r\nhello\r\n")
+            format!("From: {from}\r\nTo: other@x.com\r\nSubject: note {id}\r\nMessage-ID: <{id}@x>\r\nX-Mailer: {mailer}\r\nDate: Fri, {day} Dec 1999 12:00:00 +0000\r\n\r\nhello\r\n")
         };
         import_files(&mut library, &src, &[("in.eml", mail("Bob <bob@x.com>", "1", "Outlook Express 6", 1)), ("in2.eml", mail("carol@x.com", "2", "Thunderbird", 2))], "Inbox");
         import_files(&mut library, &src, &[("out.eml", mail("Me <ME@example.com>", "3", "Eudora 7", 3))], "Out");
