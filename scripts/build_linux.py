@@ -67,7 +67,7 @@ Exec={exec} %U
 Icon=eudora
 Terminal=false
 Categories=Network;Email;Office;
-MimeType=message/rfc822;text/calendar;x-scheme-handler/mailto;
+MimeType=message/rfc822;application/vnd.ms-outlook;text/calendar;x-scheme-handler/mailto;
 StartupWMClass=eudora27
 """
 STEPS = 6

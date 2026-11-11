@@ -76,6 +76,12 @@ cat > "$dest/Contents/Info.plist" <<EOF
             <key>CFBundleTypeExtensions</key><array><string>eml</string></array>
         </dict>
         <dict>
+            <key>CFBundleTypeName</key><string>Outlook message</string>
+            <key>CFBundleTypeRole</key><string>Viewer</string>
+            <key>LSHandlerRank</key><string>Alternate</string>
+            <key>CFBundleTypeExtensions</key><array><string>msg</string></array>
+        </dict>
+        <dict>
             <key>CFBundleTypeName</key><string>Calendar file</string>
             <key>CFBundleTypeRole</key><string>Viewer</string>
             <key>LSHandlerRank</key><string>Alternate</string>

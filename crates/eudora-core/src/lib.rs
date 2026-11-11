@@ -46,6 +46,7 @@ pub(crate) mod mailnet;
 pub mod marks;
 pub mod meetings;
 pub mod msg;
+pub mod msg_read;
 pub mod official;
 pub mod mail_host;
 pub mod maintenance;

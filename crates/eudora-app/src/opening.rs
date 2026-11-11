@@ -1,6 +1,7 @@
-//! Files opened with Eudora: a double-clicked .eml shows in a message window (Reply, Forward,
-//! attachments, Print), without being added to the library; an .ics shows its events, each of
-//! which can be added to one of the user's calendars.
+//! Files opened with Eudora: a double-clicked .eml or Outlook .msg shows in the message viewer, a
+//! program of its own (msgview.rs, 2026-11-11), without being added to the library (an .eml the
+//! Mac's Finder hands the running window shows in a message window there); an .ics shows its
+//! events, each of which can be added to one of the user's calendars.
 //!
 //! One Eudora window at a time: the first holds a lock in Eudora's own folder; a second start
 //! (Windows starts the program again for each file opened) hands its files to the first, by a
@@ -11,8 +12,16 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use tauri::Manager;
 
-/// The kinds of file Eudora opens.
-const KINDS: [&str; 2] = ["eml", "ics"];
+/// The kinds of file Eudora opens (an .msg in a viewer of its own: msgview.rs).
+const KINDS: [&str; 3] = ["eml", "ics", "msg"];
+
+/// How the .msg viewer hands a message to the window for Reply, Reply All, or Forward:
+/// `eudora-compose:<mode>:<an .eml in msgview::answers_dir>`.
+pub const COMPOSE_PREFIX: &str = "eudora-compose:";
+
+fn is_compose(path: &Path) -> bool {
+    path.to_str().is_some_and(|s| s.starts_with(COMPOSE_PREFIX))
+}
 
 fn kind_of(path: &Path) -> Option<&'static str> {
     let ext = path.extension()?.to_string_lossy().to_ascii_lowercase();
@@ -34,7 +43,7 @@ pub fn sort_args() -> (Option<PathBuf>, Vec<PathBuf>) {
             Some(rest) => PathBuf::from(eudora_core_url_path(rest)),
             None => arg,
         };
-        if is_mailto(&arg) {
+        if is_mailto(&arg) || is_compose(&arg) {
             files.push(arg);
         } else if kind_of(&arg).is_some() && arg.is_file() {
             files.push(std::path::absolute(&arg).unwrap_or(arg));
@@ -160,6 +169,10 @@ fn open_file(handle: &tauri::AppHandle, path: &Path) -> Result<(), String> {
     if is_mailto(path) {
         return crate::open_mailto_now(handle, &path.to_string_lossy());
     }
+    #[cfg(desktop)]
+    if is_compose(path) {
+        return answer_from_viewer(handle, &path.to_string_lossy());
+    }
     let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     match kind_of(path) {
         Some("eml") => {
@@ -190,9 +203,32 @@ fn open_file(handle: &tauri::AppHandle, path: &Path) -> Result<(), String> {
                 .build()
                 .map_err(|e| e.to_string())?;
         }
-        _ => return Err("Eudora opens .eml and .ics files".into()),
+        // (the Mac hands Finder's files to the running window: a viewer of its own all the same)
+        #[cfg(desktop)]
+        Some("msg") => crate::msgview::spawn(path)?,
+        _ => return Err("Eudora opens .eml, .msg, and .ics files".into()),
     }
     Ok(())
+}
+
+/// Reply, Reply All, or Forward from the .msg viewer: the message it left (only from its own
+/// folder, only an .eml) opened as a message file is, and a new message started from it.
+#[cfg(desktop)]
+fn answer_from_viewer(handle: &tauri::AppHandle, arg: &str) -> Result<(), String> {
+    let rest = arg.strip_prefix(COMPOSE_PREFIX).unwrap_or_default();
+    let (mode, file) = rest.split_once(':').ok_or("the viewer's request wasn't understood")?;
+    if !["reply", "replyAll", "forward"].contains(&mode) {
+        return Err(format!("“{mode}” isn't a way to answer a message"));
+    }
+    let path = PathBuf::from(file);
+    let inside = std::fs::canonicalize(crate::msgview::answers_dir()).ok().zip(std::fs::canonicalize(&path).ok()).is_some_and(|(dir, p)| p.starts_with(dir));
+    if !inside || path.extension().is_none_or(|e| !e.eq_ignore_ascii_case("eml")) {
+        return Err("the viewer's message isn't where Eudora left it".into());
+    }
+    let bytes = read_limited(&path, eudora_core::library::OPEN_FILE_MAX)?;
+    let _ = std::fs::remove_file(&path);
+    let id = eudora_core::library::open_message_file(bytes);
+    crate::compose_window(handle, mode, Some(id), None, &[])
 }
 
 /// A calendar file opened: its name, what it's for, and its events.

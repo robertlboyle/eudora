@@ -88,7 +88,7 @@ pub fn mark_downloaded(path: &Path) {
 }
 
 /// Writes one file (or finds it there already), marked as downloaded.
-fn write_file(dir: &Path, name: &str, bytes: &[u8]) -> Result<PathBuf> {
+pub fn write_file(dir: &Path, name: &str, bytes: &[u8]) -> Result<PathBuf> {
     std::fs::create_dir_all(dir).map_err(|e| Error::Other(format!("{}: {e}", dir.display())))?;
     let (path, there) = place_for(dir, &safe_file_name(name), bytes);
     if !there {

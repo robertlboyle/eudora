@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Message – Eudora</title>
+  <link rel="stylesheet" href="msgview.css">
+  <script src="icons/set.js"></script>
+</head>
+<!-- The .msg viewer (msgview.rs): one Outlook message file, in a program of its own. -->
+<body>
+  <div id="v-bar" role="toolbar">
+    <button id="v-reply" title="Reply (Ctrl+R)"><span data-icon="reply"></span> Reply</button>
+    <button id="v-reply-all" title="Reply to All (Ctrl+Shift+R)"><span data-icon="reply-all"></span> Reply All</button>
+    <button id="v-forward" title="Forward (Ctrl+F)"><span data-icon="share"></span> Forward</button>
+    <span class="v-gap"></span>
+    <button id="v-save" title="Save as an .eml file (Ctrl+S)"><span data-icon="download"></span> Save as .eml</button>
+    <button id="v-print" title="Print (Ctrl+P)"><span data-icon="file-lines"></span> Print</button>
+  </div>
+  <div id="v-head">
+    <h1 id="v-subject">Opening…</h1>
+    <div id="v-people"></div>
+    <div id="v-warning" hidden><span data-icon="circle-exclamation"></span> <span id="v-warning-text"></span></div>
+    <div id="v-pictures" hidden><span id="v-pictures-text"></span> <button id="v-pictures-show">Show pictures</button></div>
+    <div id="v-attachments" hidden></div>
+    <div id="v-views" role="tablist">
+      <button data-view="message" class="on">Message</button>
+      <button data-view="text">Text</button>
+      <button data-view="headers">Headers</button>
+      <button data-view="source">Source</button>
+    </div>
+  </div>
+  <div id="v-body"></div>
+  <div id="v-status"></div>
+  <script src="msgframe.js"></script>
+  <script src="msgview.js"></script>
+</body>
+</html>

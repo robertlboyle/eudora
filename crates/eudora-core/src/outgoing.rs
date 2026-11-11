@@ -112,25 +112,106 @@ pub struct Outgoing {
     server: Option<(crate::imap_sync::ImapConfig, i64, std::path::PathBuf)>,
 }
 
+/// What a library says about a message's sender: on the whitelist (people the user writes to),
+/// the user's own domains, and whether pictures from the web show by themselves for them.
+#[derive(Clone, Debug, Default)]
+pub struct SenderTrust {
+    pub trusted: bool,
+    pub own_domains: Vec<String>,
+    pub show_pictures: bool,
+}
+
+impl SenderTrust {
+    fn read(conn: &rusqlite::Connection, from: &str) -> Result<SenderTrust> {
+        let domain = from.rsplit_once('@').map(|(_, d)| format!("@{}", d.to_lowercase())).unwrap_or_default();
+        let trusted: bool = conn.query_row(
+            "SELECT EXISTS (SELECT 1 FROM sender_rules WHERE kind = 'allow' AND (pattern = lower(?1) OR pattern = ?2))",
+            rusqlite::params![from, domain],
+            |r| r.get(0),
+        )?;
+        let mut own_domains: Vec<String> = crate::library::own_addresses_in(conn)?.iter().filter_map(|a| a.split('@').nth(1).map(str::to_lowercase)).collect();
+        own_domains.sort();
+        own_domains.dedup();
+        let pictures: Option<String> = rusqlite::OptionalExtension::optional(conn.query_row("SELECT value FROM settings_items WHERE key = 'pictures'", [], |r| r.get(0)))?;
+        let show_pictures = !from.is_empty()
+            && pictures
+                .and_then(|j| serde_json::from_str::<serde_json::Value>(&j).ok())
+                .and_then(|v| v["senders"].as_array().map(|a| a.iter().any(|s| s.as_str().is_some_and(|s| s.eq_ignore_ascii_case(from)))))
+                .unwrap_or(false);
+        Ok(SenderTrust { trusted, own_domains, show_pictures })
+    }
+
+    /// Read from the library at `root` without opening it (a viewer of its own: read-only, never
+    /// waiting long for it); nothing known when it can't be read (no one trusted, pictures ask).
+    pub fn of_library(root: Option<&std::path::Path>, from: &str) -> SenderTrust {
+        let Some(db) = root.map(|r| r.join("eudora.db")).filter(|p| p.is_file()) else { return SenderTrust::default() };
+        let read = || -> Result<SenderTrust> {
+            let conn = rusqlite::Connection::open_with_flags(db, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX)?;
+            conn.busy_timeout(std::time::Duration::from_millis(300))?;
+            SenderTrust::read(&conn, from)
+        };
+        read().unwrap_or_default()
+    }
+}
+
+/// The first From address of a message (lowercase).
+pub fn sender_of(raw: &[u8]) -> String {
+    crate::triage::signals(&crate::header_index::read_headers(raw)).from.to_lowercase()
+}
+
+/// Whether a message looks like a fraud, and why (None: nothing serious), with what the library
+/// says about its sender. Senders on the whitelist are never judged this way.
+pub fn fraud_warning_in(raw: &[u8], trust: &SenderTrust) -> Option<String> {
+    let headers = crate::header_index::read_headers(raw);
+    let s = crate::triage::signals(&headers);
+    let subject = headers.iter().find(|(k, _)| k.eq_ignore_ascii_case("Subject")).map(|(_, v)| v.clone()).unwrap_or_default();
+    // the text too (its lures, a brand it speaks for)
+    let text = crate::parse::parse(raw, crate::parse::DateHints::default(), crate::library::now()).body_text;
+    crate::phishing::warning(&s, &subject, &text, &trust.own_domains, trust.trusted)
+}
+
+/// A message read from a file, shown without a library (the .msg viewer): the same view as a
+/// library's message, with the same safety (a fraud's links dead and no pictures). `id` is the
+/// number the viewer gives it.
+pub fn file_message_view(id: i64, raw: &[u8], trust: &SenderTrust) -> MessageView {
+    let warning = fraud_warning_in(raw, trust);
+    let d = crate::parse::display(raw, crate::library::now());
+    let web_pictures = if warning.is_some() { Vec::new() } else { d.html.as_deref().map(crate::remote_images::find).unwrap_or_default() };
+    let html = if warning.is_some() { d.html.as_deref().map(crate::phishing::dead_links) } else { d.html };
+    let p = d.parsed;
+    let inline = d.inline;
+    MessageView {
+        id,
+        linked: Vec::new(),
+        calendar: !crate::invites::calendar_texts(raw).is_empty(),
+        subject: p.subject,
+        from: people(&p.from),
+        to: people(&p.to),
+        cc: people(&p.cc),
+        bcc: people(&p.bcc),
+        date: p.date,
+        message_id: p.message_id,
+        message_id_made: p.message_id_made,
+        html,
+        text: d.text,
+        headers: d.headers,
+        attachments: p.attachments.into_iter().map(|a| AttachmentView { inline: inline.contains(&a.part), part: a.part, name: a.name, mime: a.mime, size: a.size, missing: None }).collect(),
+        folders: Vec::new(),
+        folder_ids: Vec::new(),
+        size: p.raw_len,
+        problems: p.problems.into_iter().map(|p| p.detail).collect(),
+        copies: Vec::new(),
+        account: None,
+        web_pictures,
+        warning,
+    }
+}
+
 impl Library {
     /// Whether a message looks like a fraud, and why (None: nothing serious). Senders on the
     /// whitelist (people the user writes to) are never judged this way.
     pub fn fraud_warning(&self, raw: &[u8]) -> Result<Option<String>> {
-        let headers = crate::header_index::read_headers(raw);
-        let s = crate::triage::signals(&headers);
-        let subject = headers.iter().find(|(k, _)| k.eq_ignore_ascii_case("Subject")).map(|(_, v)| v.clone()).unwrap_or_default();
-        let domain = s.from.rsplit_once('@').map(|(_, d)| format!("@{}", d.to_lowercase())).unwrap_or_default();
-        let trusted: bool = self.conn.query_row(
-            "SELECT EXISTS (SELECT 1 FROM sender_rules WHERE kind = 'allow' AND (pattern = lower(?1) OR pattern = ?2))",
-            rusqlite::params![s.from, domain],
-            |r| r.get(0),
-        )?;
-        let mut own: Vec<String> = self.own_addresses()?.iter().filter_map(|a| a.split('@').nth(1).map(str::to_lowercase)).collect();
-        own.sort();
-        own.dedup();
-        // the text too (its lures, a brand it speaks for)
-        let text = crate::parse::parse(raw, crate::parse::DateHints::default(), crate::library::now()).body_text;
-        Ok(crate::phishing::warning(&s, &subject, &text, &own, trusted))
+        Ok(fraud_warning_in(raw, &SenderTrust::read(&self.conn, &sender_of(raw))?))
     }
 
     /// A message as shown.

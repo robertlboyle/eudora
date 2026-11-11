@@ -1,0 +1,146 @@
+/* The .msg viewer (msgview.html): small on purpose, so it shows at once. Light and dark follow
+   the system, or what Eudora's sun / moon button chose. */
+
+[hidden] { display: none !important; }
+
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --bar: #f4f3f1;
+  --text: #1d1d1f;
+  --muted: #6b6a68;
+  --line: #dcdad6;
+  --accent: #2563c9;
+  --warn-bg: #fde8e8;
+  --warn-text: #8a1111;
+  --note-bg: #fff6d6;
+  --chip: #eeedeb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1d1b;
+    --bar: #282725;
+    --text: #e6e4e0;
+    --muted: #a5a29c;
+    --line: #3d3b38;
+    --accent: #8ab4f8;
+    --warn-bg: #4a1717;
+    --warn-text: #ffd1d1;
+    --note-bg: #3b3420;
+    --chip: #33312e;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr);
+  font: 13px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+button, select, input { font: inherit; color: inherit; }
+
+.icon {
+  display: inline-block;
+  width: 1.05em;
+  height: 1.05em;
+  flex: none;
+  vertical-align: -0.15em;
+  background: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+}
+
+#v-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bar);
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+  user-select: none;
+}
+#v-bar button, #v-pictures button, #v-views button {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 5px;
+  padding: 4px 9px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#v-bar button:hover, #v-views button:hover { background: var(--chip); border-color: var(--line); }
+#v-bar button:disabled { opacity: 0.45; cursor: default; background: transparent; border-color: transparent; }
+.v-gap { flex: 1; }
+
+#v-head { padding: 10px 16px 0; border-bottom: 1px solid var(--line); user-select: text; }
+#v-subject { margin: 0 0 6px; font-size: 1.35em; font-weight: 600; overflow-wrap: anywhere; }
+#v-people div { margin: 2px 0; overflow-wrap: anywhere; }
+#v-people b { display: inline-block; min-width: 3.3em; color: var(--muted); font-weight: 600; }
+
+#v-warning {
+  margin: 8px 0 2px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  font-weight: 600;
+}
+#v-pictures { margin: 8px 0 2px; padding: 5px 10px; border-radius: 6px; background: var(--note-bg); }
+#v-pictures button { border-color: var(--line); background: var(--bg); }
+
+#v-attachments { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+.v-att {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 4px 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--chip);
+  cursor: pointer;
+  user-select: none;
+}
+.v-att img { width: 16px; height: 16px; }
+.v-att .v-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 28em; }
+.v-att .v-size { color: var(--muted); }
+.v-att button { border: 0; background: transparent; padding: 2px 5px; border-radius: 4px; cursor: pointer; }
+.v-att button:hover { background: var(--bg); }
+.v-all { border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 3px 9px; cursor: pointer; }
+
+#v-views { display: flex; gap: 2px; margin-top: 8px; user-select: none; }
+#v-views button { border-radius: 5px 5px 0 0; padding: 4px 10px; color: var(--muted); }
+#v-views button.on { color: var(--text); border-color: var(--line); border-bottom-color: var(--bg); background: var(--bg); margin-bottom: -1px; }
+
+#v-body { position: relative; min-height: 0; overflow: hidden; }
+#v-body iframe { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+@media (prefers-color-scheme: dark) { #v-body iframe { background: #1e1d1b; } }
+#v-body pre {
+  margin: 0;
+  height: 100%;
+  overflow: auto;
+  padding: 12px 16px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 13px/1.45 ui-monospace, Consolas, monospace;
+  user-select: text;
+}
+#v-body pre.text { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+#v-body a { color: var(--accent); }
+.quote { color: var(--muted); }
+
+#v-status {
+  padding: 3px 10px;
+  min-height: 1.6em;
+  border-top: 1px solid var(--line);
+  background: var(--bar);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}

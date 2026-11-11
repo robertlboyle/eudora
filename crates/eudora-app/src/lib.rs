@@ -14,6 +14,8 @@ mod android;
 mod ios;
 mod api_host;
 mod background;
+#[cfg(desktop)]
+mod msgview;
 mod opening;
 #[cfg(desktop)]
 mod tray;
@@ -82,9 +84,9 @@ impl App {
     }
 }
 
-type Reply<T> = Result<T, String>;
+pub(crate) type Reply<T> = Result<T, String>;
 
-fn text<E: std::fmt::Display>(e: E) -> String {
+pub(crate) fn text<E: std::fmt::Display>(e: E) -> String {
     e.to_string()
 }
 
@@ -886,7 +888,7 @@ pub(crate) fn open_mailto_now(handle: &tauri::AppHandle, url: &str) -> Reply<()>
 }
 
 /// A message window (`compose.html`) with the fields given filled in.
-fn compose_window(handle: &tauri::AppHandle, mode: &str, id: Option<i64>, ids: Option<Vec<i64>>, fields: &[(&str, Option<String>)]) -> Reply<()> {
+pub(crate) fn compose_window(handle: &tauri::AppHandle, mode: &str, id: Option<i64>, ids: Option<Vec<i64>>, fields: &[(&str, Option<String>)]) -> Reply<()> {
     use std::sync::atomic::{AtomicU32, Ordering};
     static NEXT: AtomicU32 = AtomicU32::new(1);
     let n = NEXT.fetch_add(1, Ordering::Relaxed);
@@ -1000,7 +1002,7 @@ fn query_escape(value: &str) -> String {
 /// Whether a message's link may be opened in the browser: web links only (`http` / `https`;
 /// mailto: is handled in the window: a new message). javascript:, file:, data: and custom
 /// schemes that start programs are refused.
-fn web_link(url: &str) -> Option<&str> {
+pub(crate) fn web_link(url: &str) -> Option<&str> {
     let link = url.trim();
     let scheme = link.split(':').next().unwrap_or("").to_ascii_lowercase();
     ((scheme == "http" || scheme == "https") && link.contains("://") && !link.chars().any(|c| c.is_control() || c == '"')).then_some(link)
@@ -2635,11 +2637,16 @@ async fn pick_paths(window: tauri::Window, what: String, title: String, kind: Op
         "files" => Pick::Files,
         _ => Pick::File,
     };
-    let filters: &[(&str, &str)] = match kind.as_deref() {
+    let filters: &'static [(&'static str, &'static str)] = match kind.as_deref() {
         Some("mail") => &[("Mail (mailboxes, messages)", "*.mbx;*.mbox;*.eml;*.txt"), ("Every file", "*.*")],
         Some("backup") => &[("Eudora backups", "*.eudora-backup"), ("Every file", "*.*")],
         _ => &[],
     };
+    Ok(pick_with(window, what, title, filters).await?.into_iter().map(|p| p.display().to_string()).collect())
+}
+
+/// The system's Open dialog, owned by `window` (the Mac's shown from the main thread).
+pub(crate) async fn pick_with(window: tauri::Window, what: eudora_core::pick::Pick, title: String, filters: &'static [(&'static str, &'static str)]) -> Reply<Vec<PathBuf>> {
     #[cfg(windows)]
     let owner = window.hwnd().ok().map(|h| h.0 as isize);
     #[cfg(not(windows))]
@@ -2665,7 +2672,7 @@ async fn pick_paths(window: tauri::Window, what: String, title: String, kind: Op
         let _ = &window;
         tauri::async_runtime::spawn_blocking(move || eudora_core::pick::pick(owner, what, &title, filters)).await.map_err(|e| e.to_string())?.map_err(text)?
     };
-    Ok(chosen.into_iter().map(|p| p.display().to_string()).collect())
+    Ok(chosen)
 }
 
 /// File ▸ Open File / Import…: mailbox files (classic .mbx, mbox), messages (.eml) or folders
@@ -4364,6 +4371,23 @@ pub fn run() {
     // files given (an .eml or .ics opened in Explorer): to the Eudora window already open, if
     // there is one (this start then ends), else opened by this one
     let (named, files) = opening::sort_args();
+    let context = tauri::generate_context!();
+    // an Outlook .msg or an .eml opens in a viewer of its own (msgview.rs), never this window: the first in
+    // this program, any others each in another copy
+    #[cfg(desktop)]
+    let files = {
+        let (msgs, rest) = msgview::split(files);
+        let mut msgs = msgs.into_iter();
+        let first = if rest.is_empty() && named.is_none() { msgs.next() } else { None };
+        for m in msgs {
+            let _ = msgview::spawn(&m);
+        }
+        if let Some(path) = first {
+            msgview::run(context, path);
+            return;
+        }
+        rest
+    };
     // (iOS: the background check is registered before the app finishes launching)
     #[cfg(target_os = "ios")]
     ios::register();
@@ -4760,7 +4784,7 @@ pub fn run() {
             backup_save_copy,
             attachment_share
         ])
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("error while starting Eudora")
         .run(|app, event| {
             // closing Eudora stops the download it started (it resumes next time)

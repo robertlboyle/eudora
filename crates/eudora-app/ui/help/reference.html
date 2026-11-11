@@ -5,7 +5,7 @@
 
 <h2>File</h2>
 <table>
-<tr><td>Open File…</td><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Open an .eml or .ics file, or mailbox files to import. <a href="#open-files">More</a></td></tr>
+<tr><td>Open File…</td><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Open an .eml or .ics file, or mailbox files to import (a double-clicked .eml or .msg opens in the message viewer). <a href="#open-files">More</a></td></tr>
 <tr><td>Close</td><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>Close the window in front.</td></tr>
 <tr><td>Save Draft (Classic: Save)</td><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save the message being written to Drafts.</td></tr>
 <tr><td>Drafts…</td><td></td><td>List your drafts.</td></tr>
@@ -153,6 +153,15 @@
 <tr><td><kbd>Esc</kbd></td><td colspan="2">Close a maximized message; back to the list in the Gmail-style and Yahoo-style looks</td></tr>
 </table>
 <p>The calendar's own keys are in <a href="#calendar">The calendar</a>.</p>
+<h2>The message viewer (.msg and .eml files)</h2>
+<table>
+<tr><td><kbd>Ctrl</kbd>+<kbd>R</kbd></td><td>Reply (in Eudora's window)</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></td><td>Reply All</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Forward</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save as .eml</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>Print</td></tr>
+<tr><td><kbd>Esc</kbd>, <kbd>Ctrl</kbd>+<kbd>W</kbd></td><td>Close the viewer</td></tr>
+</table>
 </section>
 
 <section id="ref-options" data-title="Settings" data-index="Settings; Options; Preferences; settings window; File Settings; Tools Options; Account Settings; Personalities; Look; Recent Mail settings; Calendar settings; Speed; Downloading; Updates; Programs and plugins; Labels; Address completion; Pictures from the web; Web access; Sync; Accounts; Library">
@@ -229,6 +238,7 @@
 <table>
 <tr><th>The library</th><td>Windows <code>%LOCALAPPDATA%\Eudora 27\Library</code>; Mac <code>~/Library/Application Support/Eudora 27/Library</code>; Linux <code>~/.local/share/eudora27/library</code>. A restored library can be elsewhere; Eudora remembers the one it last opened.</td></tr>
 <tr><th>Inside it</th><td><code>packs</code> (every message's original bytes, compressed), <code>eudora.db</code> (folders, accounts, rules, settings), <code>index</code> and <code>header-index</code> (search), <code>Attachments</code> (files you opened or saved), <code>logs/download.log</code> (what the background download did).</td></tr>
+<tr><th>The message viewer</th><td>Attachments it opens, and messages it hands to Eudora's window for Reply or Forward, go in <code>Eudora msg</code> in the system's temporary folder (Windows <code>%TEMP%\Eudora msg</code>), removed after a day.</td></tr>
 <tr><th>Passwords and sign-ins</th><td>Windows Credential Manager; the Mac's Keychain; the phone's keychain or keystore. Never in the library.</td></tr>
 <tr><th>The program</th><td>Windows <code>%LOCALAPPDATA%\Programs\Eudora 27</code> (or Program Files when installed for everyone); Mac <code>Applications/Eudora.app</code>.</td></tr>
 </table>

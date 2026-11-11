@@ -62,7 +62,7 @@ CloseApplications=yes
 RestartApplications=no
 ChangesEnvironment=yes
 UsePreviousTasks=no
-; (.eml and .ics are registered below: Explorer is told to look again)
+; (.eml, .msg, and .ics are registered below: Explorer is told to look again)
 ChangesAssociations=yes
 
 [Files]
@@ -82,23 +82,32 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"
 Name: "addtopath"; Description: "Let command prompts and scripts run eudora (adds Eudora to the PATH)"
 
 [Registry]
-; Eudora opens .eml messages and .ics calendar files: listed under Open with and in Windows'
-; Default apps, where the user picks it (Windows lets no program make itself the default). HKA =
-; this user's, or every user's when installed for everyone.
+; Eudora opens .eml messages and .ics calendar files, and Outlook .msg files in its message
+; viewer: listed under Open with and in Windows' Default apps, where the user picks it (Windows
+; lets no program make itself the default). HKA = this user's, or every user's when installed for
+; everyone.
 Root: HKA; Subkey: "Software\Classes\Eudora.eml"; ValueType: string; ValueName: ""; ValueData: "Email message"; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\Eudora.eml\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\eudora27.exe,0"
 Root: HKA; Subkey: "Software\Classes\Eudora.eml\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\eudora27.exe"" ""%1"""
+Root: HKA; Subkey: "Software\Classes\Eudora.msg"; ValueType: string; ValueName: ""; ValueData: "Outlook message"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Eudora.msg\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\eudora27.exe,0"
+Root: HKA; Subkey: "Software\Classes\Eudora.msg\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\eudora27.exe"" ""%1"""
 Root: HKA; Subkey: "Software\Classes\Eudora.ics"; ValueType: string; ValueName: ""; ValueData: "Calendar file"; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\Eudora.ics\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\eudora27.exe,0"
 Root: HKA; Subkey: "Software\Classes\Eudora.ics\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\eudora27.exe"" ""%1"""
 Root: HKA; Subkey: "Software\Classes\.eml\OpenWithProgids"; ValueType: string; ValueName: "Eudora.eml"; ValueData: ""; Flags: uninsdeletevalue
 Root: HKA; Subkey: "Software\Classes\.ics\OpenWithProgids"; ValueType: string; ValueName: "Eudora.ics"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKA; Subkey: "Software\Classes\.msg\OpenWithProgids"; ValueType: string; ValueName: "Eudora.msg"; ValueData: ""; Flags: uninsdeletevalue
 Root: HKA; Subkey: "Software\Classes\Applications\eudora27.exe\SupportedTypes"; ValueType: string; ValueName: ".eml"; ValueData: ""; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Applications\eudora27.exe"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "Eudora"
+Root: HKA; Subkey: "Software\Classes\Applications\eudora27.exe\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\eudora27.exe"" ""%1"""
 Root: HKA; Subkey: "Software\Classes\Applications\eudora27.exe\SupportedTypes"; ValueType: string; ValueName: ".ics"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\Applications\eudora27.exe\SupportedTypes"; ValueType: string; ValueName: ".msg"; ValueData: ""
 Root: HKA; Subkey: "Software\Planet Networks\Eudora\Capabilities"; ValueType: string; ValueName: "ApplicationName"; ValueData: "Eudora"; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Planet Networks\Eudora\Capabilities"; ValueType: string; ValueName: "ApplicationDescription"; ValueData: "Mail for decades of messages"
 Root: HKA; Subkey: "Software\Planet Networks\Eudora\Capabilities\FileAssociations"; ValueType: string; ValueName: ".eml"; ValueData: "Eudora.eml"
 Root: HKA; Subkey: "Software\Planet Networks\Eudora\Capabilities\FileAssociations"; ValueType: string; ValueName: ".ics"; ValueData: "Eudora.ics"
+Root: HKA; Subkey: "Software\Planet Networks\Eudora\Capabilities\FileAssociations"; ValueType: string; ValueName: ".msg"; ValueData: "Eudora.msg"
 ; mailto: links: a URL protocol class, offered in Default apps as the mail program
 Root: HKA; Subkey: "Software\Classes\Eudora.mailto"; ValueType: string; ValueName: ""; ValueData: "URL:MailTo Protocol"; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\Eudora.mailto"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""

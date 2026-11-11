@@ -177,6 +177,17 @@ enum Command {
     },
     /// Writes a stored message's original bytes to a file.
     Raw { id: i64, out: PathBuf },
+    /// Converts an Outlook .msg file into an internet message (.eml), as Eudora's message viewer
+    /// shows it (no library needed). With --json, says what's in it instead.
+    MsgToEml {
+        /// The .msg file.
+        file: PathBuf,
+        /// Where to write the .eml (default: beside the .msg, with .eml for .msg).
+        out: Option<PathBuf>,
+        /// Print the subject, sender, date, and attachments as JSON (nothing written).
+        #[arg(long)]
+        json: bool,
+    },
     /// Runs one read-only SQL query on the library's database (SELECT only; for finding out
     /// why something happened). Columns are separated by tabs.
     Sql { query: String },
@@ -1542,6 +1553,28 @@ If it doesn't open, go to:
                     }
                     println!("{} contacts", thousands(rows.len() as u64));
                 }
+            }
+        }
+        Command::MsgToEml { file, out, json } => {
+            let bytes = std::fs::read(file).map_err(|e| eudora_core::Error::Other(format!("{}: {e}", file.display())))?;
+            let eml = eudora_core::msg_read::to_eml(&bytes)?;
+            if *json {
+                let d = eudora_core::parse::display(&eml, eudora_core::library::now());
+                let p = d.parsed;
+                let people = |list: &[eudora_core::parse::Addr]| list.iter().map(|a| serde_json::json!({ "name": a.name, "address": a.address })).collect::<Vec<_>>();
+                let attachments: Vec<_> = p.attachments.iter().map(|a| serde_json::json!({ "name": a.name, "type": a.mime, "size": a.size })).collect();
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "subject": p.subject, "from": people(&p.from), "to": people(&p.to), "cc": people(&p.cc),
+                        "date": p.date, "message_id": p.message_id, "html": d.html.is_some(), "attachments": attachments, "eml_bytes": eml.len(),
+                    }))?
+                );
+            } else {
+                let out = out.clone().unwrap_or_else(|| file.with_extension("eml"));
+                std::fs::write(&out, &eml)?;
+                eudora_core::saving::mark_downloaded(&out);
+                println!("Wrote {} bytes to {}", thousands(eml.len() as u64), out.display());
             }
         }
         Command::Raw { id, out } => {

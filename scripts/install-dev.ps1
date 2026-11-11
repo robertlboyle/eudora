@@ -52,14 +52,15 @@ $old = Join-Path ([Environment]::GetFolderPath('Programs')) 'Eudora 27.lnk'
 if (Test-Path $old) { Remove-Item $old -Force }
 Write-Output "Installed in $dest; Start Menu shortcut: $link"
 
-# .eml and .ics open with Eudora (as the installer registers them, for this user): listed under
+# .eml, .msg (in the message viewer), and .ics open with Eudora (as the installer registers them,
+# for this user): listed under
 # Open with and in Windows' Default apps, where the user picks it once
 $classes = 'HKCU:\Software\Classes'
 function Set-Value($key, $name, $value) {
     if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
     if ($name -eq '') { Set-Item -Path $key -Value $value } else { New-ItemProperty -Path $key -Name $name -Value $value -PropertyType String -Force | Out-Null }
 }
-foreach ($kind in @(@{ Ext = '.eml'; Name = 'Email message' }, @{ Ext = '.ics'; Name = 'Calendar file' })) {
+foreach ($kind in @(@{ Ext = '.eml'; Name = 'Email message' }, @{ Ext = '.msg'; Name = 'Outlook message' }, @{ Ext = '.ics'; Name = 'Calendar file' })) {
     $progId = 'Eudora' + $kind.Ext
     Set-Value "$classes\$progId" '' $kind.Name
     Set-Value "$classes\$progId\DefaultIcon" '' "$exe,0"
@@ -81,6 +82,12 @@ Set-Value 'HKCU:\Software\Clients\Mail\Eudora\Capabilities\URLAssociations' 'mai
 Set-Value 'HKCU:\Software\Planet Networks\Eudora\Capabilities' 'ApplicationName' 'Eudora'
 Set-Value 'HKCU:\Software\Planet Networks\Eudora\Capabilities' 'ApplicationDescription' 'Mail for decades of messages'
 Set-Value 'HKCU:\Software\RegisteredApplications' 'Eudora' 'Software\Planet Networks\Eudora\Capabilities'
+# (the name Open with shows, and Explorer told the associations changed, as the installer's
+# ChangesAssociations does: without it, Open with didn't list Eudora for .msg until a sign-out)
+Set-Value "$classes\Applications\eudora27.exe" 'FriendlyAppName' 'Eudora'
+Set-Value "$classes\Applications\eudora27.exe\shell\open\command" '' "`"$exe`" `"%1`""
+Add-Type -Namespace Eudora -Name Shell -MemberDefinition '[DllImport("shell32.dll")] public static extern void SHChangeNotify(int eventId, uint flags, System.IntPtr a, System.IntPtr b);'
+[Eudora.Shell]::SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)
 
 if (-not $NoStart) {
     Get-Process eudora27 -ErrorAction SilentlyContinue | Stop-Process

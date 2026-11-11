@@ -365,7 +365,7 @@ pub fn charset_name(codepage: u32) -> Option<&'static str> {
     })
 }
 
-fn decode(bytes: &[u8], codepage: u32) -> String {
+pub(crate) fn decode(bytes: &[u8], codepage: u32) -> String {
     let text = match codepage {
         1200 => utf16(bytes),
         _ => {
@@ -439,13 +439,29 @@ const BODY_FIELDS: [&str; 5] = ["mime-version", "content-type", "content-transfe
 
 /// Writes the item as an RFC 5322 message.
 pub fn to_mime(item: &Item) -> Vec<u8> {
+    to_mime_as(item, "Exchange export")
+}
+
+/// Writes the item as an RFC 5322 message, saying in `X-Eudora-Converted` what it was made from
+/// ("Exchange export", "Outlook .msg file").
+pub fn to_mime_as(item: &Item, made_from: &str) -> Vec<u8> {
     let mut out = String::new();
     let mut counter = 0u32;
-    write_message(item, &mut out, &mut counter);
+    write_message(item, &mut out, &mut counter, made_from);
     out.into_bytes()
 }
 
-fn write_message(item: &Item, out: &mut String, counter: &mut u32) {
+fn write_message(item: &Item, out: &mut String, counter: &mut u32, made_from: &str) {
+    out.push_str(&header_lines(item, made_from));
+    write_body(item, out, counter, made_from);
+}
+
+/// The message's header lines (each ending in CRLF): its original header block when it kept one
+/// (without the fields describing the old body), else made from its properties; then
+/// MIME-Version and `X-Eudora-Converted`. The body's own fields come after them.
+pub(crate) fn header_lines(item: &Item, made_from: &str) -> String {
+    let mut out = String::new();
+    let out = &mut out;
     let p = &item.props;
     match p.text(TRANSPORT_HEADERS) {
         Some(headers) => {
@@ -460,8 +476,8 @@ fn write_message(item: &Item, out: &mut String, counter: &mut u32) {
         None => made_headers(item, out),
     }
     out.push_str("MIME-Version: 1.0\r\n");
-    out.push_str("X-Eudora-Converted: Exchange export\r\n");
-    write_body(item, out, counter);
+    let _ = write!(out, "X-Eudora-Converted: {made_from}\r\n");
+    std::mem::take(out)
 }
 
 /// The fields of a header block, each with its folded lines joined by CRLF.
@@ -534,6 +550,8 @@ fn address(name: Option<&str>, email: Option<&str>) -> Option<String> {
     match (name, email) {
         (Some(n), Some(e)) => Some(format!("{} <{e}>", display_name(n))),
         (None, Some(e)) => Some(e.to_string()),
+        // (a recipient never looked up, as in a message not sent yet: its name is the address)
+        (Some(n), None) if n.contains('@') && !n.contains([' ', '<', '>', ',']) => Some(n.to_string()),
         (Some(n), None) => Some(format!("{}:;", display_name(n))), // a group: name only, no address
         (None, None) => None,
     }
@@ -579,8 +597,8 @@ pub(crate) struct Part {
     pub(crate) body: String,
 }
 
-fn write_body(item: &Item, out: &mut String, counter: &mut u32) {
-    let part = body_part(item, counter);
+fn write_body(item: &Item, out: &mut String, counter: &mut u32, made_from: &str) {
+    let part = body_part(item, counter, made_from);
     for h in &part.headers {
         out.push_str(h);
         out.push_str("\r\n");
@@ -589,7 +607,7 @@ fn write_body(item: &Item, out: &mut String, counter: &mut u32) {
     out.push_str(&part.body);
 }
 
-fn body_part(item: &Item, counter: &mut u32) -> Part {
+fn body_part(item: &Item, counter: &mut u32, made_from: &str) -> Part {
     let p = &item.props;
     let codepage = p.int(INTERNET_CODEPAGE).map(|c| c as u32);
     let html = html_body(p, codepage);
@@ -610,7 +628,7 @@ fn body_part(item: &Item, counter: &mut u32) -> Part {
             h
         } else {
             let mut parts = vec![h];
-            parts.extend(inline.iter().map(|a| attachment_part(a, true, counter)));
+            parts.extend(inline.iter().map(|a| attachment_part(a, true, counter, made_from)));
             multipart("related", parts, counter)
         }
     });
@@ -625,7 +643,7 @@ fn body_part(item: &Item, counter: &mut u32) -> Part {
         return main;
     }
     let mut parts = vec![main];
-    parts.extend(attached.iter().map(|a| attachment_part(a, false, counter)));
+    parts.extend(attached.iter().map(|a| attachment_part(a, false, counter, made_from)));
     multipart("mixed", parts, counter)
 }
 
@@ -665,12 +683,12 @@ pub(crate) fn bytes_part(mime: &str, charset: Option<&str>, data: &[u8], extra: 
     Part { headers, body }
 }
 
-fn attachment_part(a: &Attachment, inline: bool, counter: &mut u32) -> Part {
+fn attachment_part(a: &Attachment, inline: bool, counter: &mut u32, made_from: &str) -> Part {
     let p = &a.props;
     let filename = p.text(ATTACH_LONG_FILENAME).or(p.text(ATTACH_FILENAME));
     if let Some(embedded) = &a.embedded {
         let mut body = String::new();
-        write_message(embedded, &mut body, counter);
+        write_message(embedded, &mut body, counter, made_from);
         let mut headers = vec!["Content-Type: message/rfc822".to_string()];
         headers.push(disposition("attachment", filename.or(embedded.props.text(SUBJECT)).map(|s| format!("{s}.eml")).as_deref()));
         return Part { headers, body };
@@ -729,7 +747,7 @@ pub(crate) fn multipart(subtype: &str, parts: Vec<Part>, counter: &mut u32) -> P
     Part { headers: vec![format!("Content-Type: multipart/{subtype}; boundary=\"{boundary}\"")], body }
 }
 
-fn base64_lines(data: &[u8]) -> String {
+pub(crate) fn base64_lines(data: &[u8]) -> String {
     let encoded = base64::engine::general_purpose::STANDARD.encode(data);
     let mut out = String::with_capacity(encoded.len() + encoded.len() / 38);
     for chunk in encoded.as_bytes().chunks(76) {

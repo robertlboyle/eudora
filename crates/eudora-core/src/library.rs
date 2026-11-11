@@ -753,8 +753,15 @@ impl Library {
     /// Every address the user's own: their accounts' addresses (not shared mailboxes) and old
     /// Eudora personalities.
     pub fn own_addresses(&self) -> Result<Vec<String>> {
+        own_addresses_in(&self.conn)
+    }
+}
+
+/// The user's own addresses, read from a library's database (see `Library::own_addresses`).
+pub fn own_addresses_in(conn: &Connection) -> Result<Vec<String>> {
+    {
         // (not shared mailboxes: they're other people's, or a team's)
-        let mut stmt = self.conn.prepare("SELECT address, source FROM accounts WHERE kind <> 'graph-shared'")?;
+        let mut stmt = conn.prepare("SELECT address, source FROM accounts WHERE kind <> 'graph-shared'")?;
         let mut out = Vec::new();
         for row in stmt.query_map([], |r| Ok((r.get::<_, Option<String>>(0)?, r.get::<_, Option<String>>(1)?)))? {
             let (address, source) = row?;
@@ -768,7 +775,9 @@ impl Library {
         out.dedup_by(|a, b| a.eq_ignore_ascii_case(b));
         Ok(out)
     }
+}
 
+impl Library {
     /// `folder:name` / `in:name` (Outlook's and Gmail's): every folder of that name (or path) in
     /// any account, as the index's folder ids.
     fn resolve_folders(&self, query: &str) -> Result<String> {
