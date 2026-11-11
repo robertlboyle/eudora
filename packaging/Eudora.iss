@@ -191,6 +191,19 @@ begin
     RemoveFromPath(ExpandConstant('{app}'));
 end;
 
+{ Whether Folder is in the PATH. }
+function InPath(Folder: String): Boolean;
+var
+  Path: String;
+begin
+  Result := RegQueryStringValue(EnvRoot, EnvKey, 'Path', Path) and (Pos(';' + Uppercase(Folder) + ';', ';' + Uppercase(Path) + ';') > 0);
+end;
+
+var
+  { An Eudora from before 1.0.0 was replaced, and whether its folder was in the PATH (an update
+    passes no tasks, /TASKS=, so what the old install had is carried over by hand). }
+  ReplacedOld, OldOnPath: Boolean;
+
 { Eudora before 1.0.0 ran as eudora27.exe from the "Eudora 27" folder: its window is asked to
   close (it then stops its background download), else stopped, so the old folder can go. }
 function PrepareToInstall(var NeedsRestart: Boolean): String;
@@ -200,6 +213,8 @@ begin
   Result := '';
   if not FileExists(ExpandConstant('{autopf}\Eudora 27\eudora27.exe')) then
     exit;
+  ReplacedOld := True;
+  OldOnPath := InPath(ExpandConstant('{autopf}\Eudora 27'));
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM eudora27.exe', '', SW_HIDE, ewWaitUntilTerminated, Code);
   Tries := 0;
   while (Tries < 20) and (Exec(ExpandConstant('{sys}\cmd.exe'), '/c tasklist /FI "IMAGENAME eq eudora27.exe" | find /I "eudora27.exe" >nul', '', SW_HIDE, ewWaitUntilTerminated, Code)) and (Code = 0) do
@@ -338,6 +353,9 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssInstall then
     ShowTip(0);
-  if (CurStep = ssPostInstall) and WizardIsTaskSelected('addtopath') then
+  if (CurStep = ssPostInstall) and (WizardIsTaskSelected('addtopath') or OldOnPath) then
     AddToPath(ExpandConstant('{app}'));
+  { the old version's desktop shortcut, pointing at eudora27.exe: made to point at Eudora again }
+  if (CurStep = ssPostInstall) and ReplacedOld and FileExists(ExpandConstant('{autodesktop}\Eudora.lnk')) and not WizardIsTaskSelected('desktopicon') then
+    CreateShellLink(ExpandConstant('{autodesktop}\Eudora.lnk'), 'Mail for decades of messages', ExpandConstant('{app}\eudora.exe'), '', ExpandConstant('{app}'), '', 0, SW_SHOWNORMAL);
 end;
