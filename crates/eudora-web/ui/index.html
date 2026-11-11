@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f5fa8">
+<meta name="color-scheme" content="light dark">
+<title>Eudora</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/envelope.svg">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <!-- signing in -->
+  <section id="gate" class="gate" hidden>
+    <div class="gate-box">
+      <h1>Eudora</h1>
+      <form id="login-form" hidden>
+        <label for="login-password">Password</label>
+        <input id="login-password" type="password" autocomplete="current-password" required>
+        <button class="primary" type="submit">Sign In</button>
+        <button id="passkey-login" type="button" hidden>Sign In with a Passkey</button>
+      </form>
+      <form id="setup-form" hidden>
+        <p>Choose the password for signing in to Eudora on the web (at least 10 characters). You can add passkeys (Face ID, a fingerprint) once you're in.</p>
+        <label for="setup-password">New password</label>
+        <input id="setup-password" type="password" autocomplete="new-password" minlength="10" required>
+        <label for="setup-again">Again</label>
+        <input id="setup-again" type="password" autocomplete="new-password" minlength="10" required>
+        <button class="primary" type="submit">Set Password</button>
+      </form>
+      <p id="setup-elsewhere" hidden>No password is set yet. Set one first in a browser on the computer Eudora runs on (https://localhost), then sign in here.</p>
+      <p id="gate-error" class="error" role="alert"></p>
+    </div>
+  </section>
+
+  <!-- the mail -->
+  <div id="app" hidden>
+    <nav id="drawer" aria-label="Mailboxes">
+      <div class="drawer-head">
+        <span class="brand">Eudora</span>
+        <button class="icon-btn close-drawer" data-icon="xmark" title="Close" aria-label="Close"></button>
+      </div>
+      <button id="compose-btn-drawer" class="primary wide"><span data-icon="pen-to-square"></span>New Message</button>
+      <div id="folder-tree"></div>
+      <div class="drawer-foot">
+        <button id="check-mail" class="link"><span data-icon="arrows-rotate"></span>Check Mail</button>
+        <button id="open-settings" class="link"><span data-icon="gear"></span>Settings</button>
+        <div id="download-status" class="small"></div>
+      </div>
+    </nav>
+    <div id="scrim" hidden></div>
+
+    <main id="list-pane">
+      <header class="bar">
+        <button class="icon-btn open-drawer" data-icon="list" title="Mailboxes" aria-label="Mailboxes"></button>
+        <h2 id="list-title">All Mail</h2>
+        <button id="search-toggle" class="icon-btn" data-icon="magnifying-glass" title="Search" aria-label="Search"></button>
+      </header>
+      <form id="search-form" class="search">
+        <input id="search-input" type="search" placeholder="Search: words, from:, hasattachment:yes, received:last week…" enterkeyhint="search" autocomplete="off">
+      </form>
+      <header id="select-bar" class="bar select" hidden>
+        <button id="select-cancel" class="icon-btn" data-icon="xmark" title="Cancel" aria-label="Cancel"></button>
+        <h2 id="select-count">1 selected</h2>
+        <button id="select-forward" class="icon-btn" data-icon="share" title="Forward" aria-label="Forward"></button>
+        <button id="select-move" class="icon-btn" data-icon="folder-open" title="Move" aria-label="Move"></button>
+        <button id="select-delete" class="icon-btn" data-icon="trash-can" title="Delete" aria-label="Delete"></button>
+      </header>
+      <div id="list-info" class="small"></div>
+      <div id="search-help" hidden></div>
+      <ul id="list" aria-label="Messages"></ul>
+      <button id="compose-fab" class="fab" title="New Message" aria-label="New Message" data-icon="pen-to-square"></button>
+    </main>
+
+    <article id="reader" hidden>
+      <header class="bar">
+        <button id="reader-back" class="icon-btn" data-icon="arrow-left" title="Back" aria-label="Back"></button>
+        <h2 class="grow"></h2>
+        <button id="reader-move" class="icon-btn" data-icon="folder-open" title="Move" aria-label="Move"></button>
+        <button id="reader-delete" class="icon-btn" data-icon="trash-can" title="Delete" aria-label="Delete"></button>
+      </header>
+      <div id="reader-body">
+        <h1 id="m-subject"></h1>
+        <div id="m-meta"></div>
+        <div id="m-fraud" class="notice fraud" hidden><b>Warning: this looks like a fraud.</b> <span></span> Its links and pictures are turned off.</div>
+        <div id="m-pictures" class="notice" hidden><span>Pictures from the web are hidden.</span><button id="m-show-pictures">Show Pictures</button></div>
+        <div id="m-attachments"></div>
+        <div id="m-content"></div>
+      </div>
+      <footer class="actions">
+        <button data-act="reply"><span data-icon="reply"></span>Reply</button>
+        <button data-act="replyAll"><span data-icon="reply-all"></span>Reply All</button>
+        <button data-act="forward"><span data-icon="share"></span>Forward</button>
+      </footer>
+    </article>
+    <div id="reader-empty" class="small">Choose a message to read it.</div>
+  </div>
+
+  <!-- writing -->
+  <section id="composer" hidden>
+    <header class="bar">
+      <button id="c-close" class="icon-btn" data-icon="xmark" title="Close" aria-label="Close"></button>
+      <h2 class="grow" id="c-title">New Message</h2>
+      <button id="c-save" class="link">Save Draft</button>
+      <button id="c-send" class="primary"><span data-icon="paper-plane"></span>Send</button>
+    </header>
+    <div class="c-fields">
+      <label>From <select id="c-from"></select></label>
+      <label>To <input id="c-to" autocomplete="off" spellcheck="false" inputmode="email"></label>
+      <button id="c-more" class="link small" type="button">Cc / Bcc</button>
+      <label class="c-extra" hidden>Cc <input id="c-cc" autocomplete="off" spellcheck="false" inputmode="email"></label>
+      <label class="c-extra" hidden>Bcc <input id="c-bcc" autocomplete="off" spellcheck="false" inputmode="email"></label>
+      <label>Subject <input id="c-subject" autocomplete="off"></label>
+      <ul id="c-suggest" hidden></ul>
+    </div>
+    <textarea id="c-body" placeholder="Write your message"></textarea>
+    <div id="c-files"></div>
+    <label class="link small c-attach"><span data-icon="paperclip"></span>Attach Files <input id="c-attach" type="file" multiple hidden></label>
+    <details id="c-quoted" hidden><summary>Original message (included)</summary><div id="c-quoted-body"></div></details>
+    <p id="c-error" class="error" role="alert"></p>
+  </section>
+
+  <!-- choosing a folder -->
+  <dialog id="pick">
+    <h2 id="pick-title">Move To</h2>
+    <input id="pick-filter" placeholder="Type to find a folder" autocomplete="off">
+    <ul id="pick-list"></ul>
+    <div class="buttons"><button id="pick-cancel">Cancel</button></div>
+  </dialog>
+
+  <!-- settings -->
+  <section id="settings" hidden>
+    <header class="bar">
+      <button id="settings-back" class="icon-btn" data-icon="arrow-left" title="Back" aria-label="Back"></button>
+      <h2 class="grow">Settings</h2>
+    </header>
+    <div class="settings-body">
+      <h3>Mail</h3>
+      <label class="check"><input type="checkbox" id="s-hide-sent"> Leave mail I sent out of All Mail</label>
+      <h3>Passkeys</h3>
+      <p class="small">Sign in with Face ID, a fingerprint or this device's PIN instead of the password.</p>
+      <ul id="s-passkeys" class="plain"></ul>
+      <button id="s-add-passkey">Add a Passkey on This Device</button>
+      <p id="s-passkey-note" class="small" hidden>Passkeys need Eudora to be reached by a name (not a number like 192.168.1.10) with a trusted certificate: install the certificate below and use this computer's name.</p>
+      <h3>Signed-in devices</h3>
+      <ul id="s-sessions" class="plain"></ul>
+      <h3>Password</h3>
+      <form id="s-password-form">
+        <input id="s-current" type="password" autocomplete="current-password" placeholder="Current password" required>
+        <input id="s-new" type="password" autocomplete="new-password" minlength="10" placeholder="New password (10+ characters)" required>
+        <button type="submit">Change Password</button>
+      </form>
+      <h3>This phone and the certificate</h3>
+      <p class="small">Eudora uses its own certificate. To stop the browser's warning, install its certificate authority on this device once: <a href="/ca.crt">download it</a>, then on iPhone: Settings ▸ General ▸ VPN &amp; Device Management ▸ install it, and Settings ▸ General ▸ About ▸ Certificate Trust Settings ▸ turn it on. On Android: Settings ▸ Security ▸ Encryption &amp; credentials ▸ Install a certificate ▸ CA certificate.</p>
+      <p id="s-message" class="small" role="status"></p>
+      <button id="s-logout" class="danger">Sign Out</button>
+    </div>
+  </section>
+
+  <div id="toast" role="status" hidden></div>
+  <script src="/app.js"></script>
+</body>
+</html>

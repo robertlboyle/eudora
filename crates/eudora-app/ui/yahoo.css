@@ -1,0 +1,99 @@
+/* Yahoo-style: the feel of Yahoo Mail. A deep purple bar with the search in it, purple accents
+   and selection, one line per message (sender, labels, subject - preview, date), the message
+   opening in place of the list. Same views and commands as every other look. */
+
+body.skin-yahoo {
+  --font: "Helvetica Neue", Helvetica, "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-size: 13.5px;
+  --mono: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  --mono-size: 13px;
+  --row: 42px;
+  --folder-row: 30px;
+  --folder-radius: 6px;
+  --folder-margin: 0 8px;
+  --toolbar-pad: 10px 16px;
+  --field-radius: 6px;
+  --button-radius: 6px;
+
+  --text: #232a31;
+  --muted: #6e7780;
+  --window: #f5f8fa;
+  --toolbar: #6001d2;
+  --sidebar: #f5f8fa;
+  --pane-title: transparent;
+  --list: #ffffff;
+  --head: #ffffff;
+  --reader: #ffffff;
+  --reader-head: #ffffff;
+  --field: #ffffff;
+  --button: #ffffff;
+  --hover: #f1ecfa;
+  --line: #e0e4e9;
+  --line-strong: #c7cdd2;
+  --row-line: #eef0f2;
+  --accent: #6001d2;
+  --accent-soft: #6001d233;
+  --selected: #e8deff;
+  --selected-text: #232a31;
+  --selected-blur: #f1ecfa;
+  --note: #fff6e0;
+  --note-text: #6b4e00;
+  --quote1: #6001d2;
+  --quote2: #0f69ff;
+  --quote3: #1a8754;
+  --label-bg: #efe7ff;
+  --label-text: #4b0aa8;
+}
+
+body.skin-yahoo #toolbar { color: #ffffff; border-bottom: 0; }
+body.skin-yahoo .search { border-color: transparent; max-width: 680px; }
+body.skin-yahoo .search:focus-within { box-shadow: 0 0 0 2px #ffffff88; }
+body.skin-yahoo .tool { background: #ffffff1f; border-color: #ffffff55; color: #ffffff; }
+body.skin-yahoo .tool:hover { background: #ffffff33; }
+body.skin-yahoo #status { border-top: 0; background: var(--window); }
+
+body.skin-yahoo .pane-title { font-weight: 700; color: var(--text); border-bottom: 0; padding: 12px 18px 6px; }
+body.skin-yahoo .folder.on { background: #e8deff; color: #4b0aa8; font-weight: 700; }
+body.skin-yahoo .folder.on .f-count { color: inherit; }
+body.skin-yahoo .splitter { background: transparent; border-color: transparent; }
+
+body.skin-yahoo #list-pane, body.skin-yahoo #message-pane { margin: 8px 12px 8px 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+body.skin-yahoo #list-title { background: var(--list); border-bottom: 1px solid var(--line); padding: 10px 16px; }
+body.skin-yahoo #list-head { display: none; }
+body.skin-yahoo .row.on { box-shadow: inset 3px 0 0 var(--accent); }
+body.skin-yahoo .l-from { color: #232a31; }
+body.skin-yahoo .row.on .l-from { color: inherit; }
+body.skin-yahoo #message-head { padding: 14px 20px 0; }
+body.skin-yahoo #m-subject { font-size: 1.45em; font-weight: 700; }
+body.skin-yahoo #m-views button.on { border-bottom-color: var(--accent); }
+body.skin-yahoo #m-back { color: var(--accent); border-color: #c9b3f3; }
+
+@media (prefers-color-scheme: dark) {
+  body.skin-yahoo {
+    --text: #e9e6f0;
+    --muted: #a59fb3;
+    --window: #1b1824;
+    --toolbar: #3b0a82;
+    --sidebar: #1b1824;
+    --list: #242030;
+    --head: #242030;
+    --reader: #242030;
+    --reader-head: #242030;
+    --field: #2d2840;
+    --button: #2d2840;
+    --hover: #2f2944;
+    --line: #3a3450;
+    --line-strong: #4f4866;
+    --row-line: #2f2a40;
+    --accent: #b28aff;
+    --selected: #3d2d6b;
+    --selected-text: #ffffff;
+    --selected-blur: #2f2944;
+    --label-bg: #3d2d6b;
+    --label-text: #e3d6ff;
+    --note: #3d3315;
+    --note-text: #f1d58a;
+  }
+  body.skin-yahoo .folder.on { background: #3d2d6b; color: #e3d6ff; }
+  body.skin-yahoo .l-from { color: inherit; }
+}

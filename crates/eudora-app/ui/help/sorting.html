@@ -1,0 +1,119 @@
+<section id="spam-filter" data-title="The spam filter: how mail is sorted" data-index="spam filter; sorting; triage; Bulk; Marketing; Notifications; Lists; Spam; priority; people; whitelist; categories; turn on spam filter; Sort arriving mail">
+<h1>The spam filter: how mail is sorted</h1>
+<p>Eudora's spam filter does more than catch spam. It reads each arriving message and decides what kind of mail it is:</p>
+<table>
+<tr><th>Kind</th><th>What it is</th><th>Where it goes</th></tr>
+<tr><td>Priority</td><td>Urgent wording from a sender that proves who it is; security notices</td><td>Stays in the Inbox</td></tr>
+<tr><td>People</td><td>Mail from people you write to</td><td>Stays in the Inbox</td></tr>
+<tr><td>Other</td><td>Anything the filter has no reason to move</td><td>Stays in the Inbox</td></tr>
+<tr><td>Marketing</td><td>Mass mailings, newsletters, offers</td><td><code>Bulk/Marketing</code> (a big sender gets a folder of its own under it)</td></tr>
+<tr><td>Notifications</td><td>Machine-sent mail about you: orders, alerts, systems (Amazon, DocuSign, Jira…)</td><td><code>Notifications/&lt;sender&gt;</code></td></tr>
+<tr><td>Mailing lists</td><td>Discussion lists</td><td><code>Lists</code></td></tr>
+<tr><td>Spam</td><td>Spam, frauds, and mail in languages you don't read</td><td><code>Spam</code></td></tr>
+<tr><td>Maybe spam</td><td>Mail the filter isn't sure about</td><td>Stays in the Inbox, listed in the Maybe Spam View</td></tr>
+</table>
+<p>Folders are made only when a message first goes into them, in that message's account, and on the server too.</p>
+<h2>Turning it on</h2>
+<p>The filter is off until you turn it on: <span class="ui">Special ▸ Mail Filter Rules… ▸ Sort arriving mail with the spam filter</span>. From then on it sorts mail as it arrives (older mail stays where it is; see <a href="#sort-now">Sorting mail already here</a>). Choose there which mailboxes it sorts; your own accounts are ticked at first, shared mailboxes and imported archives aren't.</p>
+<h2>What it looks at</h2>
+<ul>
+<li>Whether the sender proves who it is (SPF, DKIM, and DMARC, read from the right place even when mail passes through a security gateway).</li>
+<li>Who you correspond with: everyone you've written to, replied to, or forwarded from is on your <b>whitelist</b>, for each mailbox. Their mail is never called spam. Mass mailings from them still count as marketing, unless you added them to the whitelist yourself.</li>
+<li>What it has learned from your Spam and Junk folders and from every Spam / Not Spam you mark.</li>
+<li>Well-known senders (Amazon, banks, airlines…), counted only when the mail proves it really comes from them.</li>
+<li>Young domains (registered in the last month), and with a Spamhaus key, Spamhaus's blocklists.</li>
+<li>Fraud signs; see <a href="#fraud">Fraud and phishing</a>.</li>
+<li>The language: see <a href="#languages">Languages you read</a>.</li>
+</ul>
+<p>Each check adds or takes away points with a reason in plain words. <span class="ui">Special ▸ Why? (Spam Filter)</span> on a message shows them all.</p>
+</section>
+
+<section id="spam-marking" data-title="Spam and Not Spam" data-index="Spam; Not Spam; Junk; Not Junk; Ctrl+Shift+J; Ctrl+Alt+J; teach the filter; blacklist; block sender">
+<h1>Spam and Not Spam</h1>
+<ul>
+<li><span class="ui">Message ▸ Spam</span> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd>; <b>Junk</b> in Classic mode): moves the message to Spam, blocks the sender in that mailbox, adds a rule that also catches the same mailing from other addresses, and teaches the filter.</li>
+<li><span class="ui">Message ▸ Not Spam</span> (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>J</kbd>; <b>Not Junk</b>): puts the sender on your whitelist, removes rules that sent such mail to Spam, moves the message back to the Inbox, and teaches the filter.</li>
+</ul>
+<p>Both act in the message's own mailbox. Mail marked spam leaves the Maybe Spam View.</p>
+</section>
+
+<section id="sort-now" data-title="Sorting mail already here" data-index="Sort with the Spam Filter; Ctrl+Shift+F; review; dry run; Move; sort selection; sort search results; stop sorting">
+<h1>Sorting mail already here</h1>
+<p>Select messages (or none, for the whole list), from any mailbox, View, or search results, and choose <span class="ui">Special ▸ Sort with the Spam Filter…</span> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> in Modern mode).</p>
+<p>Nothing moves yet. A review window lists each message with where it would go, all ticked. <b>Show</b> filters the list by kind; click a row to see every rule it matched. Untick what should stay, then choose <b>Move</b>.</p>
+<p>Over 10,000 messages, Eudora asks first and says roughly how long deciding takes. Deciding runs in the background, with its progress on the status bar and a <b>Stop</b> button.</p>
+</section>
+
+<section id="mail-filter-rules" data-title="Mail Filter Rules" data-index="Mail Filter Rules; spam rules; exceptions; inclusions; blacklist; whitelist; like this rule; Like selected; turn off a rule; Applies in; Spamhaus key; Learn now">
+<h1>Mail Filter Rules</h1>
+<p><span class="ui">Special ▸ Mail Filter Rules…</span> lists every rule the spam filter uses, in the order it checks them: your blocked senders, "like this" rules, the built-in checks, your whitelisted senders, and the priority phrase groups.</p>
+<p>Click a rule to change it:</p>
+<ul>
+<li><b>Use this rule</b>: untick it to have the rule ignored (or untick it in the list).</li>
+<li><b>Applies in</b>: tick mailboxes to use the rule only there (none ticked: every mailbox).</li>
+<li><b>Exceptions</b>: the rule is skipped for messages matching any of these.</li>
+<li><b>Inclusions</b>: the rule also applies to messages matching any of these.</li>
+</ul>
+<p>Built-in rules can only be switched off; your own entries can be removed.</p>
+<h2>Adding rules</h2>
+<ul>
+<li><b>+ Blacklist</b> / <b>+ Whitelist</b>: an address or <code>@domain</code>, with what to do with its mail.</li>
+<li><b>+ Like selected</b>: a rule for mail like the selected message, by its mailing list, signer, or domain, that keeps working when the sender changes addresses. Eudora shows what the rule looks at and how many of the last year's messages it would catch before you save it.</li>
+</ul>
+<h2>Other settings in this window</h2>
+<ul>
+<li><b>Sort arriving mail with the spam filter</b>, and which mailboxes it sorts.</li>
+<li><b>Learn now</b>: teaches the filter again from your Spam and Junk folders and your correspondence.</li>
+<li><b>Spamhaus DQS key</b>: with a free key from Spamhaus, arriving mail's sending servers and domains are checked against Spamhaus's lists.</li>
+<li><b>Languages you read</b>: see <a href="#languages">Languages you read</a>.</li>
+</ul>
+</section>
+
+<section id="languages" data-title="Languages you read" data-index="languages; foreign language; other languages; Italian; Spanish; non-English">
+<h1>Languages you read</h1>
+<p>Mail in a language you don't read goes to Spam. Choose your languages in <span class="ui">Special ▸ Mail Filter Rules… ▸ Languages you read</span> (English until you choose).</p>
+<p>The words of the message decide, not the character set it declares, so someone whose computer is set up for another language but who writes to you in English is never caught. People you correspond with are exempt.</p>
+</section>
+
+<section id="fraud" data-title="Fraud and phishing" data-index="fraud; phishing; scam; fake DocuSign; fake Microsoft; password reset; red warning; dead links">
+<h1>Fraud and phishing</h1>
+<p>Eudora looks for the marks of a fraud: a well-known brand (DocuSign, Microsoft, PayPal, a bank, the IRS, a shipping company…) named by a sender from another organization's domain, your own company's name used by an outside sender, and lures such as "sign this document", "your password expires", "verify your account", or "voicemail waiting" from senders that can't prove who they are.</p>
+<p>A message judged a fraud shows a <b>red warning</b>, and for your safety:</p>
+<ul>
+<li>every link in it is switched off, unsubscribe links included;</li>
+<li>its pictures are never fetched;</li>
+<li>its attachments aren't opened.</li>
+</ul>
+<p>This can't be overridden. If the message is genuine, mark it <a href="#spam-marking">Not Spam</a>: the sender goes on your whitelist, and people on your whitelist are never judged this way.</p>
+</section>
+
+<section id="red-alert" data-title="Red Alerts and security notices" data-index="Red Alert; security notice; CISA; patch; vulnerability; CVE; urgent; shut-off notice; collections">
+<h1>Red Alerts and security notices</h1>
+<p>The <b>Red Alert</b> View gathers the mail you must never miss: shut-off and disconnection notices, defaults, missed payments and collections, lawsuits, tax and regulator notices, and "emergency" or "urgent" mail from people you write to. Government mail counts only when it proves it's from the government, so a fake IRS message never does.</p>
+<p><b>Security notices</b> (security advisories, vulnerability and patch notices, CISA alerts, Patch Tuesday, firmware updates) from senders that prove who they are, or forwarded by people you work with, are Red Alerts and stay in your Inbox even when the spam filter sorts. A security product's own detection alerts and marketing about security aren't counted. The rule "Security notices" in Mail Filter Rules can be switched off or given exceptions.</p>
+</section>
+
+<section id="subscriptions" data-title="Subscriptions and unsubscribing" data-index="unsubscribe; subscriptions; newsletters; mailing lists; List-Unsubscribe; Manage subscriptions">
+<h1>Subscriptions and unsubscribing</h1>
+<p><span class="ui">Mailbox ▸ Subscriptions (unsubscribe)…</span>, or <b>Manage subscriptions…</b> above the Notifications, Marketing, and Lists folders, lists every newsletter, mailing list, and notification that wrote to you in the last 12 months, by sender: its kind, mailbox, how many in the last 30 days and 12 months, and the latest. Only senders that prove who they are are listed; spam and frauds never are, since unsubscribing from them only confirms your address works.</p>
+<p><b>Unsubscribe</b> asks first, then uses the sender's one-click unsubscribe where it offers one, else opens its unsubscribe page in your browser, else prepares an unsubscribe message for you to send. Eudora remembers it and shows how many messages came from that sender since. <b>Show</b> lists the sender's mail.</p>
+</section>
+
+<section id="filters" data-title="Rules (Filters)" data-index="filters; rules; Tools Filters; Filter Messages; Ctrl+J; Make Filter; incoming; outgoing; manual; tests; actions; regex; Skip rest; classic filters; Filters.pce; Run a plugin">
+<h1>Rules (Filters)</h1>
+<p>Rules are classic Eudora's filters: each has tests and actions. <span class="ui">Tools ▸ Filters</span> opens the list: switch each on or off, change their order, and edit them.</p>
+<h2>Tests</h2>
+<p>A test looks at a header (From, To, Subject, any header by name), «Any Header», «Any Recipient», «Body», or «Personality» (the account), with: contains, doesn't contain, is, isn't, starts with, ends with, appears, doesn't appear, matches a regular expression (with or without case), greater than, or less than. A rule can have any number of tests (<b>+ Test</b>), matching <b>all of these</b> or <b>any of these</b>; a test can be marked <b>unless</b>. Each rule also says <b>When</b> it runs: Mail arrives, Filter Messages (by hand), or Mail is sent.</p>
+<h2>Actions</h2>
+<p>Transfer to a folder, copy to a folder, label, set / raise / lower priority, set status, junk, change the subject (<code>^</code> stands for the old one), forward, redirect, reply (with the rule's words or a classic stationery file), notify you, sort with the spam filter, run a plugin, and <b>Skip the rest</b> (no later rule runs on that message, the spam filter included).</p>
+<p>Automatic forwards, redirects, and replies are never sent to mailing lists, bulk mail, automatic messages, or yourself, and a rule replies to the same address at most once a day.</p>
+<h2>When rules run</h2>
+<ul>
+<li><b>When mail arrives</b>: rules marked "Mail arrives" run on new mail once you turn on <span class="ui">Run the rules marked “Mail arrives” on new mail</span> in the Filters window. They never go back over mail that came before.</li>
+<li><b>Mail is sent</b>: these rules run on mail in your Sent folders as it arrives.</li>
+<li><b>By hand</b>: <span class="ui">Special ▸ Filter Messages</span> (<kbd>Ctrl</kbd>+<kbd>J</kbd>) runs your rules on the selected messages, or the whole mailbox. In the Filters window, <b>Try on this folder</b> shows what would happen without changing anything; <b>Run on this folder</b> does it.</li>
+</ul>
+<p>The spam filter is one rule among them ("Spam filter"), so a rule above it that moves a message or skips the rest keeps the spam filter from it.</p>
+<p><span class="ui">Special ▸ Make Filter…</span> starts a rule from the selected message's sender. <b>Import classic Eudora filters…</b> in the Filters window reads a classic <code>Filters.pce</code>.</p>
+<p>What the rules did on new mail, message by message, is in <a href="#activity">Activity</a> ▸ Details.</p>
+</section>

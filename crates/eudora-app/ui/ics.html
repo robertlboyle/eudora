@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calendar File – Eudora</title>
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="eudora.css">
+  <link rel="stylesheet" href="thunderbird.css">
+  <link rel="stylesheet" href="lookout-classic.css">
+  <link rel="stylesheet" href="lookout-new.css">
+  <link rel="stylesheet" href="gmail.css">
+  <link rel="stylesheet" href="yahoo.css">
+  <style>
+    body.ics-file { overflow: auto; padding: 18px 22px; background: var(--reader); color: var(--text); }
+    .ics-head h1 { margin: 0 0 4px; font-size: 1.35em; }
+    .ics-pick { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0 4px; }
+    .ics-event { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+    .ics-event h2 { margin: 0 0 6px; font-size: 1.15em; }
+    .ics-row { margin: 3px 0; }
+    .ics-row b { display: inline-block; min-width: 6.5em; color: var(--muted); font-weight: 600; }
+    .ics-notes { white-space: pre-wrap; margin: 8px 0 0; max-height: 14em; overflow: auto; }
+    .ics-actions { margin-top: 10px; display: flex; gap: 8px; align-items: center; }
+    .ics-done { color: var(--muted); }
+  </style>
+  <script src="icons/set.js"></script>
+</head>
+<body class="skin-eudora ics-file">
+  <div class="ics-head">
+    <h1 id="i-name">Calendar file</h1>
+    <p id="i-about" class="p-note"></p>
+    <div class="ics-pick"><label for="i-calendar">Add to:</label> <select id="i-calendar"></select></div>
+    <p class="p-note">Adding an event puts it on your calendar only: the people in it aren't sent anything.</p>
+  </div>
+  <div id="i-events"></div>
+  <script src="ask.js"></script>
+  <script src="ics.js"></script>
+</body>
+</html>

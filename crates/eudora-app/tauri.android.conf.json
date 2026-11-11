@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "create": false,
+        "title": "Eudora",
+        "url": "phone/index.html",
+        "dragDropEnabled": false
+      }
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Eudora on a phone (iOS and Android: the phone builds open this page; desktops open ../index.html).
+     Designed for a phone, not the desktop window made small. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="color-scheme" content="light dark">
+<title>Eudora</title>
+<link rel="stylesheet" href="phone.css">
+<script src="../icons/set.js"></script>
+</head>
+<body>
+  <!-- each tab keeps its own stack of screens; the one on top shows -->
+  <main id="tabs"></main>
+
+  <nav id="tabbar" aria-label="Sections"></nav>
+
+  <!-- choices from the bottom (a folder to move to, Reply / Reply All / Forward, a question) -->
+  <div id="scrim" hidden></div>
+  <section id="sheet" role="dialog" aria-modal="true" hidden></section>
+
+  <!-- a short message at the bottom ("Moved to Archive · Undo") -->
+  <div id="toast" role="status" hidden></div>
+
+  <script src="phone.js"></script>
+</body>
+</html>

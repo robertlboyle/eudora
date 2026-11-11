@@ -1,0 +1,167 @@
+<section id="welcome" data-title="Welcome to Eudora" data-index="introduction; what Eudora is; library; one library for every account; free; open source">
+<h1>Welcome to Eudora</h1>
+<p>Eudora is a free mail program for Windows and the Mac, with phone versions on the way. It is built for very large mailboxes: millions of messages and decades of mail, with searches and folders that open at once.</p>
+<p>All of your mail goes into <b>one library</b> on your computer: Microsoft 365 and Outlook.com, Gmail, any IMAP or POP3 account, and old mail you import (classic Eudora folders, mbox files, .eml files). You get one search, one set of rules, and one window over all of it.</p>
+<p>Your mail servers stay the master copy. Eudora keeps a full copy on your computer, so it works without a connection. When you move, delete, flag, or read a message, Eudora makes the same change on the server as soon as it can.</p>
+<h2>How this manual is organized</h2>
+<ul>
+<li><b>Getting started</b>: adding your accounts, bringing in old mail, and finding your way around the window.</li>
+<li><b>Tasks</b>: reading, searching, writing, organizing, sorting, the calendar, contacts, To Do, and keeping things running.</li>
+<li><b><a href="#ref-menus">Reference</a></b>: every menu, keyboard shortcut, window, and setting.</li>
+<li><b><a href="#trouble">Troubleshooting</a></b>: what to do when something doesn't work as expected.</li>
+<li><b><a href="#index">Index</a></b>: every topic A to Z. The search box at the top finds any word in the manual.</li>
+</ul>
+<p class="note">Open this manual at any time with <span class="ui">Help ▸ Eudora Help</span>, <kbd>F1</kbd>, or on the Mac <kbd>⌘</kbd>+<kbd>?</kbd>. Press <kbd>Ctrl</kbd>+<kbd>F</kbd> (on the Mac <kbd>⌘</kbd>+<kbd>F</kbd>) or <kbd>/</kbd> to jump to the search box.</p>
+<h2>Windows and the Mac</h2>
+<p>Eudora works the same way on both. On the Mac, the <kbd>⌘</kbd> (Command) key takes the place of <kbd>Ctrl</kbd> in every shortcut, and <kbd>⌥</kbd> (Option) takes the place of <kbd>Alt</kbd>. This manual writes the Windows keys.</p>
+</section>
+
+<section id="first-run" data-title="The first time you start Eudora" data-index="first start; Welcome window; setting up; library location; where mail is stored">
+<h1>The first time you start Eudora</h1>
+<p>The first time Eudora starts, it makes an empty library and shows the <span class="ui">Welcome</span> window. Choose how to bring in your mail:</p>
+<ul>
+<li><b>Microsoft 365 or Outlook.com</b>: sign in with Microsoft in your browser. See <a href="#add-microsoft">Adding a Microsoft account</a>.</li>
+<li><b>Any other mail account</b>: IMAP or POP3 for Gmail, Yahoo, iCloud, or your company's or provider's mail server. See <a href="#add-imap">Adding an IMAP or POP3 account</a>.</li>
+<li><b>Old mail on this computer</b>: classic Eudora folders, mbox, or .eml files. See <a href="#import">Importing old mail</a>.</li>
+<li><b>Restore from a backup</b>: everything from a Eudora backup made on this or another computer. See <a href="#restore">Restoring a backup</a>.</li>
+</ul>
+<p>Before adding an account, choose <b>how much mail to keep on this computer</b> with the slider in the Welcome window: Everything, or the last 1 month to 20 years. On a tablet or a computer with a small drive, a shorter period keeps Eudora from downloading years of mail and filling the disk: only that period is downloaded, newest first. Your mail stays on its servers either way, and you can change the period later to any length (<a href="#keep-period">Keeping only recent mail on this computer</a>).</p>
+<p>You can choose <span class="ui">Later</span> and add accounts at any time in <span class="ui">Settings ▸ Accounts</span>.</p>
+<h2>Where your mail is kept</h2>
+<p>The library lives in your user folder:</p>
+<table>
+<tr><th>Windows</th><td><code>%LOCALAPPDATA%\Eudora 27\Library</code></td></tr>
+<tr><th>Mac</th><td><code>~/Library/Application Support/Eudora 27/Library</code></td></tr>
+<tr><th>Linux</th><td><code>~/.local/share/eudora27/library</code></td></tr>
+</table>
+<p>It holds the original bytes of every message, a database of what's in each folder, and the search indexes. Attachments you open or save go into its <code>Attachments</code> folder, in a folder for each year.</p>
+<p class="warn">Never put the library in Dropbox, OneDrive, Google Drive, iCloud Drive, or any other syncing folder. Those programs lock files while Eudora is writing them, which can damage the database. Eudora refuses to restore a backup into such a folder. To move mail between computers, use <a href="#backup">Back Up Eudora</a> or <a href="#sync">sync between your computers</a>.</p>
+<p>Large mailboxes take a while to come down the first time. Eudora downloads your newest mail first, so you can start working at once, and fills in older mail behind it. The status bar at the bottom of the window shows real numbers as it goes.</p>
+</section>
+
+<section id="add-microsoft" data-title="Adding a Microsoft account" data-index="Microsoft 365; Outlook.com; Hotmail; Live; Exchange Online; sign in; work or school account; Online Archive; consent">
+<h1>Adding a Microsoft account</h1>
+<p>Eudora works with Microsoft 365 (work or school accounts) and with personal Outlook.com, Hotmail, and Live accounts.</p>
+<ol>
+<li>Choose <span class="ui">Settings ▸ Accounts ▸ Add a Microsoft account…</span> (or <span class="ui">Microsoft 365 or Outlook.com</span> in the Welcome window).</li>
+<li>Your browser opens Microsoft's sign-in page. Sign in as usual.</li>
+<li>Microsoft asks whether Eudora may use your mail, calendar, contacts, and tasks. Choose <span class="ui">Accept</span>. Some organizations require their administrator to approve Eudora first.</li>
+<li>Your browser says you can close it, and the mail starts coming in.</li>
+</ol>
+<p>You can add as many Microsoft accounts as you have. The first one you add is your <b>default</b> account: it carries your To Do list and, unless you choose otherwise, your synced settings.</p>
+<p>Eudora never sees your Microsoft password. It keeps only the sign-in Microsoft gives it, in Windows Credential Manager or the Mac's Keychain.</p>
+<h2>Your Online Archive</h2>
+<p>Many Microsoft 365 mailboxes have an <b>Online Archive</b> holding older mail. To bring it down too, turn on <span class="ui">Include the Online Archive</span> in <span class="ui">Settings ▸ Downloading and sync</span>. Its folders join your mailbox's folders, so you can manage the whole mailbox as one. See <a href="#online-archive">The Online Archive</a>.</p>
+<h2>Shared mailboxes</h2>
+<p>To add shared mailboxes (or other people's mailboxes you were given access to), choose <span class="ui">Find shared mailboxes…</span> in the Accounts settings and tick the ones you want. See <a href="#shared-mailboxes">Shared mailboxes</a>.</p>
+<h2>Signing in again</h2>
+<p>When Eudora gains a new ability that needs Microsoft's permission, or when your organization resets sign-ins, choose <span class="ui">Sign in to Microsoft 365 again…</span> in the Accounts settings. Eudora shows there what it may do on the server.</p>
+</section>
+
+<section id="add-google" data-title="Adding a Google account" data-index="Gmail; Google Workspace; Google sign-in; labels; Google contacts; Google calendar">
+<h1>Adding a Google account</h1>
+<p>Choose <span class="ui">Settings ▸ Accounts ▸ Add a Google account…</span>. Your browser opens Google's sign-in page; sign in and allow Eudora. Eudora then gets your mail, sending, labels, contacts, and calendars through Google's own connection.</p>
+<p>In Gmail, a message can carry several labels. In Eudora, each label is a folder, and a message with several labels appears in each of those folders while being stored only once. Moving a message in Eudora changes its labels in Gmail:</p>
+<ul>
+<li>Moving to another folder takes the old label off and puts the new one on.</li>
+<li>Deleting moves it to Gmail's Trash. Eudora's Empty Trash leaves Gmail's Trash alone; Gmail empties it after 30 days.</li>
+<li>Moving to Spam also takes it out of the Inbox, as Gmail's Report spam does.</li>
+<li>A folder you make in Eudora becomes a Gmail label. Use "/" in the name to nest it.</li>
+</ul>
+<p>Changes you make in Gmail itself, on your phone or the web, come into Eudora within a minute or so.</p>
+<p class="note">You can also add Gmail as an IMAP account with a Google app password. Signing in with Google is better: it brings in contacts and calendars too, and needs no app password.</p>
+</section>
+
+<section id="add-imap" data-title="Adding an IMAP or POP3 account" data-index="IMAP; POP3; SMTP; app password; ports; encryption; TLS; STARTTLS; Yahoo; iCloud; mail server; outgoing mail; server settings">
+<h1>Adding an IMAP or POP3 account</h1>
+<p>Choose <span class="ui">Settings ▸ Accounts ▸ Add another account…</span> (also <span class="ui">Tools ▸ Add Account…</span>).</p>
+<ol>
+<li>Type your email address. Eudora looks up who hosts it. A Microsoft or Google address is sent to <span class="ui">Sign in with Microsoft</span> or <span class="ui">Sign in with Google</span> instead, because those services no longer accept passwords over IMAP.</li>
+<li>Choose <b>IMAP</b> or <b>POP3</b> for incoming mail. IMAP keeps your folders on the server and is almost always the better choice. POP3 is for old mailboxes that only offer it. This choice can't be changed after the account is saved.</li>
+<li>Check the servers Eudora filled in, and type your user name and password. Many providers (Gmail, Yahoo, iCloud) need an <b>app password</b> made on their website rather than your usual password.</li>
+<li>Choose <span class="ui">Test</span>. Eudora signs in to both servers and lists your folders without saving anything or sending any mail.</li>
+<li>Choose <span class="ui">Save</span>. The account's mail starts coming in at once.</li>
+</ol>
+<h2>Ports and security</h2>
+<p>Each server has a <b>Security</b> choice (SSL/TLS, STARTTLS, or None) and a port. Changing the security moves the port to the standard one for it (IMAP 993, POP3 995, SMTP 465 with SSL/TLS or 587 with STARTTLS) unless you typed a port of your own.</p>
+<p><b>Encryption level</b>, for each server:</p>
+<ul>
+<li><b>High</b> (the usual): TLS 1.3 and TLS 1.2 with today's strong ciphers only.</li>
+<li><b>Strict</b>: TLS 1.3 only.</li>
+<li><b>Compatible</b> (Windows): High first, and only if the server can't agree on that, the system's own older encryption. Use it only for an old server that needs it.</li>
+</ul>
+<p>Server certificates are always checked, whatever the level.</p>
+<h2>Options for each account</h2>
+<ul>
+<li><b>Make Eudora's changes on the server too</b> (IMAP, on by default): moves, read marks, labels, and deletes are made on the server. Turn it off to keep those changes in Eudora only.</li>
+<li><b>Delete from server after N days</b> and <b>Skip big messages over N MB</b> (POP3). Eudora never deletes from a POP3 server unless you choose this.</li>
+<li><b>Check every</b> N minutes: how often this account is checked. See <a href="#checking">Checking for new mail</a>.</li>
+</ul>
+<p>Passwords are kept in Windows Credential Manager or the Mac's Keychain, never in the library.</p>
+</section>
+
+<section id="import" data-title="Importing old mail" data-index="import; classic Eudora; mbx; mbox; eml; Open File; personalities; merge accounts; old attachments; Eudora 6; Eudora 7">
+<h1>Importing old mail</h1>
+<p>Choose <span class="ui">File ▸ Import…</span> (or <span class="ui">Old mail on this computer</span> in the Welcome window). You can bring in:</p>
+<ul>
+<li>A <b>classic Eudora folder</b> (the one holding <code>eudora.ini</code> and your <code>.mbx</code> mailboxes), with its folder tree.</li>
+<li><b>.mbx and mbox files</b>, one or many.</li>
+<li><b>.eml files</b>, or folders of them.</li>
+</ul>
+<p>Choose which account the mail belongs to and which folder it goes into. A classic Eudora folder becomes its owner's account, named by the return address in its settings, with its personalities.</p>
+<p>When the address already has an account in Eudora, Eudora asks whether to <b>merge</b> the mail into it or <b>keep it apart</b> as an account of its own.</p>
+<h2>Nothing is lost, nothing is doubled</h2>
+<ul>
+<li>A message that can't be read properly is still kept whole, searchable as text, and listed in the import report.</li>
+<li>If the same message is already in Eudora (say, old Eudora mail you once copied into Exchange), Eudora recognizes it by its Message-ID and keeps one message with both places recorded. It shows the most original copy: your own files first, then a server's copy.</li>
+</ul>
+<h2>Old attachments</h2>
+<p>Classic Eudora saved attachments as separate files. After importing, choose <span class="ui">Tools ▸ Find Old Attachments…</span> to have Eudora look for them in the classic folder (and any folders you add, such as an old backup drive). Files found are stored in the library, so they travel with your backups. Ones that can't be found show as "(not found)" with their old path.</p>
+<p class="note">After importing classic Eudora mail, Eudora offers once to switch to <a href="#looks">Eudora Classic</a>, which looks and works like the Eudora you know.</p>
+<p>You can also open a single message file without importing it: see <a href="#open-files">Opening .eml and .ics files</a>.</p>
+</section>
+
+<section id="main-window" data-title="The main window" data-index="window layout; sidebar; mailboxes pane; message list; reading pane; preview; status bar; toolbar; splitter">
+<h1>The main window</h1>
+<p>The main window has four parts:</p>
+<ul>
+<li><b>The toolbar</b> at the top: Check Mail, New, Reply, Reply All, Forward, Transfer, Delete, Contacts, the search box, the look menu, and the light / dark switch. When the window is narrow the buttons drop their labels.</li>
+<li><b>The sidebar</b> on the left: your mailboxes and folders, the Views, Calendar, Contacts, and To Do. See <a href="#sidebar">The sidebar</a>. <span class="ui">Tools ▸ Mailboxes</span> shows or hides it.</li>
+<li><b>The message list</b>: the messages in what you've chosen. See <a href="#message-list">The message list</a>.</li>
+<li><b>The reading pane</b>: the selected message. Drag the bar between the list and the message to give either more room. See <a href="#reading-pane">Reading a message</a>.</li>
+</ul>
+<p>The <b>status bar</b> along the bottom shows what Eudora is doing in the background (checking mail, sorting, sending) with real counts, and buttons to pause or stop it. Click it to open <a href="#activity">Activity</a>.</p>
+<p>Eudora opens where you left it: the same mailbox, the same message, at once, and then brings the list up to date.</p>
+<p>Closing the main window asks first, in case you meant to close a message. <span class="ui">File ▸ Exit</span> (<kbd>Ctrl</kbd>+<kbd>Q</kbd>) doesn't ask.</p>
+</section>
+
+<section id="looks" data-title="Looks, Classic and Modern modes, dark mode" data-index="look; skin; theme; Eudora Classic; Eudora Modern; Thunderbird-style; Lookout style; Gmail-style; Yahoo-style; dark mode; light mode; Classic mode; Modern mode; reading pane position">
+<h1>Looks, Classic and Modern modes, dark mode</h1>
+<p>Choose a look from the menu at the right of the toolbar, or in <span class="ui">Settings ▸ General ▸ Look</span>. A look changes only how Eudora appears: every account, the search, and the rules are the same in all of them, and message windows follow the main window's look.</p>
+<table>
+<tr><th>Look</th><th>What it's like</th></tr>
+<tr><td>Eudora Classic</td><td>Classic Eudora 7.1: its menus, names, shortcuts, toolbar, and icons (redrawn crisp), with every new feature placed where classic Eudora would have put it.</td></tr>
+<tr><td>Eudora Modern</td><td>The usual look: Eudora's layout with modern icons and shortcuts.</td></tr>
+<tr><td>Thunderbird-style</td><td>Laid out like Thunderbird.</td></tr>
+<tr><td>Lookout style (classic)</td><td>Like desktop Outlook 2016–2021: the message beside the list.</td></tr>
+<tr><td>Lookout style (new)</td><td>Like the new Outlook and Outlook on the web.</td></tr>
+<tr><td>Gmail-style</td><td>One line per message; a message opens in place of the list (← Back or <kbd>Esc</kbd> returns).</td></tr>
+<tr><td>Yahoo-style</td><td>Purple, with the message in place of the list.</td></tr>
+</table>
+<p><b>The menu bar follows the look</b>, so each feels like the program it copies: the Lookout looks have Outlook's menus and shortcuts (<kbd>Ctrl</kbd>+<kbd>F</kbd> forwards, <kbd>Ctrl</kbd>+<kbd>E</kbd> searches, <kbd>F9</kbd> sends and receives), Thunderbird-style has Thunderbird's (<kbd>Ctrl</kbd>+<kbd>F</kbd> finds in the message, <kbd>Ctrl</kbd>+<kbd>L</kbd> forwards), and Gmail-style and Yahoo-style a short menu bar in their own words. See <a href="#ref-look-menus">Menus in the other looks</a>.</p>
+<h2>Classic and Modern modes</h2>
+<p><b>Eudora Classic</b> is the one look in Classic mode; all the others are Modern. The two modes differ in menu names and a few shortcuts:</p>
+<table>
+<tr><th></th><th>Classic</th><th>Modern</th></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>1</kbd></td><td>In (your inboxes)</td><td>All Mail</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></td><td>Find Text</td><td>Sort with the Spam Filter</td></tr>
+<tr><td>Spam words</td><td>Junk / Not Junk</td><td>Spam / Not Spam</td></tr>
+<tr><td>Library upkeep</td><td>Compact Mailboxes</td><td>Optimize Library</td></tr>
+<tr><td>Background work</td><td>Tools ▸ Task Status</td><td>Tools ▸ Activity</td></tr>
+</table>
+<p>Two classic options are in the Look settings: <span class="ui">Map Ctrl+R to Reply to All</span>, and <span class="ui">Ctrl+J for Junk</span> (Classic only). The full menus are in <a href="#ref-menus">Menus</a>.</p>
+<h2>Light and dark</h2>
+<p>The sun / moon button beside the look menu switches between light and dark. Right-click it to follow the system's setting again. In dark mode, messages are shown dark too: their own colors are turned around, as Outlook does. Printing always uses light colors.</p>
+<h2>Organizing by folders or labels</h2>
+<p><span class="ui">Settings ▸ General ▸ Organize mail by</span>: <b>Folders</b> shows each account with its folder tree; <b>Labels</b> shows one list of folder names across every account, as Gmail does (for example, one "Inbox" holding every account's inbox).</p>
+</section>

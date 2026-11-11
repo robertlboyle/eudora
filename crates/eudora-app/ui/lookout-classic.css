@@ -1,0 +1,91 @@
+/* Lookout style (classic): the feel of desktop Outlook 2016-2021. A blue title bar, folders /
+   message list / reading pane side by side, two-line messages (sender and date, subject),
+   light-blue selection. Same views and commands as every other style. */
+
+body.skin-lookout-classic {
+  --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-size: 12.5px;
+  --mono: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  --mono-size: 12.5px;
+  --row: 46px;
+  --folder-row: 24px;
+  --folder-radius: 0;
+  --folder-margin: 0;
+  --toolbar-pad: 6px 12px;
+  --field-radius: 2px;
+  --button-radius: 2px;
+
+  --text: #262626;
+  --muted: #666666;
+  --window: #f3f3f3;
+  --toolbar: #f3f3f3;
+  --sidebar: #ffffff;
+  --pane-title: #ffffff;
+  --list: #ffffff;
+  --head: #ffffff;
+  --reader: #ffffff;
+  --reader-head: #ffffff;
+  --field: #ffffff;
+  --button: #ffffff;
+  --hover: #e6f2fa;
+  --line: #e1e1e1;
+  --line-strong: #c8c8c8;
+  --row-line: #ececec;
+  --accent: #0072c6;
+  --accent-soft: #0072c633;
+  --selected: #cde6f7;
+  --selected-text: #262626;
+  --selected-blur: #dadada;
+  --note: #fff4ce;
+  --note-text: #6b4e00;
+  --quote1: #0072c6;
+  --quote2: #8a3fb0;
+  --quote3: #2f7d32;
+}
+
+/* the blue title bar */
+body.skin-lookout-classic #toolbar { background: #0072c6; border-bottom: 0; color: #ffffff; }
+body.skin-lookout-classic .search { border-color: transparent; }
+body.skin-lookout-classic .search:focus-within { box-shadow: none; }
+body.skin-lookout-classic .tool { background: #ffffff1f; border-color: #ffffff55; color: #ffffff; }
+body.skin-lookout-classic .tool:hover { background: #ffffff33; }
+
+body.skin-lookout-classic .pane-title { font-weight: 600; color: var(--text); border-bottom: 0; padding-top: 10px; }
+body.skin-lookout-classic .folder.on { font-weight: 600; }
+body.skin-lookout-classic #list-title { border-bottom: 0; background: var(--list); }
+body.skin-lookout-classic #list-head { height: 26px; background: var(--list); border-bottom: 1px solid var(--line); font-size: 0.9em; }
+body.skin-lookout-classic #list:not(:focus) .row.on { color: var(--text); }
+body.skin-lookout-classic .row.on { box-shadow: inset 0 0 0 1px #9ccbec; }
+body.skin-lookout-classic .s-subject { color: var(--text); }
+body.skin-lookout-classic #m-subject { font-weight: 300; font-size: 1.55em; font-family: "Segoe UI Light", "Segoe UI", system-ui, sans-serif; }
+body.skin-lookout-classic #message-head { border-bottom: 1px solid var(--line); }
+body.skin-lookout-classic #m-views button.on { border-bottom-color: #0072c6; }
+
+@media (prefers-color-scheme: dark) {
+  body.skin-lookout-classic {
+    --text: #f0f0f0;
+    --muted: #a8a8a8;
+    --window: #1f1f1f;
+    --toolbar: #1f1f1f;
+    --sidebar: #262626;
+    --pane-title: #262626;
+    --list: #262626;
+    --head: #262626;
+    --reader: #262626;
+    --reader-head: #262626;
+    --field: #1f1f1f;
+    --button: #333333;
+    --hover: #2f3a45;
+    --line: #3a3a3a;
+    --line-strong: #4d4d4d;
+    --row-line: #303030;
+    --selected: #284b6b;
+    --selected-text: #ffffff;
+    --selected-blur: #3a3a3a;
+    --note: #3d3315;
+    --note-text: #f1d58a;
+    --quote1: #6cb4ee;
+  }
+  body.skin-lookout-classic #toolbar { background: #0f4a7a; }
+  body.skin-lookout-classic .row.on { box-shadow: none; }
+}

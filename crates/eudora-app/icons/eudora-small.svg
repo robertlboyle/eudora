@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <!-- the 16-pixel version, as classic Eudora did it: just the envelope and the pencil, on the pixel grid -->
+  <rect x="0.5" y="4.5" width="12" height="9" fill="#f3cd72" stroke="#8f611a"/>
+  <path d="M1 5 L6.5 9.5 L12 5" fill="#fbe2a0" stroke="#a8741f"/>
+  <path d="M5 14 L14.5 4.5" stroke="#8a4b05" stroke-width="3.6" stroke-linecap="butt"/>
+  <path d="M5 14 L14.5 4.5" stroke="#f7b425" stroke-width="2" stroke-linecap="butt"/>
+  <path d="M13 6 L14.5 4.5" stroke="#e2687f" stroke-width="2"/>
+  <path d="M4 15 L5.6 13.4" stroke="#3a3a3a" stroke-width="1.6"/>
+</svg>

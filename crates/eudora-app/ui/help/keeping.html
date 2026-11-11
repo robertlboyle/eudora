@@ -1,0 +1,121 @@
+<section id="backup" data-title="Backing up Eudora" data-index="backup; back up; new computer; move to new computer; transfer; password; encrypt backup; parts; FAT32; USB; indexes; passwords in backup">
+<h1>Backing up Eudora</h1>
+<p><span class="ui">File ▸ Back Up Eudora…</span> saves everything into one backup: every message's original bytes (attachments are inside them), your accounts, folders, rules, spam filter rules, settings, signatures, labels, and the window's choices. Use it to keep a safe copy, or to move Eudora to a new computer, Windows, Mac, or Linux, in any direction.</p>
+<ul>
+<li><b>Password</b> (recommended): the backup is encrypted, and your mail-server passwords and the keys you typed (Spamhaus, Google Maps, Zoom, Twos, the sync key) go in it. Without a password the backup isn't encrypted, and those passwords are left out unless you accept a strong warning by typing "I agree".</li>
+<li><b>Include the search indexes</b>: a quicker restore, a bigger backup. Left out, they are rebuilt after restoring.</li>
+<li><b>Parts</b>: one file, or parts of a size you choose (for example 4 GB for a USB stick formatted FAT32).</li>
+</ul>
+<p>Microsoft 365, Google, and Zoom sign-ins are never in a backup; you sign in again after restoring.</p>
+<p>While the backup runs, the background download waits. The window shows real progress throughout.</p>
+</section>
+
+<section id="restore" data-title="Restoring a backup" data-index="restore; restore backup; new computer; Switch Now; replace library; phone backup warning">
+<h1>Restoring a backup</h1>
+<p>Choose <span class="ui">File ▸ Restore Eudora…</span> (or <span class="ui">Restore from a backup</span> in the Welcome window) and pick the backup file. For a backup in parts, pick any one of them. A password-protected backup asks for its password.</p>
+<p>The restored mail becomes your library in the usual place. If a library is already there, Eudora asks before replacing it:</p>
+<ul>
+<li>Replacing the library Eudora has open: the backup is restored beside it first, so the open library is untouched if anything goes wrong. When Eudora next starts, the restored library takes its place and the old one is deleted.</li>
+<li>Otherwise, choose <b>Switch Now</b> to open the restored library.</li>
+</ul>
+<p>Afterwards, sign in again to your Microsoft and Google accounts (Settings ▸ Accounts).</p>
+<p class="warn">A backup made on a <b>phone</b> isn't complete: it holds only the mail that phone kept, and none of your rules. Eudora warns before restoring one. Use it only when no backup from a Mac, PC, or Linux computer is at hand.</p>
+</section>
+
+<section id="sync" data-title="Sync between your computers" data-index="sync; settings sync; recovery phrase; sync key; join; several computers; filing sync; Sync now; Repair">
+<h1>Sync between your computers</h1>
+<p>Your mail is already on your servers. Sync carries what the servers can't hold: your rules, spam filter rules, labels, signatures, Views choices, other settings, and how you filed mail that the server doesn't know about (such as Online Archive mail you sorted).</p>
+<ol>
+<li>On your first computer: <span class="ui">Settings ▸ Downloading and sync ▸ Set up sync on this computer…</span>. Eudora makes a sync key and shows its <b>recovery phrase</b>. Write it down and keep it safe.</li>
+<li>On each other computer (and your phone): <b>Join</b>, and type the recovery phrase.</li>
+</ol>
+<p>Everything is encrypted with the sync key before it leaves your computer, and stored in your own mail account: a hidden folder in Microsoft 365, an "Eudora Sync" folder on an IMAP server, or a hidden label in Gmail. Nobody else, Planet Networks included, can read it.</p>
+<p>How mail is filed travels in each account's own mailbox, to the computers that have that account. <b>Settings travel in</b> chooses which account carries the rest; you can keep a copy in others too. <b>Sync now</b> syncs at once; <b>Repair…</b> asks your other computers for a full copy, if how mail is filed here looks wrong; <b>Show recovery phrase</b> shows it again on a computer that's already set up.</p>
+</section>
+
+<section id="maintenance" data-title="Maintenance and Optimize Library" data-index="maintenance; optimize; Optimize Library; Compact Mailboxes; disk space; vacuum; Run Maintenance Now; packs; space from deleted mail">
+<h1>Maintenance and Optimize Library</h1>
+<p>Maintenance keeps Eudora quick. It checks every folder's counts, repairs any damaged text, gives back the space of deleted mail, merges the search index, and refreshes the database's statistics. It runs in the background and shows each step on the status bar.</p>
+<p>By default it runs every day at 3 AM, and only when Eudora hasn't been used for 15 minutes. Change this in <span class="ui">Settings ▸ Speed and maintenance ▸ Maintenance</span>: every day, every week (on a day you choose), or only when you ask; the hour; and whether to wait until you aren't using Eudora. <b>Run Maintenance Now</b> runs it at once (also in Activity).</p>
+<p><span class="ui">Special ▸ Optimize Library…</span> (<span class="ui">Compact Mailboxes…</span> in Classic mode) does the clean-up part by hand, with the option to also compact the database itself (slower; useful after deleting a great deal).</p>
+<p>With <a href="#keep-originals">Keep original messages exactly</a> off, maintenance also removes Microsoft's copies of Online Archive items.</p>
+<p class="note">Deleted mail's space comes back when at least a quarter of a storage file is unused; until then the file is left as it is, as rewriting it would cost more than it saves.</p>
+</section>
+
+<section id="keep-originals" data-title="Keeping original messages exactly" data-index="Keep original messages exactly; original copies; Exchange export; archive purposes; legal purposes; legal hold; eDiscovery; evidence; disk space; Online Archive copies; save space">
+<h1>Keeping original messages exactly</h1>
+<p><span class="ui">Settings ▸ Library ▸ Keep original messages exactly, for archive and legal purposes</span> is on unless you turn it off.</p>
+<h2>What it keeps</h2>
+<p>Microsoft doesn't give out Online Archive mail as ordinary email. It hands each archive item over in its own format, a package of Exchange's internal fields (sender, recipients, text, attachments, flags). Eudora turns that into an ordinary message, which is what you see, search, reply to, and back up.</p>
+<p>With the setting on, Eudora also keeps <b>Microsoft's own copy of each item, exactly as Microsoft sent it</b>, beside the message made from it. You never see these copies. They're for:</p>
+<ul>
+<li><b>Archive and legal purposes</b>: a byte-for-byte record of what Microsoft held, in case you ever need to show exactly what a message was.</li>
+<li><b>Information an ordinary message has no place for</b>, such as some of Outlook's internal properties.</li>
+<li><b>Converting again</b>: if a later version of Eudora reads Microsoft's format better, it can redo a message from its copy without downloading anything.</li>
+</ul>
+<p>They take room: about two-thirds of the size of the archive's messages again. A large archive can mean tens of gigabytes.</p>
+<h2>Turning it off</h2>
+<p>Untick it, and Eudora asks first, then:</p>
+<ul>
+<li>removes Microsoft's copies from this computer at the next maintenance, which starts at once (the status bar shows each step), and gives their space back;</li>
+<li>doesn't keep one for archive mail that arrives later.</li>
+</ul>
+<p>It doesn't touch:</p>
+<ul>
+<li><b>your messages</b>: every one stays, with its attachments, searchable as before;</li>
+<li><b>the Online Archive on Microsoft's server</b>: nothing is deleted there, so each item can still be read from Microsoft;</li>
+<li><b>your other computers</b>: each has its own library and its own copy of this setting (sync never carries it, or the copies);</li>
+<li><b>backups you already made</b>: they keep the copies. Backups made afterwards are smaller and don't have them;</li>
+<li><b>the same message from two of your own sources</b> (for example your old classic Eudora files and Microsoft 365): those are both originals and are always kept.</li>
+</ul>
+<p>Turning it on again keeps copies for new archive mail. Copies already removed aren't fetched again.</p>
+<p class="note">Space comes back as maintenance rewrites the storage files. A file is rewritten only when at least a quarter of it is unused, so a little of the space may stay until more mail in that file is deleted.</p>
+<p>From the command line: <code>eudora drop-exports</code> says how many copies there are and how much room they take; <code>eudora drop-exports --yes</code> turns the setting off and removes them (the download must not be running), then <code>eudora optimize</code> gives the space back.</p>
+</section>
+
+<section id="keep-period" data-title="Keeping only recent mail on this computer" data-index="keep recent mail; small drive; tablet; laptop; disk space; purge; remove old mail; trim; mail kept on this computer; download period; POP3; Keep Only This Period; Keep Everything">
+<h1>Keeping only recent mail on this computer</h1>
+<p>On a tablet or a laptop with a small drive, you may want only recent mail here. On a new computer, the Welcome window asks first, before anything downloads. Later, <span class="ui">Settings ▸ Library ▸ Mail kept on this computer</span> chooses how much: move the slider (1 month to 20 years, or Everything), or type any number of days, weeks, months, or years.</p>
+<p class="warn"><b>This removes mail from this computer only. It never deletes anything from your mail servers.</b> Microsoft 365, Gmail, and IMAP servers keep all your mail, and a longer period brings it back here.</p>
+<h2>Before you choose</h2>
+<p>As you move the slider, Eudora says what that period would mean: how many messages are older, how many of them would leave this computer, and how many would stay because they exist only here. Nothing changes until you choose <b>Keep Only This Period…</b> and confirm. Removing more than 10,000 messages also asks you to type REMOVE.</p>
+<h2>What happens</h2>
+<ul>
+<li>Eudora downloads only mail from that period.</li>
+<li>Older messages leave this computer, and their space comes back. <b>Each message's server is asked first whether it still has it</b> (Eudora lists each server folder and compares). A message its server can't confirm stays here. So does every message in a folder the server didn't answer for, or in an account that isn't signed in on this computer.</li>
+<li>From then on, messages are removed as they grow older than the period, with the same check each time.</li>
+</ul>
+<h2>Never removed</h2>
+<ul>
+<li><b>Mail that exists only on this computer</b>: <b>POP3 mail</b> (a POP3 server keeps mail only until it's collected, or for the days you chose, so the copy here is often the only one), imported files, and classic Eudora mailboxes.</li>
+<li>Flagged messages (To Do), and messages with a change still waiting for their server.</li>
+<li>Your backups. Back up first if you want a full copy kept somewhere.</li>
+</ul>
+<h2>Getting older mail back</h2>
+<p>Choose a longer period, or <b>Keep Everything</b>. No confirmation is needed: nothing is removed. Over the next checks, Eudora downloads the older mail again from the servers, folder by folder.</p>
+<p class="note">The Online Archive is downloaded only for the period chosen as well.</p>
+<p>From the command line: <code>eudora call v1.accounts.keep_preview '{"days": 730}'</code> says what keeping two years would mean; <code>eudora call v1.accounts.download_period_set '{"days": 730}'</code> chooses it (<code>{"days": null}</code> keeps everything).</p>
+</section>
+
+<section id="speed" data-title="Speed settings" data-index="speed; memory; RAM; faster; performance; Memory for speed">
+<h1>Speed settings</h1>
+<p><span class="ui">Settings ▸ Speed and maintenance ▸ Memory for speed</span>: <b>Normal</b>, <b>More</b>, or <b>Most</b>. More memory lets counts, sorting, and folders come back faster on a big library. Eudora uses it only while it's open. A choice more than half your computer's memory is marked.</p>
+<p><span class="ui">Help ▸ About Eudora</span> shows how long searches, lists, opening messages, and sending usually take on your computer, and the slowest times.</p>
+</section>
+
+<section id="statistics" data-title="Statistics" data-index="statistics; how much mail; busiest days; storage size; mail stats">
+<h1>Statistics</h1>
+<p><span class="ui">Help ▸ Statistics…</span> (<span class="ui">Tools ▸ Statistics…</span> in Classic mode): mail received and sent in the last 30 days, the last 12 months, and ever; your 10 busiest days and the year by weekday; what kinds of mail you get (people, notifications, marketing, spam); and how much space the library takes. It shows the figures counted in the background (once an hour) at once; <b>Count now</b> counts again.</p>
+</section>
+
+<section id="updates" data-title="Updates" data-index="update; updates; new version; Check for Updates; automatic update; signature; Linux updates; AppImage; apt repository; dnf repository">
+<h1>Updates</h1>
+<p>Eudora looks for a newer version on software.planet.net when it starts and then every 14 days, downloads it in the background, and checks its signature. Then it asks: <b>Restart Now</b>, <b>When I Close Eudora</b>, or <b>Skip This Version</b>. <span class="ui">Help ▸ Check for Updates…</span> looks at any time.</p>
+<p>Looking sends nothing about you: only Eudora's name and version. <span class="ui">Settings ▸ Updates</span> sets how often to look, or never.</p>
+<p>On Windows, Eudora installed by its Setup program updates itself. On the Mac, Eudora updates itself when it's in a folder you can write to (such as Applications); the new version must carry Planet Networks' signature and Apple's approval, or the old one is kept. On Linux, Eudora updates itself the way you installed it: an AppImage replaces its own file as Eudora closes; a .deb or .rpm asks for an administrator's password, then checks the update's signature again before installing it. Installing the .deb or .rpm also adds Eudora's package repository, so the system's own updates (Software Updater, <code>apt</code>, <code>dnf</code>) offer new versions too; delete <code>/etc/apt/sources.list.d/eudora.sources</code> or <code>/etc/yum.repos.d/eudora.repo</code> to stop that.</p>
+</section>
+
+<section id="forget-signins" data-title="Forget Sign-ins" data-index="Forget Sign-ins; Forget Passwords; sign out; remove passwords; shared computer">
+<h1>Forget Sign-ins</h1>
+<p><span class="ui">Special ▸ Forget Sign-ins…</span> (<span class="ui">Forget Passwords…</span> in Classic mode) lists, and after asking removes, the Microsoft and Google sign-ins and the IMAP, POP3, and SMTP passwords this computer keeps. Your mail and settings stay. Use it before giving a computer away, or to sign in afresh.</p>
+</section>

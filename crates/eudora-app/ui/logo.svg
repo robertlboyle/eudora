@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <!-- people: glossy figures, light from the top left -->
+    <radialGradient id="headBlue" cx="0.35" cy="0.3" r="0.75">
+      <stop offset="0" stop-color="#dff1ff"/><stop offset="0.35" stop-color="#7ec2f2"/><stop offset="1" stop-color="#2a6fb4"/>
+    </radialGradient>
+    <linearGradient id="bodyBlue" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2d6eae"/><stop offset="0.38" stop-color="#8cc8f0"/><stop offset="0.62" stop-color="#5aa3dc"/><stop offset="1" stop-color="#1f5590"/>
+    </linearGradient>
+    <radialGradient id="headPurple" cx="0.35" cy="0.3" r="0.75">
+      <stop offset="0" stop-color="#efeaff"/><stop offset="0.35" stop-color="#a99cec"/><stop offset="1" stop-color="#5543a8"/>
+    </radialGradient>
+    <linearGradient id="bodyPurple" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5644a6"/><stop offset="0.38" stop-color="#b5a9f2"/><stop offset="0.62" stop-color="#8b7ad8"/><stop offset="1" stop-color="#433290"/>
+    </linearGradient>
+    <radialGradient id="headGreen" cx="0.35" cy="0.3" r="0.75">
+      <stop offset="0" stop-color="#e6ffe2"/><stop offset="0.35" stop-color="#6fdc66"/><stop offset="1" stop-color="#1c8a1c"/>
+    </radialGradient>
+    <linearGradient id="bodyGreen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1d861d"/><stop offset="0.38" stop-color="#9df095"/><stop offset="0.62" stop-color="#4fc94a"/><stop offset="1" stop-color="#16701a"/>
+    </linearGradient>
+    <!-- envelope -->
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbe2a0"/><stop offset="0.55" stop-color="#f3cd72"/><stop offset="1" stop-color="#e6b453"/>
+    </linearGradient>
+    <linearGradient id="flap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff0c8"/><stop offset="1" stop-color="#f4d184"/>
+    </linearGradient>
+    <!-- pencil, across its width -->
+    <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe066"/><stop offset="0.33" stop-color="#ffd23a"/><stop offset="0.34" stop-color="#f7b425"/><stop offset="0.66" stop-color="#f2a114"/><stop offset="0.67" stop-color="#e5870c"/><stop offset="1" stop-color="#c96f05"/>
+    </linearGradient>
+    <linearGradient id="bare" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbe2b8"/><stop offset="1" stop-color="#dcae6e"/>
+    </linearGradient>
+    <linearGradient id="ferrule" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="0.45" stop-color="#c9ccd1"/><stop offset="1" stop-color="#8a8f97"/>
+    </linearGradient>
+    <linearGradient id="eraser" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffc4cf"/><stop offset="1" stop-color="#e2687f"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="3" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <!-- the three people, behind the envelope: blue (left), purple (middle, tallest), green (right) -->
+    <g>
+      <path d="M34 150 C34 112 46 100 64 100 C82 100 94 112 94 150 Z" fill="url(#bodyBlue)" stroke="#1d4f86" stroke-width="2"/>
+      <circle cx="64" cy="78" r="22" fill="url(#headBlue)" stroke="#1d4f86" stroke-width="2"/>
+    </g>
+    <g>
+      <path d="M150 196 L150 120 C150 98 160 90 172 90 C184 90 194 98 194 120 L194 196 Z" fill="url(#bodyGreen)" stroke="#145f16" stroke-width="2"/>
+      <circle cx="172" cy="72" r="20" fill="url(#headGreen)" stroke="#145f16" stroke-width="2"/>
+    </g>
+    <g>
+      <path d="M86 150 C86 102 100 86 122 86 C144 86 158 102 158 150 Z" fill="url(#bodyPurple)" stroke="#3b2c82" stroke-width="2"/>
+      <circle cx="122" cy="58" r="25" fill="url(#headPurple)" stroke="#3b2c82" stroke-width="2"/>
+    </g>
+
+    <!-- the envelope -->
+    <g>
+      <rect x="20" y="136" width="164" height="104" rx="6" fill="url(#paper)" stroke="#a8741f" stroke-width="3"/>
+      <path d="M23 240 L102 186 L181 240" fill="none" stroke="#d7a64c" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M22 139 L102 196 L182 139 Z" fill="url(#flap)" stroke="#c99540" stroke-width="3" stroke-linejoin="round"/>
+    </g>
+
+    <!-- the pencil, writing on the envelope from the top right -->
+    <g transform="translate(96 210) rotate(-42)">
+      <polygon points="0,0 34,-12 34,12" fill="url(#bare)" stroke="#a87634" stroke-width="2" stroke-linejoin="round"/>
+      <polygon points="0,0 11,-4 11,4" fill="#3a3a3a"/>
+      <rect x="34" y="-12" width="112" height="24" fill="url(#wood)" stroke="#a65d06" stroke-width="2"/>
+      <rect x="146" y="-12.5" width="20" height="25" fill="url(#ferrule)" stroke="#6d727a" stroke-width="2"/>
+      <line x1="152" y1="-12" x2="152" y2="12" stroke="#7b8088" stroke-width="1.5"/>
+      <line x1="159" y1="-12" x2="159" y2="12" stroke="#7b8088" stroke-width="1.5"/>
+      <path d="M166 -12 L178 -12 Q184 -12 184 -6 L184 6 Q184 12 178 12 L166 12 Z" fill="url(#eraser)" stroke="#b44a60" stroke-width="2"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,44 @@
+<section id="command-line" data-title="The command line" data-index="command line; eudora command; CLI; scripting; terminal; PowerShell; eudora call; JSON; --library">
+<h1>The command line</h1>
+<p>Everything Eudora does can also be done from a terminal (PowerShell or Command Prompt on Windows, Terminal on the Mac) with the <code>eudora</code> program installed beside Eudora. It works on the same library; <code>--library FOLDER</code> names another.</p>
+<pre><code>eudora --help
+eudora search "from:ann invoice"
+eudora accounts
+eudora backup D:\Backups\Eudora --part-size 4GB</code></pre>
+<p>Some useful commands:</p>
+<table>
+<tr><td><code>search</code>, <code>list</code>, <code>show</code>, <code>folders</code></td><td>Find and read mail.</td></tr>
+<tr><td><code>import</code></td><td>Import mbox, classic Eudora .mbx, or .eml files.</td></tr>
+<tr><td><code>triage</code></td><td>Where the spam filter would put each message, and why. Moves nothing.</td></tr>
+<tr><td><code>rules</code></td><td>List, import, export, or run your rules (<code>--dry-run</code> to try).</td></tr>
+<tr><td><code>mark</code>, <code>labels</code>, <code>signatures</code></td><td>Status, priority, labels; the label list; signatures.</td></tr>
+<tr><td><code>contacts</code></td><td>The address book, or exported to a file.</td></tr>
+<tr><td><code>backup</code>, <code>restore</code></td><td>Back up and restore (see <a href="#backup">Backing up Eudora</a>).</td></tr>
+<tr><td><code>mail-stats</code>, <code>stats</code>, <code>verify</code></td><td>Statistics; sizes; check every stored message against its checksum.</td></tr>
+<tr><td><code>offline</code>, <code>empty-trash</code>, <code>forget-sign-ins</code></td><td>As the menu items of the same names.</td></tr>
+<tr><td><code>call</code></td><td>Any of Eudora's functions by its API method: <code>eudora call v1.mail.search '{"query": "from:ann"}'</code>. <code>eudora api methods</code> lists them all.</td></tr>
+</table>
+<p>Answers meant for scripts are JSON, and the program ends with a real exit code (0 when all went well). <code>eudora COMMAND --help</code> describes each command.</p>
+<p class="note">Commands that change the whole library at once (<code>optimize</code>, <code>backup</code>) need the background download to be stopped; when Eudora's window is open, use the menu items instead, which pause it for you.</p>
+</section>
+
+<section id="api" data-title="Programs that use Eudora (the API)" data-index="API; local API; other programs; permissions; grant; revoke; audit log; Programs and plugins; JSON-RPC; named pipe; send confirmation">
+<h1>Programs that use Eudora (the API)</h1>
+<p>Other programs on your computer can use Eudora, but only as far as you allow, one permission at a time. Nothing can reach your mail until you grant it.</p>
+<ol>
+<li>A program asks: it names itself and says why, and which permissions it wants.</li>
+<li>Eudora shows the request. Tick only what it needs: reading headers, reading message text, reading attachments, searching, changing or deleting mail, sending, contacts, calendar, To Do, settings, and so on. Each can be limited to some accounts or folders. Strong permissions start unticked, and Eudora warns when a program could both read your mail and send it.</li>
+<li>Every message a program wants to send waits for you: <b>Send</b>, <b>Don't send</b>, or <b>Send, and allow all from it</b> once you trust it.</li>
+</ol>
+<p><span class="ui">Settings ▸ Programs and plugins</span> lists every program and plugin with its permissions and when it was last used. <b>Revoke</b> takes its access away. Everything each one does is logged in Eudora (<b>Show the log…</b>); once you trust one, you can log only its changes, or only what was refused.</p>
+<p>Programs can never read your passwords, sign-ins, or recovery phrase, nor grant themselves permissions or approve their own messages. The API is reachable only from your own user account on this computer, never from the network, and only while Eudora is open (unless you allow <code>eudora api serve</code> to run without it).</p>
+<p class="see">Programmers: the API is described in <code>docs/API.md</code> in Eudora's source.</p>
+</section>
+
+<section id="plugins" data-title="Plugins" data-index="plugins; extensions; install plugin; WebAssembly; plugin permissions; Tools Plugins; unsigned plugin">
+<h1>Plugins</h1>
+<p>Plugins add commands to Eudora: to the right-click menu of messages, to <span class="ui">Tools ▸ Plugins…</span>, and as an action rules can run.</p>
+<p><span class="ui">Tools ▸ Plugins… ▸ Install a plugin…</span> installs one from its file. Like any program, it can do nothing until you grant it permissions, and it runs sealed off from your computer: it can't reach your files or the network, only Eudora's API as far as you allowed. A plugin whose maker can't be checked is installed only after a clear warning. A plugin's file changed after you installed it never runs.</p>
+<p>In the Plugins window you can switch each one on or off, or remove it.</p>
+<p class="note">Plugins aren't available on the iPhone.</p>
+</section>

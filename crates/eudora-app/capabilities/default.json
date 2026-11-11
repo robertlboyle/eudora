@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The main window and message windows: Tauri's basic commands, events (menu commands) and closing a message window; Eudora's own commands are allowed by default.",
+  "windows": ["main", "compose-*", "reader-*", "ics-*"],
+  "permissions": ["core:default", "core:window:allow-close", "core:window:allow-set-title", "core:window:allow-destroy"]
+}

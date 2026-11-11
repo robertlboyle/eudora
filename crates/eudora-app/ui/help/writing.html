@@ -1,0 +1,90 @@
+<section id="new-message" data-title="Writing a new message" data-index="new message; compose; Ctrl+N; message window; To; Cc; Bcc; subject; recipients; address separators">
+<h1>Writing a new message</h1>
+<p>Choose <span class="ui">Message ▸ New Message</span> (<kbd>Ctrl</kbd>+<kbd>N</kbd>) or <span class="ui">New</span> on the toolbar. A message window opens in the main window's look.</p>
+<ol>
+<li>Choose who it's <b>From</b> (see <a href="#from">Sending from another address</a>).</li>
+<li>Type the people in <b>To</b>, <b>Cc</b>, and <b>Bcc</b>. Separate them with commas, semicolons, or spaces. Eudora suggests addresses as you type (see <a href="#completion">Address completion</a>).</li>
+<li>Type the <b>Subject</b> and the message.</li>
+<li>Choose <span class="ui">Send</span> (<kbd>Ctrl</kbd>+<kbd>E</kbd>, <span class="ui">Message ▸ Send Immediately</span>).</li>
+</ol>
+<p>The window closes at once; the message goes into the <b>Out</b> mailbox and is sent in the background. The status bar of the main window says when it went. A message that can't be sent (no connection, a server refusing it) waits in Out and is tried again.</p>
+<p>The people in Bcc receive the message, but their addresses aren't in what's sent.</p>
+</section>
+
+<section id="reply-forward" data-title="Replying, forwarding, redirecting" data-index="reply; reply to all; forward; redirect; send again; quoting; Ctrl+R; Ctrl+Shift+R; forward as attachment; forward several">
+<h1>Replying, forwarding, redirecting</h1>
+<table>
+<tr><th>Reply</th><td><kbd>Ctrl</kbd>+<kbd>R</kbd></td><td>To the sender (or the address they asked replies to go to), with the original quoted under "At 05:29 PM 12/31/1999, Ann Smith wrote:". The reply comes from the address the message was sent to.</td></tr>
+<tr><th>Reply to All</th><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></td><td>To the sender and everyone else on the message except you; Cc stays Cc.</td></tr>
+<tr><th>Forward</th><td></td><td>"Fwd:" with the original and its attachments. Untick any attachment you don't want to send along. With several messages selected, each is attached whole to one message.</td></tr>
+<tr><th>Redirect</th><td></td><td>Sends the message on as it is, from you "by way of" the original sender; replies go to the original sender.</td></tr>
+<tr><th>Send Again</th><td></td><td>A new message with the same recipients, subject, text, and attachments, for a message of yours that needs sending again.</td></tr>
+</table>
+<p>Once sent, the original is marked replied, forwarded, or redirected (and on the server too).</p>
+<p>In <span class="ui">Settings ▸ General ▸ Look</span> you can map <kbd>Ctrl</kbd>+<kbd>R</kbd> to Reply to All, as classic Eudora allowed.</p>
+<p>In the Gmail-style look, replies and forwards are written in the message's place rather than in a window.</p>
+</section>
+
+<section id="from" data-title="Sending from another address" data-index="From; personalities; identities; send as; send on behalf; shared mailbox; alias; which account sends">
+<h1>Sending from another address</h1>
+<p>Click the <b>From</b> line to choose any address you can send from: each account's address and each shared mailbox. The message is sent through the account that owns the address: Microsoft 365 or Gmail through its own connection, other accounts through their outgoing (SMTP) server. A copy goes into that account's Sent folder.</p>
+<p>Classic Eudora personalities are listed too, grayed out, when no account can send as them.</p>
+<p><span class="ui">File ▸ Accounts…</span> (Classic: <span class="ui">Tools ▸ Personalities…</span>) opens Settings at its Accounts page, where each account's address and name are set.</p>
+</section>
+
+<section id="completion" data-title="Address completion" data-index="autocomplete; address completion; suggestions; directory; address book; recent senders">
+<h1>Address completion</h1>
+<p>After two letters in To, Cc, or Bcc, Eudora suggests people. Use <kbd>↑</kbd> / <kbd>↓</kbd>, then <kbd>Enter</kbd> or <kbd>Tab</kbd> to pick one; <kbd>Esc</kbd> closes the list. Suggestions come from:</p>
+<ol>
+<li>people you've written to (most often first), and people who've written to you;</li>
+<li>your <a href="#contacts">Address Book</a>;</li>
+<li>your organization's Microsoft 365 directory, added a moment later when it answers.</li>
+</ol>
+<p><span class="ui">Settings ▸ General ▸ Address completion</span> turns the first two sources on or off. Your own addresses are never suggested.</p>
+</section>
+
+<section id="formatting" data-title="Formatting, plain text, and pictures" data-index="HTML; plain text; format; bold; italic; link; list; paste picture; screenshot; inline image; priority">
+<h1>Formatting, plain text, and pictures</h1>
+<p>The message window's <b>Format</b> chooses <b>HTML</b> (formatted: bold, italic, underline, lists, links) or <b>Plain text</b>. A reply to a plain-text message starts as plain text. Switching to plain text removes the formatting (Eudora asks first if the message has pictures in it).</p>
+<p><b>Pasting a picture</b> (a screenshot, say): in an HTML message it goes in where the cursor is. In a plain-text message Eudora asks whether to switch to HTML and paste it, or attach it as a file. Pictures in the text are sent as parts of the message, which every mail program shows.</p>
+<p><b>Priority</b> marks the message highest to lowest for the people who receive it.</p>
+</section>
+
+<section id="attaching" data-title="Attaching files" data-index="attach; attach file; Ctrl+H; drag and drop; attachment size">
+<h1>Attaching files</h1>
+<p>Choose <span class="ui">Message ▸ Attach File…</span> (<kbd>Ctrl</kbd>+<kbd>H</kbd>) or drag files into the message window. Each attached file is listed; × takes it off. Files pasted into the window are attached too.</p>
+</section>
+
+<section id="signatures" data-title="Signatures" data-index="signature; signatures; Tools Signatures; default signature">
+<h1>Signatures</h1>
+<p><span class="ui">Tools ▸ Signatures…</span> keeps as many named signatures as you like, with formatting. Choose which one each From address starts with, and one for any other address.</p>
+<p>A new message ends with the signature; a reply or forward has it right under where you type, above the original. Changing From swaps the signature, unless you edited it. The message window's <b>Signature</b> menu picks another or none. Signatures travel to your other computers with <a href="#sync">sync</a>.</p>
+</section>
+
+<section id="spelling" data-title="Checking spelling" data-index="spelling; spell check; Ctrl+6; Add to Dictionary; dictionary">
+<h1>Checking spelling</h1>
+<p><span class="ui">Edit ▸ Check Spelling</span> (<kbd>Ctrl</kbd>+<kbd>6</kbd>) or the <b>Spelling</b> button checks the message with your computer's own spell checker, in your language. For each word: <b>Change</b>, <b>Ignore</b>, <b>Ignore All</b>, or <b>Add</b> (to your computer's dictionary, which other programs share). The quoted original and the signature are skipped.</p>
+</section>
+
+<section id="dictation" data-title="Dictation" data-index="dictation; voice typing; microphone; speak">
+<h1>Dictation</h1>
+<p>The 🎤 button in the message window starts your computer's voice typing where the cursor is: on Windows, Windows' voice typing; on the Mac, the Mac's dictation. Speak, and the words appear in the message.</p>
+</section>
+
+<section id="drafts" data-title="Drafts and autosave" data-index="draft; drafts; save draft; Ctrl+S; autosave; crash; Don't save">
+<h1>Drafts and autosave</h1>
+<p>While you write, Eudora saves the message to Drafts every 20 seconds, silently, so nothing is lost if the computer or Eudora stops. <span class="ui">File ▸ Save Draft</span> (<kbd>Ctrl</kbd>+<kbd>S</kbd>) saves at once.</p>
+<p><span class="ui">File ▸ Drafts…</span> lists your drafts; open one to carry on. Closing a message asks whether to keep it as a draft; <b>Don't save</b> removes the autosaved copy too.</p>
+</section>
+
+<section id="send-later" data-title="Send Later and the Out mailbox" data-index="send later; queue; queuing; scheduled send; Out mailbox; outbox; Send Queued Messages; Ctrl+T; Ctrl+0">
+<h1>Send Later and the Out mailbox</h1>
+<p>In the message window choose <span class="ui">Send Later…</span> (<span class="ui">Message ▸ Change ▸ Queuing…</span> in Classic mode) and pick a date and time, or <b>In an hour</b> or <b>Tomorrow 8 AM</b>. The message waits in the <b>Out</b> mailbox and is sent by itself when its time comes, while Eudora is open. If Eudora was closed at that time, it goes as soon as Eudora starts.</p>
+<p><span class="ui">Mailbox ▸ Out</span> (<kbd>Ctrl</kbd>+<kbd>0</kbd>) lists what waits: <b>Change</b> makes it a draft again; <b>Send now</b> sends it. <span class="ui">File ▸ Send Queued Messages</span> (<kbd>Ctrl</kbd>+<kbd>T</kbd>) sends everything waiting.</p>
+<p>A message is never sent twice: if sending was cut off partway, Eudora says so and leaves it for you to check.</p>
+</section>
+
+<section id="printing" data-title="Printing" data-index="print; Ctrl+P">
+<h1>Printing</h1>
+<p><span class="ui">File ▸ Print…</span> (<kbd>Ctrl</kbd>+<kbd>P</kbd>) prints the message you're reading, with its From, To, Date, and Subject lines, through your computer's print window. Messages always print in light colors.</p>
+</section>

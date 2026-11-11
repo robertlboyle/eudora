@@ -1,0 +1,102 @@
+<section id="calendar" data-title="The calendar" data-index="calendar; Day; Week; Month; Agenda; business hours; calendars; show hide calendar; week starts; keys; today">
+<h1>The calendar</h1>
+<p>Click <b>Calendar</b> in the sidebar. Your calendars from Microsoft 365, Outlook.com, and Google are listed under it, each in its color; click one to show or hide it.</p>
+<h2>Views</h2>
+<table>
+<tr><th>Day, Week</th><td>The hours of each day. With <b>Business hours</b> on, the business day fills the window so events are easy to read; events outside it are counted at the top or bottom of the day. <b>Full day</b> shows all 24 hours.</td></tr>
+<tr><th>Month</th><td>The whole month.</td></tr>
+<tr><th>Agenda</th><td>What's coming, as a list.</td></tr>
+<tr><th>Invites</th><td>Invitations waiting for your answer. See <a href="#invitations">Invitations</a>.</td></tr>
+<tr><th>Trips</th><td>Reservations found in your travel mail. See <a href="#trips">Trips and events from your mail</a>.</td></tr>
+</table>
+<h2>Keys</h2>
+<table>
+<tr><td><kbd>T</kbd></td><td>Today</td><td><kbd>←</kbd> <kbd>→</kbd></td><td>Back, forward</td></tr>
+<tr><td><kbd>D</kbd></td><td>Day</td><td><kbd>W</kbd></td><td>Week</td></tr>
+<tr><td><kbd>M</kbd></td><td>Month</td><td><kbd>A</kbd></td><td>Agenda</td></tr>
+<tr><td><kbd>I</kbd></td><td>Invites</td><td><kbd>R</kbd></td><td>Trips</td></tr>
+<tr><td><kbd>H</kbd></td><td>Business hours / full day</td><td><kbd>N</kbd></td><td>New appointment</td></tr>
+</table>
+<p><b>A calendar's color:</b> right-click a calendar in the sidebar and pick a color, or <b>Another color…</b> for any color. <b>The calendar's own color</b> goes back to the one Microsoft or Google shows. The color is Eudora's only: Outlook and Google keep theirs.</p>
+<p>Double-click a day's heading in Week to open that day. <span class="ui">Settings ▸ Calendar</span> sets the first day of the week and the business day (7 AM to 7 PM at first).</p>
+<h2>Right-click an event</h2>
+<p>Open, Join the meeting, Quick Print; Accept, Tentative, Decline, Propose New Time (invitations); Reply, Reply All, Forward (a message to its people); Edit… and Send as .ics file… (meetings you organized); Private, Show As, Categorize (your labels, which are Outlook's categories); Delete.</p>
+<p><b>Delete</b> does what Outlook does: someone else's meeting is declined, and your own meeting with people is canceled and they're told. For a repeating meeting, choose <b>This meeting</b> or <b>The whole series</b>.</p>
+<p><b>Canceled meetings leave by themselves:</b> when someone else cancels a meeting that hasn't happened yet, Eudora takes it off your calendar (and off it in Microsoft 365 or Google) without sending anything, as Outlook does. Deleting a canceled meeting yourself removes it too: a canceled meeting can't be declined. Canceled meetings already over are left where they are.</p>
+<p>Changes are made in Eudora at once and on the server in the background.</p>
+</section>
+
+<section id="appointments" data-title="New appointments and meetings" data-index="new appointment; meeting; event; location; places; Google Maps; OpenStreetMap; Teams; Google Meet; Zoom; online meeting; invite people; edit appointment; ics; reminder; show as; private">
+<h1>New appointments and meetings</h1>
+<p>Choose <b>New</b> in the calendar (or press <kbd>N</kbd>, or double-click an empty time in Day or Week). Fill in:</p>
+<ul>
+<li><b>Title</b> and <b>Calendar</b> (which of your calendars it goes on).</li>
+<li><b>Start</b> and <b>End</b> (moving the start keeps the length), or <b>All day</b>.</li>
+<li><b>Location</b>: places are suggested as you type. With your own Google Maps key (<span class="ui">Settings ▸ Calendar</span>) they come from Google Maps; without one, from OpenStreetMap. The place chosen has a <b>Show on the map</b> link.</li>
+<li><b>Online meeting</b>: Teams (a work Microsoft 365 calendar), Google Meet (a Google calendar), or Zoom. Only the kinds you have set up are offered.</li>
+<li><b>People</b>: with address completion. With people added, <b>Save</b> becomes <b>Send invitations</b>; Microsoft or Google sends them, and their answers come back into the event.</li>
+<li><b>Show as</b>, <b>Reminder</b>, <b>Private</b>, and <b>Notes</b> (formatted text).</li>
+</ul>
+<h2>Editing</h2>
+<p>Right-click a meeting you organized and choose <span class="ui">Edit…</span>. The people are sent the update. A Teams meeting already in it stays, and the notes are sent only if you changed them, so their formatting isn't lost.</p>
+<h2>Sending as an .ics file</h2>
+<p><span class="ui">Send as .ics file…</span> attaches the event to a new message, for people who use another calendar.</p>
+<h2>Zoom</h2>
+<p>In <span class="ui">Settings ▸ Calendar ▸ Zoom</span>, type your Personal Meeting Room link: Online meeting ▸ Zoom then puts it in the appointment. For a new meeting of its own each time (its own ID and passcode), make a Zoom app as that page describes, type its Client ID and Secret, and choose <b>Sign in to Zoom</b>.</p>
+</section>
+
+<section id="invitations" data-title="Invitations" data-index="invitation; invite; accept; tentative; decline; propose new time; Invites view; conflicts; spam invitation; RSVP; iCalendar reply">
+<h1>Invitations</h1>
+<p>Invitations you haven't answered are on your calendar (as tentative) and listed in the calendar's <b>Invites</b> view, a card for each with any meetings that <b>conflict</b> with it. The invitation email shows the same choices in a bar above the message:</p>
+<ul>
+<li><b>Accept</b>, <b>Tentative</b>, <b>Decline</b>: the organizer is told. Declining asks first. For a series, the answer covers every meeting in it.</li>
+<li><b>Propose New Time…</b>: Tentative or Decline with another start and end and a message.</li>
+<li><b>Join</b>, <b>Show in calendar</b>, <b>Open the email</b>.</li>
+<li><b>Spam</b>: for invitations sent as spam. <b>Nothing is sent</b> (an answer would tell the sender your address works); the meeting leaves your calendar quietly, the email goes to Spam, and later invitations from that sender are removed too.</li>
+</ul>
+<p>An invitation to an account whose calendar Eudora doesn't manage (an IMAP account) is answered by email, as calendar programs answer each other; Eudora asks first, since it sends a message.</p>
+<p>No answer buttons are offered where an answer can't be sent: for a calendar someone shared with you, and for a meeting whose organizer asked for no answers (there, Decline simply removes it from your calendar).</p>
+</section>
+
+<section id="trips" data-title="Trips and events from your mail" data-index="trips; travel; flights; hotel; Airbnb; car rental; train; boarding pass; tickets; reservations; concerts; shows; conferences; Ticketmaster; Events">
+<h1>Trips and events from your mail</h1>
+<p>Eudora reads your travel mail from the last year for reservations still ahead:</p>
+<ul>
+<li><b>Flights, trains, buses, ferries, and rides booked ahead</b> are added to your calendar by themselves (when not already there), with the flight number, airports, times, and confirmation, a reminder 3 hours before, and the label Travel.</li>
+<li><b>Hotel stays, Airbnb, and car rentals</b> are offered, not added: 7 PM on the check-in day to 10 AM on the check-out day, shown as free.</li>
+<li><b>Shows, concerts, movies, conferences, and trade shows</b> bought through ticket sellers and registration services are added by themselves.</li>
+</ul>
+<p>Eudora missed one? Right-click its email and choose <span class="ui">Add to Trips</span>.</p>
+<p>The calendar's <b>Trips</b> view groups reservations into trips, named for where you're going, each with buttons: Add to calendar, Don't add, Show in calendar, Open the email.</p>
+<p><b>Tickets travel with the event.</b> Boarding passes, PDF tickets, Wallet passes, and QR or bar codes in the booking email, or in a later email about the same trip, are attached to the calendar event (on Microsoft calendars), so you have them on your phone when you open the event.</p>
+</section>
+
+<section id="contacts" data-title="Contacts (Address Book)" data-index="contacts; address book; Ctrl+L; edit contact; new contact; delete contact; export vCard; export CSV; Google contacts; Outlook contacts">
+<h1>Contacts (Address Book)</h1>
+<p>Click <b>Contacts</b> in the sidebar or on the toolbar, or choose <span class="ui">Tools ▸ Address Book</span> (<kbd>Ctrl</kbd>+<kbd>L</kbd>). Your address books from Microsoft 365, Outlook.com, and Google are shown together. It opens at once with what Eudora last had, then catches up.</p>
+<ul>
+<li><b>Find</b>: type any part of a name, address, or company. Choose an account to see only its contacts.</li>
+<li><b>Sort by</b> first name, last name, or company.</li>
+<li>Click a contact to see everything about it, and where it came from: the account, the address book, and whether it's up to date with the server.</li>
+<li>Click an address to write to it.</li>
+<li><b>Edit</b>, <b>New Contact</b>, and <b>Delete…</b> (asks first): the change is made on the server too.</li>
+<li><b>Export vCard…</b> and <b>Export CSV…</b> (Outlook's and Google's column names) save the contacts shown.</li>
+</ul>
+</section>
+
+<section id="todo" data-title="To Do and flagged messages" data-index="To Do; tasks; To Do lists; shared lists; hide a list; flag; Flag as To Do; Ctrl+Shift+G; Insert key; Microsoft To Do; due date; important; Twos">
+<h1>To Do and flagged messages</h1>
+<p>Click <b>To Do</b> in the sidebar. Your tasks are kept in <b>Microsoft To Do</b> through your first Microsoft account, so Outlook, the To Do app on your phone, and Eudora on your other computers share one list.</p>
+<ul>
+<li><b>Add</b>: type in the box at the top; choose a due date (today, tomorrow, next week) if you like.</li>
+<li>Tasks are grouped: Overdue, Today, This week, Later, Flagged messages, Someday, and Done (last month).</li>
+<li>Tick a task to mark it done; ★ marks it important. Right-click for Edit… (title, due date, notes), due dates, Send to Twos, and Delete….</li>
+</ul>
+<h2>Showing or hiding lists</h2>
+<p>Open the arrow beside <b>To Do</b> in the sidebar to see every list: your own, Flagged email, and lists other people shared with you in Microsoft To Do (a colleague's or a shared mailbox's). Click a list to show or hide its tasks: its color is filled in when it's shown, an outline when it's hidden. Each task shows its list's color down its left edge. Right-click a list to pick its color (or <b>Another color…</b>, or back to its first color), as for a calendar. <b>Lists shared with you start hidden</b>, so only your own tasks show until you choose others. Hiding a list changes only what Eudora shows: Microsoft To Do keeps it and its tasks.</p>
+<h2>Flagging a message</h2>
+<p>Flag any message as a To Do with <span class="ui">Message ▸ Flag as To Do</span> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>), the <kbd>Insert</kbd> key, or right-click. It shows a ⚑ in the list, and a task for it appears under Flagged messages; <b>✉ Open Email</b> on the task opens it so you can act on it. A Microsoft 365 message gets Outlook's flag too. Marking the task done, here or in Outlook, takes the flag off.</p>
+<p>A flagged email's task has <b>✉ Open Email</b>. Eudora finds the message by its Message-ID, which stays the same wherever the message is filed. When the message isn't found (deleted, or not downloaded to this computer), <b>✉ Find Email</b> searches your mail for it.</p>
+<h2>Twos</h2>
+<p>If you use the Twos app, type your Twos user id and token in <span class="ui">Settings ▸ To Do</span> and choose <b>Test…</b>. Then <b>Send to Twos</b> puts a task on today's list there. Twos has no official connection for other programs, so this may stop working if Twos changes.</p>
+</section>

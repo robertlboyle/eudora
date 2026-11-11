@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Trash mailbox: the can, full (tbar32 #54) -->
+  <defs>
+    <linearGradient id="can" x1="0" x2="1">
+      <stop offset="0" stop-color="#5d6367"/><stop offset="0.45" stop-color="#b9c0c4"/><stop offset="1" stop-color="#4b5155"/>
+    </linearGradient>
+  </defs>
+  <path d="M8 6 C10 2 14 4 16 3 C19 2 22 4 24 6 L22 10 H10 Z" fill="#f1e2a6" stroke="#8a6a1f"/>
+  <path d="M12 5 L15 8 M18 4 L20 8" stroke="#b9952f"/>
+  <path d="M7 12 H25 L23.5 30 H8.5 Z" fill="url(#can)" stroke="#2d3133"/>
+  <path d="M11.5 14.5 L12 27.5 M16 14.5 V27.5 M20.5 14.5 L20 27.5" stroke="#3a4044" stroke-width="1.2" opacity="0.8"/>
+  <rect x="5.5" y="9.5" width="21" height="3" rx="1" fill="#9aa1a5" stroke="#2d3133"/>
+</svg>

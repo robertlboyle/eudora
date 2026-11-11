@@ -1,0 +1,22 @@
+/target/
+*.pdb
+.DS_Store
+Thumbs.db
+# test libraries and corpora are large and generated
+/test-library/
+/test-corpus/
+
+# Font Awesome Pro icons (needs a Pro license): copied at build time from a Pro package
+# (FONTAWESOME_PRO), never committed. The Free fallbacks in crates/eudora-app/ui/icons/free/ are committed.
+/crates/eudora-app/ui/icons/pro/
+# (Tauri's generated schemas; the phone projects in gen/android and gen/apple are committed)
+/crates/eudora-app/gen/schemas/
+
+# classic Eudora 7.1 source (BSD, Computer History Museum): reference only, never built or committed
+/Eudora_W_source/
+
+# installers made by scripts/build-installer.ps1
+/dist/
+
+# Python caches
+__pycache__/

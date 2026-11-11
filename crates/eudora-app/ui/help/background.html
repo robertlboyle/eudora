@@ -1,0 +1,44 @@
+<section id="checking" data-title="Checking for new mail" data-index="Check Mail; Ctrl+M; new mail; how often; check every; check interval; download; background download; Gmail throttling; rate limit">
+<h1>Checking for new mail</h1>
+<p>While Eudora is open, it keeps your mail up to date by itself in the background: each account is checked every 5 minutes, then older mail is brought down behind it. Closing Eudora stops it; it carries on where it was next time.</p>
+<p><span class="ui">File ▸ Check Mail</span> (<kbd>Ctrl</kbd>+<kbd>M</kbd>, or <b>Check Mail</b> on the toolbar) checks every account at once.</p>
+<p>Each account can be checked more or less often: <span class="ui">Settings ▸ Accounts ▸ Check every</span> 1, 5, 10, 15, 30, or 60 minutes. A longer interval helps with a provider that limits how often you may ask, as Gmail sometimes does; Eudora also waits by itself when a provider says it's asking too often.</p>
+<p><b>Microsoft 365 and Outlook.com Inboxes are looked at every minute</b> between checks, with one small request each. When new mail is there, that account is checked at once. A check looks at the Inbox and Sent Items every time, and at a folder whose count hasn't changed every 2 hours, so a mailbox with hundreds of folders isn't asked about every one of them every few minutes. What changed on the server (read in Outlook, calendars, contacts, To Do) is read back on its own, so new mail never waits for it.</p>
+<p class="note">Microsoft limits how many requests a program may make to one mailbox, and every computer running Eudora with the same account counts toward that limit. When Microsoft asks Eudora to wait, the download log says so ("Microsoft asked Eudora to wait 37 times…"). If it often does, check other computers less often, or close Eudora on the ones you aren't using.</p>
+<p><span class="ui">Settings ▸ Downloading and sync</span> turns the background download on or off, and chooses whether to include the Online Archive and to bring down all of the shared mailboxes' mail.</p>
+<p class="note">If the connection drops (a new Wi-Fi network, a sleeping laptop), the download waits and carries on by itself when the connection comes back. The status bar says how long it has been waiting.</p>
+<p>Changes made elsewhere (read on your phone, moved in Outlook, deleted on the web) come into Eudora too.</p>
+</section>
+
+<section id="gmail-limits" data-title="Gmail on several computers" data-index="Gmail; Google; throttling; rate limit; too many requests; several computers; idle; not being used; check less often">
+<h1>Gmail on several computers</h1>
+<p>Google limits how often one Gmail account may be asked for mail. The limit counts every program and every computer together. With Eudora open on several computers, Gmail can refuse for a while ("rate limit exceeded"). Eudora then waits for the time Gmail names and carries on.</p>
+<p>Eudora keeps its requests small:</p>
+<ul>
+<li><b>Checks ask only what's new.</b> Once a day, each computer lists every label's messages, to make sure nothing was missed. Between those, a check asks Gmail only what has arrived since the last one: a single request when nothing has.</li>
+<li><b>A computer nobody is using checks Gmail less often.</b> When Eudora hasn't been used for 15 minutes, it checks Gmail every 2 hours. It also reads Gmail's calendars and the changes made elsewhere at the same pace. Use Eudora again and it checks every account at once, so the computer in front of you is always up to date. Choose the interval in <span class="ui">Settings ▸ Downloading and sync</span> (30 minutes to 8 hours, or as usual).</li>
+<li><b>When Gmail asks Eudora to slow down, every Eudora program on the computer waits</b> until the time Gmail names, even after Eudora is closed and opened again. Asking during that time would only make Gmail's wait longer.</li>
+<li><b>Opening Eudora doesn't start Gmail's work over.</b> Eudora remembers when it last read each account's calendars, contacts, and changes, so a restart carries on from there instead of reading them all again.</li>
+</ul>
+<p>Microsoft 365, IMAP, and POP3 accounts keep their own intervals (<span class="ui">Settings ▸ Accounts ▸ Check every</span>) whether or not anyone is using Eudora.</p>
+</section>
+
+<section id="pause" data-title="Pause, Stop, and Work Offline" data-index="pause; stop; resume; work offline; slow connection; hotel Wi-Fi; Pause Old Mail; Pause All Downloading">
+<h1>Pause, Stop, and Work Offline</h1>
+<p>The buttons on the status bar show only what can be done next:</p>
+<table>
+<tr><th>⏸ Pause</th><td>Older mail waits; <b>new mail still comes in</b>. Useful on a slow connection.</td></tr>
+<tr><th>⏹ Stop</th><td>Everything in the background stops: downloading (new mail too), changes to the servers, sorting, indexing, and maintenance. What you choose to do still happens: mail you send still goes.</td></tr>
+<tr><th>▶ Resume</th><td>Carries on.</td></tr>
+</table>
+<p>The same are in the Special menu: <span class="ui">Pause Old Mail</span>, <span class="ui">Pause All Downloading</span>, <span class="ui">Resume Downloading</span>. A pause lasts until you resume, even if Eudora is closed and started again.</p>
+<p><span class="ui">File ▸ Work Offline</span> keeps Eudora off the network altogether: nothing is downloaded, nothing sent (messages wait in Out), and changes wait for the servers. An <b>Offline</b> badge shows; click it, or choose Work Offline again, to go back online. Waiting messages then go and mail is checked.</p>
+</section>
+
+<section id="activity" data-title="Activity" data-index="Activity; Task Status; status bar; background jobs; details; what did the rules do; job log; progress">
+<h1>Activity</h1>
+<p>The right side of the status bar shows what Eudora is doing in the background, with real numbers: "Downloading pat@example.com: 1,240 of 8,000", "Sorting mail into Views (2,000)", "Maintenance: step 2 of 6". Click it, or choose <span class="ui">Tools ▸ Activity</span> (<span class="ui">Task Status</span> in Classic mode), to open the Activity panel at the bottom of the window. Drag its top edge to size it; the mail stays usable.</p>
+<p>It lists every background job: the download first, then the others (rules and the spam filter on new mail, changes to the servers, Views, Red Alerts, payments, travel, header search, maintenance, and more). For each: what it last did, when, how many this session, how many are waiting, and when it runs next. Each has its own <b>Pause</b> / <b>Resume</b>.</p>
+<p><b>Details</b> lists exactly what a job did in its latest run, message by message: which rule moved a message and where, why the spam filter put it where it did, which changes reached the server. <b>More</b> shows earlier runs. Click a line to open its message. Your own runs of the spam filter and Filter Messages are listed too.</p>
+<p>The panel also shows the download's latest lines, and the changes and messages waiting to go out.</p>
+</section>

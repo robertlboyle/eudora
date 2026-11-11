@@ -1,0 +1,114 @@
+/* Lookout style (new): the feel of the new Outlook / Outlook on the web. A blue bar with the
+   search in the middle, soft gray background, the list and the message on rounded white
+   cards, three-line messages (sender and date, subject, preview), a blue edge on the selected
+   one. Same views and commands as every other style. */
+
+body.skin-lookout-new {
+  --font: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-size: 13.5px;
+  --mono: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  --mono-size: 13px;
+  --row: 72px;
+  --folder-row: 30px;
+  --folder-radius: 4px;
+  --folder-margin: 8px;
+  --toolbar-pad: 7px 14px;
+  --field-radius: 4px;
+  --button-radius: 4px;
+
+  --text: #242424;
+  --muted: #616161;
+  --window: #f0f0f0;
+  --toolbar: #0f6cbd;
+  --sidebar: #f0f0f0;
+  --pane-title: transparent;
+  --list: #ffffff;
+  --head: #ffffff;
+  --reader: #ffffff;
+  --reader-head: #ffffff;
+  --field: #ffffff;
+  --button: #ffffff;
+  --hover: #f5f5f5;
+  --line: #e0e0e0;
+  --line-strong: #d1d1d1;
+  --row-line: #f0f0f0;
+  --accent: #0f6cbd;
+  --accent-soft: #0f6cbd33;
+  --selected: #ebf3fc;
+  --selected-text: #242424;
+  --selected-blur: #f0f0f0;
+  --note: #fff9f5;
+  --note-text: #8a3707;
+  --quote1: #0f6cbd;
+  --quote2: #8764b8;
+  --quote3: #107c10;
+}
+
+/* the blue bar, search in the middle */
+body.skin-lookout-new #toolbar { color: #ffffff; border-bottom: 0; }
+body.skin-lookout-new .search { margin: 0 auto; border-color: transparent; background: #ffffffeb; }
+body.skin-lookout-new .search:focus-within { background: #ffffff; box-shadow: none; }
+body.skin-lookout-new .tools { margin-left: 0; }
+body.skin-lookout-new .tool { background: #ffffff1f; border-color: #ffffff55; color: #ffffff; }
+body.skin-lookout-new .tool:hover { background: #ffffff33; }
+body.skin-lookout-new #status { background: var(--window); border-top: 0; }
+
+/* folders: rounded, a blue mark on the one open */
+body.skin-lookout-new .pane-title { font-weight: 600; color: var(--text); border-bottom: 0; padding: 12px 18px 6px; }
+body.skin-lookout-new .folder.on { background: #e0e0e0; color: var(--text); font-weight: 600; position: relative; }
+body.skin-lookout-new .folder.on::before {
+  content: ""; position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 2px; background: var(--accent);
+}
+body.skin-lookout-new .folder.on .f-count { opacity: 1; }
+
+/* the list and the message on cards */
+body.skin-lookout-new .splitter { background: transparent; border-color: transparent; }
+body.skin-lookout-new #list-pane,
+body.skin-lookout-new #message-pane {
+  margin: 8px 0 8px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px #00000024, 0 0 2px #0000001f;
+}
+body.skin-lookout-new #message-pane { margin-right: 8px; }
+body.skin-lookout-new #list-title { background: var(--list); border-bottom: 0; padding: 10px 14px 4px; }
+body.skin-lookout-new #list-head { background: var(--list); border-bottom: 1px solid var(--line); height: 28px; }
+body.skin-lookout-new .row { border-bottom: 1px solid var(--row-line); }
+body.skin-lookout-new .row.on { position: relative; }
+body.skin-lookout-new .row.on::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
+body.skin-lookout-new #list:not(:focus) .row.on { background: var(--selected); }
+body.skin-lookout-new .s-subject { color: var(--text); }
+body.skin-lookout-new .s-from { font-weight: 600; }
+body.skin-lookout-new #message-head { border-bottom: 1px solid var(--line); padding: 14px 18px 0; }
+body.skin-lookout-new #m-subject { font-size: 1.45em; font-weight: 600; }
+body.skin-lookout-new #m-views button.on { border-bottom-color: var(--accent); }
+body.skin-lookout-new .chip { border-radius: 4px; }
+
+@media (prefers-color-scheme: dark) {
+  body.skin-lookout-new {
+    --text: #ffffff;
+    --muted: #adadad;
+    --window: #1f1f1f;
+    --toolbar: #0f548c;
+    --sidebar: #1f1f1f;
+    --list: #292929;
+    --head: #292929;
+    --reader: #292929;
+    --reader-head: #292929;
+    --field: #292929;
+    --button: #333333;
+    --hover: #333333;
+    --line: #3d3d3d;
+    --line-strong: #525252;
+    --row-line: #333333;
+    --accent: #479ef5;
+    --selected: #26364a;
+    --selected-text: #ffffff;
+    --selected-blur: #333333;
+    --note: #3d2a15;
+    --note-text: #f4c08a;
+    --quote1: #77b7f7;
+  }
+  body.skin-lookout-new .folder.on { background: #383838; }
+  body.skin-lookout-new .search { background: #292929eb; }
+}

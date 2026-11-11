@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Eudora</title>
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="eudora.css">
+  <link rel="stylesheet" href="thunderbird.css">
+  <link rel="stylesheet" href="lookout-classic.css">
+  <link rel="stylesheet" href="lookout-new.css">
+  <link rel="stylesheet" href="gmail.css">
+  <link rel="stylesheet" href="yahoo.css">
+  <script src="icons/set.js"></script>
+</head>
+<body class="skin-eudora">
+  <header id="toolbar">
+    <div class="brand"><span class="logo"></span><span class="name">Eudora</span></div>
+    <div class="search">
+      <span class="search-icon" data-icon="magnifying-glass"></span>
+      <input id="query" type="search" placeholder="Search all mail (from:, subject:, any header: x-mailer:outlook, &quot;phrase&quot;, OR, NOT)" title="Words, &quot;phrases&quot;, OR, NOT / -word; fields: from: to: cc: subject: body: attachment:; and any header by its name: x-mailer:outlook, list-id:announce, return-path:bob@example.com, reply-to:* (has one), -list-id:* (has none)" autocomplete="off" spellcheck="false">
+      <button id="search-all" class="search-all" type="button" hidden></button>
+      <select id="order" title="Order of the results">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+        <option value="relevance">Best match</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button class="tool" data-act="check" title="Check Mail (Ctrl+M): look for new mail in every account now"><span data-icon="arrows-rotate"></span><span class="label">Check Mail</span></button>
+      <button class="tool" data-act="new" title="New Message (Ctrl+N)"><span data-icon="pen-to-square"></span><span class="label">New</span></button>
+      <button class="tool" data-act="reply" title="Reply (Ctrl+R)"><span data-icon="reply"></span><span class="label">Reply</span></button>
+      <button class="tool" data-act="reply-all" title="Reply to All (Ctrl+Shift+R)"><span data-icon="reply-all"></span><span class="label">Reply All</span></button>
+      <button class="tool" data-act="forward" title="Forward"><span data-icon="share"></span><span class="label">Forward</span></button>
+      <button class="tool" data-act="transfer" title="Transfer To… (Ctrl+Shift+T)"><span data-icon="folder-open"></span><span class="label">Transfer</span></button>
+      <button class="tool" data-act="delete" title="Delete (Ctrl+D)"><span data-icon="trash-can"></span><span class="label">Delete</span></button>
+      <button class="tool" data-act="address-book" title="Address Book (Ctrl+L): your contacts from every account"><span data-icon="address-book"></span><span class="label">Contacts</span></button>
+    </div>
+    <div class="actions classic-actions" id="classic-actions"></div>
+    <div class="tools">
+      <button id="offline-badge" class="tool offline-badge" hidden title="Working offline: click to go online (File ▸ Work Offline)">Offline</button>
+      <label class="tool skin-pick" title="Layout and look (the mail, search and rules are the same in every one)">
+        <span data-icon="palette"></span>
+        <select id="skin">
+          <option value="eudora-classic">Eudora Classic</option>
+          <option value="eudora">Eudora Modern</option>
+          <option value="thunderbird">Thunderbird-style</option>
+          <option value="lookout-classic">Lookout style (classic)</option>
+          <option value="lookout-new">Lookout style (new)</option>
+          <option value="gmail">Gmail-style</option>
+          <option value="yahoo">Yahoo-style</option>
+        </select>
+      </label>
+      <button id="theme-toggle" class="tool" title="Dark mode (right-click: follow Windows again)"><span data-icon="moon"></span></button>
+      <button id="prefs-open" class="tool" title="Settings: look, folders or labels, account names"><span data-icon="gear"></span></button>
+    </div>
+  </header>
+
+  <main id="panes">
+    <nav id="folders-pane">
+      <div class="pane-title">Mailboxes</div>
+      <div id="folders" tabindex="0"></div>
+    </nav>
+    <div class="splitter vertical" data-split="folders"></div>
+    <section id="right">
+      <div id="list-pane">
+        <div id="list-title"><span id="list-name"></span><span id="list-count"></span><button id="list-subs" class="list-subs" hidden title="Every mailing list, notification and marketing sender you get, how often, and unsubscribing">Manage subscriptions…</button></div>
+        <div id="search-help" hidden></div>
+        <div id="list-head"></div>
+        <div id="list" tabindex="0"><div id="list-space"></div></div>
+      </div>
+      <div class="splitter horizontal" data-split="list"></div>
+      <article id="message-pane">
+        <div id="message-empty">Choose a message to read it.</div>
+        <div id="message" hidden>
+          <div id="message-head">
+            <button id="m-back" title="Back to the list (Esc)"><span data-icon="arrow-left"></span> Back</button>
+            <div id="m-tools">
+              <button id="m-hdr" title="Show fewer headers (kept for every message)"><span data-icon="chevron-up"></span></button>
+              <button id="m-max" title="Maximize the message in Eudora's window (Esc to go back)"><span data-icon="expand"></span></button>
+              <button id="m-pop" title="Open the message in a window of its own"><span data-icon="arrow-up-right-from-square"></span></button>
+            </div>
+            <h1 id="m-subject"></h1>
+            <div class="m-line m-from-line"><span class="m-label">From</span><span id="m-from"></span></div>
+            <div class="m-line" id="m-to-line"><span class="m-label">To</span><span id="m-to"></span></div>
+            <div class="m-line" id="m-cc-line"><span class="m-label">Cc</span><span id="m-cc"></span></div>
+            <div class="m-line m-date-line"><span class="m-label">Date</span><span id="m-date"></span></div>
+            <div class="m-line m-in-line"><span class="m-label">In</span><span id="m-folders"></span></div>
+            <div class="m-line m-id"><span class="m-label">Message-ID</span><span id="m-id"></span></div>
+            <div class="m-line m-id" id="m-linked-line" hidden><span class="m-label">Linked</span><span id="m-linked"></span></div>
+            <div class="m-line m-id" id="m-copies-line"><span class="m-label">Originals</span><span id="m-copies"></span></div>
+            <div id="m-problems" hidden><span data-icon="circle-exclamation"></span><span></span></div>
+            <div id="m-attachments"></div>
+            <div id="m-invite" class="m-invite" hidden></div>
+            <div id="m-fraud" class="m-fraud" hidden><b>Warning: this looks like a fraud.</b> <span></span> Its links and pictures are turned off.</div>
+            <div id="m-pictures" hidden>
+              <span class="m-pic-text"></span>
+              <button id="m-pic-show">Show pictures</button>
+              <button id="m-pic-always">Always show from this sender</button>
+            </div>
+            <div id="m-views" role="tablist">
+              <button data-view="message" class="on">Message</button>
+              <button data-view="text">Text</button>
+              <button data-view="headers">Headers</button>
+              <button data-view="source">Source</button>
+            </div>
+          </div>
+          <div id="m-find" class="find-bar" hidden><input id="m-find-text" type="search" placeholder="Find in this message" spellcheck="false"><span id="m-find-count"></span><button id="m-find-prev" title="Previous (Shift+Enter, Shift+F3)">↑</button><button id="m-find-next" title="Next (Enter, F3)">↓</button><button id="m-find-close" title="Close (Esc)">✕</button></div>
+          <div id="m-body"></div>
+        </div>
+      </article>
+    </section>
+    <!-- the calendar (calendar.js): in place of the list and the reader when Calendar is chosen -->
+    <section id="calendar" hidden>
+      <div id="cal-bar">
+        <button id="cal-new" type="button" class="primary" title="New appointment (N)">New</button>
+        <button id="cal-today" type="button" title="Today (T)">Today</button>
+        <button id="cal-prev" type="button" title="Back (←)">‹</button>
+        <button id="cal-next" type="button" title="Forward (→)">›</button>
+        <button id="cal-hours" type="button" title="Day and Week: the business day (Settings ▸ Calendar) or all 24 hours (H)"></button>
+        <h2 id="cal-title"></h2>
+        <span id="cal-modes"><button type="button" data-mode="day" title="Day (D)">Day</button><button type="button" data-mode="week" title="Week (W)">Week</button><button type="button" data-mode="month" title="Month (M)">Month</button><button type="button" data-mode="agenda" title="Agenda (A)">Agenda</button><button type="button" data-mode="invites" title="Invites: meeting invitations waiting for your answer, with what they clash with (I)">Invites <span id="cal-invites-count" class="cal-count" hidden></span></button><button type="button" data-mode="trips" title="Trips: flights and hotel stays ahead, from your travel mail (R)">Trips <span id="cal-trips-count" class="cal-count" hidden></span></button></span>
+        <input id="cal-search" type="search" placeholder="Search events" spellcheck="false">
+      </div>
+      <div id="cal-body"></div>
+    </section>
+    <!-- Contacts (the Address Book): in place of the list and the reader, like the calendar -->
+    <section id="contacts" hidden>
+    <div class="ab-bar">
+      <h2 class="ab-title">Contacts</h2>
+      <input id="ab-find" type="search" placeholder="Find a name, address, number or company" spellcheck="false">
+      <select id="ab-account"><option value="">Every account</option></select>
+      <label class="ab-sort-label">Sort by <select id="ab-sort" title="The order of the contacts"><option value="first">First name</option><option value="last">Last name</option><option value="company">Company</option></select></label>
+      <span id="ab-count" class="p-note"></span>
+    </div>
+    <div class="ab-layout">
+      <div id="ab-list" tabindex="0"></div>
+      <div id="ab-card"><p class="p-note">Choose a contact.</p></div>
+    </div>
+    <p id="ab-empty" class="p-note" hidden>No contacts yet. Microsoft 365 and Outlook.com address books come in with the mail once you've signed in again (Settings ▸ Accounts ▸ Sign in again), where Microsoft asks you to let Eudora read and change your contacts.</p>
+    <div class="ab-buttons">
+      <button id="ab-new" title="Add a contact to one of your address books">New Contact</button>
+      <button id="ab-export-vcf" title="Every contact shown, as a vCard file (Outlook, Apple, Google and phones read it)">Export vCard…</button>
+      <button id="ab-export-csv" title="Every contact shown, as a spreadsheet file (Outlook's and Google's import columns)">Export CSV…</button>
+    </div>
+    </section>
+    <!-- To Do (todo.js): in place of the list and the reader when To Do is chosen -->
+    <section id="todo" hidden>
+      <div id="todo-bar">
+        <input id="todo-new" type="text" placeholder="Add a task (Enter)" spellcheck="true">
+        <select id="todo-new-due" title="When it's due"><option value="">No date</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="week">Next week</option></select>
+        <button id="todo-add" type="button">Add</button>
+      </div>
+      <p id="todo-sync" class="p-note"></p>
+      <div id="todo-list"></div>
+    </section>
+  </main>
+
+  <div id="col-menu" class="popup-menu" hidden></div>
+  <dialog id="col-header-box">
+    <h2>Add a header column</h2>
+    <p class="p-note">Any header in the messages: its value shows in the column (read for the rows on screen).</p>
+    <input id="col-header-name" list="col-header-list" placeholder="X-Mailer" autocomplete="off" spellcheck="false">
+    <datalist id="col-header-list">
+      <option value="X-Mailer"><option value="User-Agent"><option value="Reply-To"><option value="Return-Path"><option value="Sender">
+      <option value="Delivered-To"><option value="List-Id"><option value="Message-ID"><option value="In-Reply-To"><option value="X-Priority">
+      <option value="Importance"><option value="Organization"><option value="X-Originating-IP"><option value="X-Spam-Status"><option value="Content-Type">
+      <option value="Thread-Topic"><option value="Authentication-Results"><option value="Received">
+    </datalist>
+    <div class="p-buttons"><button id="col-header-cancel">Cancel</button><button id="col-header-add" class="primary">Add Column</button></div>
+  </dialog>
+  <div id="row-menu" class="popup-menu" hidden>
+    <button data-act="reply">Reply</button>
+    <button data-act="reply-all">Reply to All</button>
+    <button data-act="forward">Forward</button>
+    <button data-act="flag-todo">Flag as To Do</button>
+    <button data-act="add-trip">Add to Trips</button>
+    <hr>
+    <button data-act="transfer">Transfer To…</button>
+    <button data-act="copy-to">Copy To…</button>
+    <button data-act="delete">Delete</button>
+    <hr>
+    <button data-act="mark-spam">Spam</button>
+    <button data-act="mark-not-spam">Not Spam</button>
+    <button data-act="sort-selected">Sort with the Spam Filter…</button>
+    <button data-act="filter-messages">Run My Rules</button>
+    <button data-act="sort-why">Why? (Spam Filter)</button>
+    <button data-act="views-why">Why in these Views?</button>
+    <hr>
+    <button data-act="source">View Source</button>
+    <div id="row-menu-plugins"></div>
+  </div>
+
+  <dialog id="plugins-box">
+    <h2>Plugins</h2>
+    <p class="p-note">Plugins add commands to Eudora. Each runs sealed off inside Eudora: it can't reach your files, the network or other programs, only the parts of your mail you allow it, and everything it does is logged (Settings ▸ Programs and plugins).</p>
+    <div id="pl-list"></div>
+    <p class="p-note pl-warn">Plugins aren't signed yet: Eudora can't check who made one. Install only plugins from people you trust.</p>
+    <div class="p-buttons"><button id="pl-close">Close</button><button id="pl-install" class="primary">Install a plugin…</button></div>
+  </dialog>
+
+  <dialog id="plugin-view-box">
+    <h2 id="pv-title">Plugin</h2>
+    <iframe id="pv-frame" sandbox="" referrerpolicy="no-referrer"></iframe>
+    <div class="p-buttons"><button id="pv-close">Close</button></div>
+  </dialog>
+
+  <dialog id="pick">
+    <h2 id="pick-title">Transfer To</h2>
+    <input id="pick-filter" type="search" placeholder="Type part of a mailbox name" autocomplete="off" spellcheck="false">
+    <div id="pick-list"></div>
+    <p class="p-note">↑ ↓ to move, → to open a mailbox, ← to close it, Enter or a double-click to choose. Type to find one anywhere.</p>
+    <div class="p-buttons"><button id="pick-cancel">Cancel</button><button id="pick-ok" class="primary">OK</button></div>
+  </dialog>
+
+  <dialog id="welcome">
+    <h2>Welcome to Eudora</h2>
+    <p>Add your mail. Every kind of account goes into the one library: one search and one window over all of them.</p>
+    <div class="welcome-choices">
+      <button id="welcome-ms" class="primary"><b>Microsoft 365 or Outlook.com</b><span>Sign in with Microsoft in your browser</span></button>
+      <button id="welcome-imap"><b>Any other mail account</b><span>IMAP or POP3: Gmail, Yahoo, iCloud, your company's or provider's mail server</span></button>
+      <button id="welcome-import"><b>Old mail on this computer</b><span>Classic Eudora folders, mbox or .eml files</span></button>
+      <button id="welcome-restore"><b>Restore from a backup</b><span>Everything from a Eudora backup made on this or another computer (Windows, Mac, or Linux): mail, accounts, rules, and settings</span></button>
+    </div>
+    <div class="welcome-keep">
+      <b>How much mail to keep on this computer</b>
+      <div class="keep-slider"><input type="range" id="welcome-keep" min="0" max="10" step="1" value="10" aria-label="How much mail to keep on this computer"><b id="welcome-keep-label">Everything</b></div>
+      <p class="p-note">On a tablet or a small drive, keep recent mail only: Eudora then downloads just that period, newest first. Your mail stays on its servers either way, and you can change this at any time (Settings ▸ Library), to any period.</p>
+    </div>
+    <p class="p-note" id="welcome-note">You can add more accounts later in Settings ▸ Accounts.</p>
+    <div class="p-buttons"><button id="welcome-later">Later</button></div>
+  </dialog>
+
+  <dialog id="newbox">
+    <h2 id="newbox-title">New Mailbox</h2>
+    <div class="a-grid">
+      <label for="newbox-account">In</label><select id="newbox-account"></select>
+      <label for="newbox-name">Name</label><input id="newbox-name" type="text" spellcheck="false" placeholder="Projects, or Projects/2026 for one inside another">
+    </div>
+    <p class="p-note" id="newbox-note">On a mail server it's made there when the first message goes into it.</p>
+    <div class="p-buttons"><button id="newbox-cancel">Cancel</button><button id="newbox-ok" class="primary">Make It</button></div>
+  </dialog>
+
+  <dialog id="label-box">
+    <h2>Change Label</h2>
+    <p class="p-note" id="label-note"></p>
+    <div id="label-list"></div>
+    <div class="p-buttons">
+      <button id="label-none" title="Take every label off">None</button>
+      <button id="label-edit">Edit Labels…</button>
+      <button id="label-done">Done</button>
+    </div>
+  </dialog>
+
+  <dialog id="api-grant-box">
+    <h2 id="ag-title">A program asks to use your mail</h2>
+    <p id="ag-who" class="p-note"></p>
+    <p id="ag-reason" class="ag-reason"></p>
+    <p class="p-note ag-unsigned">Eudora can't check who made this program: allow it only if you started it yourself and trust it. You can see everything it does (Settings ▸ Programs and plugins ▸ Log) and take any of this back at any time.</p>
+    <h3>Allow it to:</h3>
+    <div id="ag-list"></div>
+    <p id="ag-warning" class="ag-warning" hidden></p>
+    <div class="p-buttons"><button id="ag-refuse">Refuse</button><button id="ag-allow" class="primary">Allow what's ticked</button></div>
+  </dialog>
+
+  <dialog id="api-send-box">
+    <h2 id="as-title">A program wants to send a message</h2>
+    <div id="as-head" class="as-head"></div>
+    <pre id="as-body" class="as-body"></pre>
+    <div class="p-buttons">
+      <button id="as-refuse">Don't send</button>
+      <button id="as-trust" title="Send this, and let this program send without asking from now on (Settings ▸ Programs and plugins takes it back)">Send, and allow all from it</button>
+      <button id="as-send" class="primary">Send</button>
+    </div>
+  </dialog>
+
+  <dialog id="api-log-box">
+    <h2>What programs did (the API log)</h2>
+    <p class="p-note">Every call a program or plugin makes, kept in your library for 90 days: what it read or changed (message numbers, folders, counts; never your mail itself), and what was refused.</p>
+    <div class="bk-row"><select id="al-client"></select></div>
+    <div id="al-list" class="al-list"></div>
+    <div class="p-buttons"><button id="al-close">Close</button></div>
+  </dialog>
+
+  <dialog id="sig-box">
+    <h2>Signatures</h2>
+    <p class="p-note">A new message, reply or forward starts with its From address's signature; the message window's Signature menu picks another or none. They travel to your other computers.</p>
+    <div class="sig-grid">
+      <div>
+        <div id="sig-list"></div>
+        <div class="p-buttons"><button id="sig-add" class="f-small">New</button> <button id="sig-remove" class="f-small">Remove</button></div>
+      </div>
+      <div>
+        <label>Name <input id="sig-name" type="text"></label>
+        <div class="sig-tools">
+          <button data-sig-cmd="bold"><b>B</b></button>
+          <button data-sig-cmd="italic"><i>I</i></button>
+          <button data-sig-cmd="underline"><u>U</u></button>
+          <button id="sig-link">Link</button>
+        </div>
+        <div id="sig-editor" contenteditable="true" spellcheck="true"></div>
+      </div>
+    </div>
+    <h3>Which signature each address starts with</h3>
+    <div id="sig-defaults"></div>
+    <div class="p-buttons">
+      <button id="sig-cancel">Cancel</button>
+      <button id="sig-save">Keep</button>
+    </div>
+  </dialog>
+
+  <dialog id="trash-box">
+    <h2>Empty Trash</h2>
+    <p class="p-note">The messages in each Trash you tick are deleted. In Microsoft 365 mailboxes they're deleted on the server too, as Outlook's Empty Folder does: Exchange keeps them in Recoverable Items for a while (usually 14 to 30 days), where Outlook's "Recover deleted items" finds them. This can't be undone in Eudora.</p>
+    <div id="trash-list"></div>
+    <div class="p-buttons">
+      <button id="trash-cancel">Cancel</button>
+      <button id="trash-go" class="danger">Empty Trash</button>
+    </div>
+  </dialog>
+
+
+  <dialog id="vwhy-box">
+    <h2>Why in these Views?</h2>
+    <p class="p-note">Each View adds up points for what it sees in the message (its subject, sender and whole text); 2 points or more puts the message in. Views with no points aren't listed.</p>
+    <div id="vwhy-list"></div>
+    <div class="p-buttons"><button id="vwhy-close" class="primary">Close</button></div>
+  </dialog>
+
+  <dialog id="subs-box">
+    <h2>Subscriptions</h2>
+    <p class="p-note">Every mailing list, notification and marketing sender that wrote in the last 12 months, the busiest first. Only senders that prove who they are: spam and frauds aren't listed (unsubscribing from those only tells them your address is read: mark them Spam).</p>
+    <div class="subs-bar">
+      <input id="subs-find" type="search" placeholder="Find a sender">
+      <select id="subs-kind">
+        <option value="">Every kind</option>
+        <option value="Mailing list">Mailing lists</option>
+        <option value="Notifications">Notifications</option>
+        <option value="Marketing">Marketing</option>
+      </select>
+      <label><input id="subs-left" type="checkbox"> Show those I left</label>
+      <span id="subs-count" class="p-note"></span>
+    </div>
+    <div id="subs-list"></div>
+    <div class="p-buttons"><button id="subs-close" class="primary">Close</button></div>
+  </dialog>
+
+  <dialog id="filters">
+    <h2>Filters</h2>
+    <label class="f-row f-arriving"><input id="f-arriving-on" type="checkbox"> Run the rules marked “Mail arrives” on new mail as it comes in <span class="sr-sub">(done by the download; mail already here is left alone)</span></label>
+    <div class="f-layout">
+      <div class="f-left">
+        <div id="f-list"></div>
+        <div class="f-buttons">
+          <button id="f-new">New</button>
+          <button id="f-del">Delete</button>
+          <button id="f-up" title="Run earlier">↑</button>
+          <button id="f-down" title="Run later">↓</button>
+        </div>
+        <details class="f-import">
+          <summary>Import classic Eudora filters…</summary>
+          <label>Filters.pce <input id="f-imp-path" type="text" value="C:\OldMail\Filters.pce"></label>
+          <label>Mailboxes are in <select id="f-imp-account"></select></label>
+          <button id="f-imp-go">Import</button>
+        </details>
+      </div>
+      <div class="f-right" id="f-edit">
+        <label class="f-row"><span>Name</span><input id="f-name" type="text"></label>
+        <div class="f-row"><span>When</span>
+          <label><input id="f-incoming" type="checkbox"> Mail arrives</label>
+          <label><input id="f-manual" type="checkbox"> Filter Messages (by hand)</label>
+          <label title="Not built yet"><input id="f-outgoing" type="checkbox" disabled> Mail is sent</label>
+        </div>
+        <div class="f-row"><span>Match</span><select id="f-all"><option value="1">all of these</option><option value="0">any of these</option></select></div>
+        <div id="f-tests"></div>
+        <button id="f-add-test" class="f-small">+ Test</button>
+        <h3>Then</h3>
+        <div id="f-actions"></div>
+        <button id="f-add-action" class="f-small">+ Action</button>
+      </div>
+    </div>
+    <div id="f-report" class="p-note"></div>
+    <div class="p-buttons">
+      <button id="f-try">Try on this folder</button>
+      <button id="f-run">Run on this folder</button>
+      <button id="f-close">Cancel</button>
+      <button id="f-save" class="primary">Save</button>
+    </div>
+  </dialog>
+
+  <dialog id="sort-box">
+    <h2 id="sort-title">Sort with the Spam Filter</h2>
+    <p id="sort-summary" class="p-note"></p>
+    <div class="sort-tools">
+      <label>Show <select id="sort-show"></select></label>
+      <button id="sort-check-all" class="f-small">Tick all</button>
+      <button id="sort-check-none" class="f-small">Untick all</button>
+      <span class="sort-hint">Untick what shouldn't move. Click a row for every reason and rule.</span>
+    </div>
+    <div id="sort-list"></div>
+    <div class="p-buttons">
+      <button id="sort-rules">Mail Filter Rules…</button>
+      <button id="sort-cancel">Cancel</button>
+      <button id="sort-go" class="primary">Move</button>
+    </div>
+  </dialog>
+
+  <dialog id="spam-rules">
+    <h2>Mail Filter Rules</h2>
+    <p class="p-note">In the order they're checked. Untick a rule to ignore it. Exceptions skip a rule for the messages they match; inclusions apply it to more.</p>
+    <div class="sr-switch">
+      <label class="f-row"><input id="sr-arrival" type="checkbox"> <b>Sort arriving mail with the spam filter</b></label>
+      <span class="p-note">Only mail that arrives from now on; try Special ▸ Sort with the Spam Filter on a folder first to see what it does.</span>
+    </div>
+    <div class="sr-mailboxes"><span class="sr-sub">The spam filter sorts arriving mail in:</span> <span id="sr-mailboxes"></span></div>
+    <div class="sr-mailboxes" title="Mail written in any other language goes to Spam ▸ Other Languages (people you write to are left alone). Choose the languages you read, not where people come from: English written by anyone stays."><span class="sr-sub">Languages you read (mail in others goes to Spam):</span> <span id="sr-languages"></span> <button type="button" id="sr-languages-change">Change…</button></div>
+    <div class="sr-learn">
+      <span class="sr-sub" id="sr-learned">Learning: …</span>
+      <button id="sr-learn" class="f-small" title="Learn again from each mailbox's Junk / Spam folders and the mail of people you write to">Learn now</button>
+      <span id="sr-learn-line" class="p-note"></span>
+    </div>
+    <div class="sr-learn">
+      <label class="sr-sub" for="sr-spamhaus">Spamhaus DQS key</label>
+      <input id="sr-spamhaus" type="password" autocomplete="off" spellcheck="false" placeholder="checks new mail against Spamhaus's lists" style="width: 22em">
+      <button id="sr-spamhaus-save" class="f-small">Keep</button>
+      <span id="sr-spamhaus-state" class="p-note"></span>
+    </div>
+    <div class="f-layout">
+      <div class="f-left">
+        <input id="sr-filter" type="search" placeholder="Find a rule" autocomplete="off" spellcheck="false">
+        <div id="sr-list"></div>
+        <div class="f-buttons">
+          <button id="sr-add-block" title="Add a sender or @domain to the blacklist">+ Blacklist</button>
+          <button id="sr-add-allow" title="Add a sender or @domain to the whitelist">+ Whitelist</button>
+          <button id="sr-add-like" title="A rule for messages like the one selected in the list">+ Like selected</button>
+        </div>
+      </div>
+      <div class="f-right" id="sr-edit">
+        <h3 id="sr-name"></h3>
+        <p id="sr-desc" class="p-note"></p>
+        <label class="f-row"><input id="sr-on" type="checkbox"> Use this rule</label>
+        <h3>Applies in <span class="sr-sub">(none ticked: every mailbox)</span></h3>
+        <div id="sr-only-in" class="sr-mailbox-list"></div>
+        <h3>Exceptions <span class="sr-sub">(the rule is skipped for messages matching any of these)</span></h3>
+        <div id="sr-exceptions"></div>
+        <button id="sr-add-exception" class="f-small">+ Exception</button>
+        <h3>Inclusions <span class="sr-sub">(the rule also applies to messages matching any of these)</span></h3>
+        <div id="sr-inclusions"></div>
+        <button id="sr-add-inclusion" class="f-small">+ Inclusion</button>
+        <div id="sr-new" hidden>
+          <label class="f-row"><span id="sr-new-label">Address or @domain</span><input id="sr-new-pattern" type="text" spellcheck="false"></label>
+          <label class="f-row" id="sr-new-action-row"><span>Then</span><select id="sr-new-action"></select></label>
+          <label class="f-row" id="sr-new-mailbox-row"><span>Applies in</span><select id="sr-new-mailbox"></select></label>
+          <div id="sr-like-preview" class="p-note"></div>
+          <label class="f-row" id="sr-new-name-row"><span>Name</span><input id="sr-new-name" type="text"></label>
+          <button id="sr-new-save" class="primary">Add</button>
+        </div>
+        <p><button id="sr-remove" class="f-small">Remove this rule</button></p>
+      </div>
+    </div>
+    <div class="p-buttons">
+      <button id="sr-close" class="primary">Done</button>
+    </div>
+  </dialog>
+
+  <dialog id="backup-box">
+    <h2>Back Up Eudora</h2>
+    <p class="p-note">Everything in one go: every message, your accounts, folders, rules, spam filter and settings, so you can move Eudora to another computer (Windows, Mac or Linux) or keep a copy. Microsoft 365 accounts sign in again after a restore.</p>
+    <div id="bk-sizes" class="p-note">Measuring…</div>
+    <div class="a-grid">
+      <label for="bk-dest">Save to</label><span class="bk-row"><input id="bk-dest" type="text" spellcheck="false"><button data-browse="bk-dest" data-what="folder" data-keep-name="1">Browse…</button></span>
+      <label for="bk-pass">Password</label><input id="bk-pass" type="password" autocomplete="new-password" placeholder="leave empty for no password">
+      <label for="bk-pass2">Again</label><input id="bk-pass2" type="password" autocomplete="new-password">
+      <label for="bk-split">Files</label>
+      <span><select id="bk-split">
+        <option value="0">One file</option>
+        <option value="4">Parts of 4 GB (a USB stick formatted FAT32)</option>
+        <option value="25">Parts of 25 GB</option>
+        <option value="custom">Parts of a size I choose…</option>
+      </select> <input id="bk-split-gb" type="number" min="0.1" step="0.1" value="10" class="a-port" hidden> <span id="bk-split-unit" hidden>GB</span></span>
+    </div>
+    <label class="f-row"><input id="bk-indexes" type="checkbox"> <span id="bk-indexes-label">Include the search indexes (a quicker restore)</span></label>
+    <label class="f-row"><input id="bk-passwords" type="checkbox"> Include the passwords (IMAP and SMTP accounts, the sync key)</label>
+    <div id="bk-agree-box" class="bk-warning" hidden>
+      <p><b>Without a password, anyone who gets this backup can read these passwords.</b> Give the backup a password above, or type <b>I agree</b> to keep them in it unprotected.</p>
+      <input id="bk-agree" type="text" placeholder="I agree" spellcheck="false" autocomplete="off">
+    </div>
+    <div id="bk-progress" class="bk-progress" hidden><progress id="bk-bar" max="1" value="0"></progress><div id="bk-line" class="p-note"></div></div>
+    <div class="p-buttons"><button id="bk-cancel">Close</button><button id="bk-stop" hidden>Stop</button><button id="bk-go" class="primary">Back Up</button></div>
+  </dialog>
+
+  <dialog id="views-accounts-box">
+    <h2>Mailboxes in Views</h2>
+    <p class="p-note">The Views at the top (Receipts, Invoices…) show the mailboxes ticked here. Each mailbox's own Views (under it in Accounts) always show just that mailbox.</p>
+    <div id="views-accounts-list" class="sr-mailbox-list"></div>
+    <div class="p-buttons"><button id="views-accounts-cancel">Cancel</button><button id="views-accounts-save" class="primary">Save</button></div>
+  </dialog>
+
+  <dialog id="about-box">
+    <h2>About Eudora</h2>
+    <p>A free mail client for huge mailboxes.</p>
+    <p id="about-version"></p>
+    <p class="p-note">© 2026 Planet Networks. MIT or Apache-2.0.</p>
+    <h3 id="about-new-title">What's new</h3>
+    <div id="about-new" class="about-new"></div>
+    <p><button id="about-history" type="button">Every version (What's New)…</button></p>
+    <h3>Speed</h3>
+    <p class="p-note">How long things take on this computer: the usual time (half are quicker), the slow ones (95 of 100 are quicker), and the slowest ever. Kept as Eudora goes, at no cost to its speed.</p>
+    <div id="about-speed" class="stats"></div>
+    <div class="p-buttons"><button id="about-close" class="primary">OK</button></div>
+  </dialog>
+
+  <dialog id="stats-box">
+    <h2>Statistics</h2>
+    <div id="stats-body" class="stats"><p class="p-note">Counting…</p></div>
+    <div class="p-buttons"><button id="stats-recount">Count now</button><button id="stats-close" class="primary">Close</button></div>
+  </dialog>
+
+  <dialog id="out-box">
+    <h2>Out</h2>
+    <p class="p-note">Messages waiting to be sent. Eudora sends each at its time while it's open (or its download is running); one whose time passed while both were closed goes at the next start.</p>
+    <div id="out-list"></div>
+    <div class="p-buttons"><button id="out-close">Close</button><button id="out-send" class="primary" title="Send Queued Messages (Ctrl+T)">Send All Now</button></div>
+  </dialog>
+
+  <dialog id="oa-box">
+    <h2>Find Old Attachments</h2>
+    <p class="p-note">Classic Eudora kept attachments as files apart from the messages. Eudora looks for the ones still missing in your old Eudora folder, in other copies of the same messages (from Microsoft 365), and in a folder you name here: an old backup drive, an unzipped backup… Whatever it finds is kept in the library from then on (and in backups). Look as often as you like: only what's still missing is looked for.</p>
+    <div class="a-grid">
+      <label for="oa-folder">Also look in</label><span class="bk-row"><input id="oa-folder" type="text" spellcheck="false" placeholder="E:\ (an old backup drive), or a folder; may be left empty"><button data-browse="oa-folder" data-what="folder">Browse…</button></span>
+    </div>
+    <div id="oa-progress" class="bk-progress" hidden><progress id="oa-bar" max="1" value="0"></progress><div id="oa-line" class="p-note"></div></div>
+    <div class="p-buttons"><button id="oa-cancel">Close</button><button id="oa-stop" hidden>Stop</button><button id="oa-go" class="primary">Look</button></div>
+  </dialog>
+
+  <dialog id="import-box">
+    <h2>Import</h2>
+    <p class="p-note">Brings mail in from files: a classic Eudora folder (its mailboxes, folders and settings), mailbox files (classic .mbx, mbox from Thunderbird, Apple Mail and others), or messages (.eml) and folders of them. Nothing is changed where they are. Messages already here aren't added twice; copies of the same message from elsewhere are merged.</p>
+    <div class="a-grid">
+      <label for="im-paths">From</label><span class="bk-row"><input id="im-paths" type="text" spellcheck="false" placeholder="a folder or files (several: separated by |)"><button data-browse="im-paths" data-what="folder">Folder…</button><button data-browse="im-paths" data-what="files" data-kind="mail">Files…</button></span>
+      <label for="im-account">Whose mail</label><input id="im-account" type="text" spellcheck="false" placeholder="an address; empty: a classic Eudora folder's own (else &quot;Imported files&quot;)">
+      <label for="im-into">Into the folder</label><input id="im-into" type="text" spellcheck="false" placeholder="empty: the account's top (classic folders) or Imports/&lt;name&gt;">
+      <label for="im-merge">If that address has an account</label><select id="im-merge"><option value="">ask me</option><option value="merge">add to it</option><option value="separate">keep this as an account of its own</option></select>
+    </div>
+    <div id="im-progress" class="bk-progress" hidden><progress id="im-bar" max="1" value="0"></progress><div id="im-line" class="p-note"></div></div>
+    <div class="p-buttons"><button id="im-cancel">Close</button><button id="im-stop" hidden>Stop</button><button id="im-go" class="primary">Import</button></div>
+  </dialog>
+
+  <dialog id="optimize-box">
+    <h2>Optimize Library</h2>
+    <p class="p-note">Gives back the disk space of deleted mail (Empty Trash), merges the search index and tidies the database. Every message moved is checked against its checksum first; nothing is lost. Downloading pauses meanwhile. On a big library this takes minutes.</p>
+    <label><input type="checkbox" id="op-vacuum"> Also rewrite the database (needs as much free space as the database; slower)</label>
+    <div id="op-progress" class="bk-progress" hidden><progress id="op-bar" max="1" value="0"></progress><div id="op-line" class="p-note"></div></div>
+    <div class="p-buttons"><button id="op-cancel">Close</button><button id="op-stop" hidden>Stop</button><button id="op-go" class="primary">Optimize</button></div>
+  </dialog>
+
+
+  <dialog id="restore-box">
+    <h2>Restore Eudora</h2>
+    <p class="p-note">Restores a backup (made on any computer: Windows, Mac or Linux) as Eudora's library. It goes into Eudora's usual place unless you choose another folder (another drive with more room, say); the folder must be new or empty, and outside Dropbox, OneDrive and other sync folders. Whichever folder it is becomes the library Eudora opens from then on.</p>
+    <div class="a-grid">
+      <label for="rs-file">Backup</label><span class="bk-row"><input id="rs-file" type="text" spellcheck="false" placeholder="…\Eudora backup 2026-10-14.eudora-backup (or any of its parts)"><button data-browse="rs-file" data-what="file" data-kind="backup">Browse…</button><button id="rs-check">Look</button></span>
+      <label for="rs-dest">Library folder</label><span class="bk-row"><input id="rs-dest" type="text" spellcheck="false"><button data-browse="rs-dest" data-what="folder">Browse…</button></span>
+      <label for="rs-pass">Password</label><input id="rs-pass" type="password" autocomplete="off" placeholder="if the backup has one">
+    </div>
+    <div id="rs-about" class="p-note"></div>
+    <div id="rs-progress" class="bk-progress" hidden><progress id="rs-bar" max="1" value="0"></progress><div id="rs-line" class="p-note"></div></div>
+    <div class="p-buttons"><button id="rs-cancel">Close</button><button id="rs-stop" hidden>Stop</button><button id="rs-go" class="primary">Restore</button></div>
+  </dialog>
+
+  <dialog id="drafts-box">
+    <h2>Drafts</h2>
+    <div id="drafts-list"></div>
+    <div class="p-buttons"><button id="drafts-close">Close</button></div>
+  </dialog>
+
+  <dialog id="prefs">
+    <h2>Settings</h2>
+    <nav id="p-nav" aria-label="Settings pages"></nav>
+    <div id="p-pages">
+    <section data-page="general">
+      <h3>Look</h3>
+      <select id="p-skin">
+        <option value="eudora-classic">Eudora Classic</option>
+          <option value="eudora">Eudora Modern</option>
+        <option value="thunderbird">Thunderbird-style</option>
+        <option value="lookout-classic">Lookout style (classic)</option>
+        <option value="lookout-new">Lookout style (new)</option>
+        <option value="gmail">Gmail-style</option>
+        <option value="yahoo">Yahoo-style</option>
+      </select>
+      <p class="p-note">The look only: every account, the search and the rules are the same in every one. <b>Eudora Classic</b> also works like classic Eudora 7.1: its menus, names, shortcuts and icons.</p>
+      <label><input type="checkbox" id="p-ctrl-r-all"> Map Ctrl+R to Reply to All (Ctrl+Shift+R is then Reply), as classic Eudora allowed</label>
+      <label><input type="checkbox" id="p-ctrl-j-junk"> Ctrl+J for Junk (Eudora Classic: Filter Messages then has no shortcut)</label>
+    </section>
+    <section data-page="general">
+      <h3>Organize mail by</h3>
+      <label><input type="radio" name="p-organize" value="folders"> Folders: All Mail, then each account with its folders</label>
+      <label><input type="radio" name="p-organize" value="labels"> Labels: All Mail and one list of labels across every account (like Gmail)</label>
+    </section>
+    <section data-page="general">
+      <h3>Recent Mail</h3>
+      <p class="p-note">Recent Mail, at the top of the mailboxes, lists what the spam filter and your rules sorted out of the Inbox lately (marketing, notifications, mailing lists), never spam, so nothing new goes unseen.</p>
+      <label>Show the last <input id="p-recent-hours" type="number" min="1" max="720" step="1" style="width:5em"> hours (Tuesday to Sunday)</label>
+      <label>On Mondays, the last <input id="p-recent-monday" type="number" min="1" max="720" step="1" style="width:5em"> hours (to take in the weekend)</label>
+    </section>
+    <section data-page="todo">
+      <h3>To Do</h3>
+      <p class="p-note">Tasks are kept in Microsoft To Do (your first Microsoft account), so Outlook, the To Do app and Eudora on your other computers share them. Flag any message as a To Do with Ctrl+Shift+G (or right-click ▸ Flag as To Do).</p>
+      <p class="p-note"><b>Twos</b> has no official API: Eudora uses the one its own apps use, which may change. Find your user id and token in Twos in a browser (its developer tools ▸ Network, in a request's payload).</p>
+      <label>Twos user id <input id="p-twos-user" type="text" spellcheck="false" autocomplete="off"></label>
+      <label>Twos token <input id="p-twos-token" type="password" spellcheck="false" autocomplete="off" placeholder="(kept in this computer's credential store)"></label>
+      <div class="p-buttons"><button id="p-twos-save" type="button">Save</button><button id="p-twos-test" type="button">Test…</button></div>
+      <p class="p-note" id="p-twos-state"></p>
+    </section>
+    <section data-page="calendar">
+      <h3>Calendar</h3>
+      <label>Week starts on <select id="p-week-start"><option value="0">Sunday</option><option value="1">Monday</option></select></label>
+      <label>Business day from <select id="p-day-from"></select> to <select id="p-day-to"></select></label>
+      <p class="p-note">Day and Week show the business day filling the window (Business hours in the calendar's bar); Full day shows all 24 hours. Events outside it are counted at the top or bottom of each day.</p>
+      <h4>Places for appointments</h4>
+      <p class="p-note">A new appointment's Location suggests places as you type: Google Maps' with your own Google Maps key (made in your Google Cloud project: Places API (New); Google bills its owner, with a free monthly allowance), else OpenStreetMap's (no key needed).</p>
+      <label>Google Maps key <input id="p-maps-key" type="password" spellcheck="false" autocomplete="off" placeholder="(kept in this computer's credential store)"></label>
+      <div class="p-buttons"><button id="p-maps-save" type="button">Save</button><button id="p-maps-remove" type="button">Remove</button></div>
+      <p class="p-note" id="p-maps-state"></p>
+      <h4>Zoom</h4>
+      <p class="p-note">Your Personal Meeting Room (zoom.us ▸ Profile ▸ Personal Meeting ID): Online meeting ▸ Zoom puts it in the appointment.</p>
+      <label>Zoom room link <input id="p-zoom-link" type="url" spellcheck="false" placeholder="https://zoom.us/j/…"></label>
+      <label>Passcode <input id="p-zoom-passcode" type="text" spellcheck="false"></label>
+      <label>Join by phone <textarea id="p-zoom-dial" rows="3" spellcheck="false" placeholder="+1 646 558 8656 US (New York)&#10;Meeting ID: …"></textarea></label>
+      <div class="p-buttons"><button id="p-zoom-save" type="button">Save</button></div>
+      <p class="p-note">A meeting of its own for each appointment (its own ID and passcode) needs your Zoom app: zoom.us ▸ App Marketplace ▸ Develop ▸ Build App ▸ General App (user-managed, OAuth); scope <b>meeting:write:meeting</b>; redirect URL and allow list <b id="p-zoom-redirect">http://localhost:47891/zoom</b>. Type its Client ID and Client Secret here, then Sign in to Zoom. Signed in, Online meeting ▸ Zoom makes a new meeting each time; otherwise it uses the room above.</p>
+      <label>Zoom app Client ID <input id="p-zoom-id" type="text" spellcheck="false" autocomplete="off"></label>
+      <label>Client Secret <input id="p-zoom-secret" type="password" spellcheck="false" autocomplete="off" placeholder="(kept in this computer's credential store)"></label>
+      <div class="p-buttons"><button id="p-zoom-app-save" type="button">Save app</button><button id="p-zoom-signin" type="button">Sign in to Zoom</button><button id="p-zoom-signout" type="button">Sign out</button></div>
+      <p class="p-note" id="p-zoom-state"></p>
+    </section>
+    <section data-page="speed">
+      <h3>Speed</h3>
+      <p class="p-note">Eudora can keep more of its database in memory, so counts, sorting and folders come back faster. It takes the memory only while Eudora is open.</p>
+      <label>Memory for speed <select id="p-memory"><option value="normal">Normal</option><option value="more">More</option><option value="most">Most</option></select></label>
+      <p class="p-note" id="p-memory-note"></p>
+      <h4>Maintenance</h4>
+      <p class="p-note">Maintenance keeps Eudora quick: it checks every folder's counts, gives back the space of deleted mail, merges the search index, refreshes the database's statistics and counts Help ▸ Statistics. It runs in the background; the status bar shows each step.</p>
+      <label>Run it <select id="p-maint-when"><option value="daily">Every day</option><option value="weekly">Every week</option><option value="off">Only when I ask</option></select></label>
+      <label id="p-maint-day-label">on <select id="p-maint-day"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></label>
+      <label id="p-maint-hour-label">at <select id="p-maint-hour"></select></label>
+      <label><input type="checkbox" id="p-maint-idle"> Only when I'm not using Eudora (waits until it hasn't been used for 15 minutes)</label>
+      <div class="p-row"><button id="p-maint-now">Run Maintenance Now</button></div>
+      <p class="p-note" id="p-maint-last"></p>
+    </section>
+    <section data-page="sync">
+      <h3>Downloading</h3>
+      <p class="p-note">While Eudora is open it keeps your mail up to date by itself, in the background: new mail every 5 minutes (and at once with Check Mail), then older mail. Closing Eudora stops it; it carries on where it was next time. These take effect at once.</p>
+      <label><input type="checkbox" id="p-bg-on"> Download mail while Eudora is open</label>
+      <label><input type="checkbox" id="p-bg-archive"> Include the Online Archive (Microsoft 365)</label>
+      <label><input type="checkbox" id="p-bg-shared"> Also download all of the shared mailboxes' mail in the background <span class="p-note">(off: a shared mailbox is brought up to date when you open one of its folders)</span></label>
+      <label class="f-row">Gmail, while nobody is using Eudora on this computer: check every <select id="p-gmail-idle">
+        <option value="30">30 minutes</option><option value="60">hour</option><option value="120">2 hours</option><option value="240">4 hours</option><option value="480">8 hours</option><option value="0">as usual</option>
+      </select></label>
+      <p class="p-note">Google limits how often one account may be asked, counting every computer together, so with Eudora open on several computers Gmail can refuse for a while. Not used for 15 minutes, a computer checks Gmail only this often; use Eudora again and it checks at once. Other accounts keep their own interval. <a href="#" data-help="gmail-limits">More…</a></p>
+      <p class="p-note" id="p-bg-state">Checking…</p>
+    </section>
+    <section data-page="updates">
+      <h3>Updates</h3>
+      <p class="p-note">Eudora looks on software.planet.net for a newer version, downloads it in the background and checks its signature, then asks before installing it. Looking sends nothing about you: only Eudora's name and version. Help ▸ Check for Updates looks at any time.</p>
+      <label><input type="checkbox" id="p-upd-start"> Check for updates when Eudora starts</label>
+      <label>Check for updates <select id="p-upd-days"><option value="1">every day</option><option value="7">every week</option><option value="14">every 14 days</option><option value="30">every 30 days</option><option value="0">never by itself</option></select></label>
+      <div class="p-row"><button id="p-upd-now">Check Now</button></div>
+      <p class="p-note" id="p-upd-state"></p>
+    </section>
+    <section data-page="programs">
+      <h3 id="p-api-title">Programs and plugins</h3>
+      <p class="p-note">Other programs and plugins can use your mail only as far as you allow them, one permission at a time, on this computer only. Everything they do is logged here.</p>
+      <label><input type="checkbox" id="p-api-on"> Let programs ask to use Eudora while it's open</label>
+      <label><input type="checkbox" id="p-api-closed"> Also while Eudora's window is closed (eudora api serve)</label>
+      <p class="p-note" id="p-api-state"></p>
+      <div id="p-api-clients"></div>
+      <div class="p-buttons"><button id="p-api-log" class="f-small">Show the log…</button></div>
+    </section>
+    <section data-page="mail">
+      <h3 id="p-labels-title">Labels</h3>
+      <p class="p-note">Labels mark messages by color (Message ▸ Change Label). In Microsoft 365 mailboxes they're Outlook's categories, with the same names, so Outlook and your phone show them too. The list travels to your other computers.</p>
+      <div id="p-labels"></div>
+      <div class="p-buttons"><button id="p-label-add" class="f-small">Add a label</button> <button id="p-labels-save" class="f-small">Keep these labels</button></div>
+    </section>
+    <section data-page="general">
+      <h3>Address completion</h3>
+      <p class="p-note">As you type in To, Cc or Bcc, Eudora suggests people from your mail.</p>
+      <label><input type="checkbox" id="p-comp-sent"> People you've written to</label>
+      <label><input type="checkbox" id="p-comp-received"> People who've written to you</label>
+    </section>
+    <section data-page="mail">
+      <h3>Pictures from the web</h3>
+      <p class="p-note">Pictures in a message that load from the web can tell the sender you opened it. Eudora fetches them itself; the message never goes online.</p>
+      <p class="p-note">Eudora always asks first (“Show pictures” in the message). Senders you trust can be marked with “Always show from …”: only their pictures load by themselves.</p>
+      <label><input type="radio" name="p-pic-keep" value="fetch"> Fetch them every time</label>
+      <label><input type="radio" name="p-pic-keep" value="store"> Keep them on this computer (they still show offline, or after the sender deletes them)</label>
+      <h4 class="p-sub">Senders whose pictures always show</h4>
+      <div id="p-pic-senders"></div>
+    </section>
+    <section data-page="web">
+      <h3>Web access (phones)</h3>
+      <p class="p-note" id="p-firewall-about">Eudora on the web (eudora-web) answers phones and computers on this network. Windows Firewall blocks them until you allow its port here: only on Private networks, and only for devices on this local network. Windows asks for permission.</p>
+      <div class="p-find">
+        <label>Port <input id="p-web-port" type="number" min="1" max="65535" value="443" class="a-port"></label>
+        <button id="p-firewall">Allow phones on this network</button>
+        <button id="p-firewall-remove" hidden>Remove</button>
+      </div>
+      <p class="p-note" id="p-firewall-status">Checking the firewall…</p>
+    </section>
+    <section data-page="sync">
+      <h3>Sync between your computers</h3>
+      <p class="p-note" id="p-sync-state">Checking…</p>
+      <div id="p-sync-start">
+        <div class="p-find">
+          <button id="p-sync-setup">Set up sync on this computer…</button>
+          <span class="p-note">On your first computer: makes a sync key and shows its recovery phrase.</span>
+        </div>
+        <div class="p-find">
+          <input id="p-sync-phrase-in" type="text" placeholder="Recovery phrase from your other computer" spellcheck="false" autocomplete="off" style="flex: 1">
+          <button id="p-sync-join">Join</button>
+        </div>
+      </div>
+      <div id="p-sync-on" hidden>
+        <p class="p-sync-phrase" id="p-sync-phrase" hidden></p>
+        <div class="p-find">
+          <button id="p-sync-show">Show recovery phrase</button>
+          <button id="p-sync-now">Sync now</button>
+          <button id="p-sync-repair" title="If how mail is filed here looks wrong: asks your other computers for a full copy">Repair…</button>
+        </div>
+        <label class="f-row">Settings travel in <select id="p-sync-home"></select></label>
+        <div class="sr-mailboxes"><span class="sr-sub">Also keep a copy of the settings in:</span> <span id="p-sync-carriers"></span></div>
+        <p class="p-note">How mail is filed travels in each account's own mailbox, to the computers that have that account.</p>
+      </div>
+    </section>
+    <section data-page="accounts">
+      <h3 id="p-accounts-title">Accounts</h3>
+      <div class="p-find">
+        <button id="p-add-microsoft">Add a Microsoft account…</button>
+        <span class="p-note">Microsoft 365 (work or school) or Outlook.com / Hotmail: you sign in with Microsoft in your browser. Add as many as you have; each one's mail comes in with the download.</span>
+      </div>
+      <div class="p-find" id="p-google-row" hidden>
+        <button id="p-add-google">Add a Google account…</button>
+        <span class="p-note">Gmail or Google Workspace: you sign in with Google in your browser; Eudora gets the mail, sending, labels, contacts and calendars that way.</span>
+      </div>
+      <div class="p-find">
+        <button id="p-add-account">Add another account…</button>
+        <span class="p-note">IMAP or POP3: Gmail, Yahoo, iCloud, your provider's or company's mail server. Its mail comes in with the download.</span>
+      </div>
+      <p class="p-note">Each account is shown by its address unless you give it a name. Its address and type always show when you point at it.</p>
+      <div id="p-accounts"></div>
+      <div class="p-find">
+        <button id="p-find">Find shared mailboxes…</button>
+        <span class="p-note">Microsoft 365: every mailbox in your organization you can open (shared mailboxes, and others' you were given access to).</span>
+      </div>
+      <div class="p-find">
+        <button id="p-ms-signin">Sign in to Microsoft 365 again…</button>
+        <span class="p-note" id="p-ms-note">Checking what Eudora may do on the server…</span>
+      </div>
+      <div id="p-found" hidden>
+        <div id="p-found-list"></div>
+        <div class="p-buttons"><button id="p-add" class="primary">Add the ticked mailboxes</button></div>
+      </div>
+    </section>
+    <section data-page="mail">
+      <h3>Signatures, rules, and the spam filter</h3>
+      <p class="p-note">Each of these opens its own editor.</p>
+      <div class="p-find"><button type="button" data-open="signatures">Signatures…</button><span class="p-note">Several named signatures; each From address has its own.</span></div>
+      <div class="p-find"><button type="button" data-open="filters">Rules (filters)…</button><span class="p-note">Move, label, forward, or answer mail as it arrives, or on a mailbox when you ask.</span></div>
+      <div class="p-find"><button type="button" data-open="spam-rules">Spam filter (Mail Filter Rules)…</button><span class="p-note">Which mailboxes it sorts, every rule it uses, your blocked and safe senders, languages you read.</span></div>
+      <div class="p-find"><button type="button" data-open="subscriptions">Subscriptions…</button><span class="p-note">Every mailing list and newsletter you get, with Unsubscribe.</span></div>
+      <div class="p-find"><button type="button" data-open="columns">Columns…</button><span class="p-note">What the message list shows (right-click its headings too).</span></div>
+    </section>
+    <section data-page="programs">
+      <h3>Plugins</h3>
+      <div class="p-find"><button type="button" data-open="plugins">Plugins…</button><span class="p-note">Install, switch on or off, or remove plugins; each asks for the permissions it needs.</span></div>
+    </section>
+    <section data-page="library">
+      <h3>Your library</h3>
+      <p class="p-note">Everything Eudora keeps on this computer: your mail, its search indexes, settings, and attachments.</p>
+      <div class="p-find"><button type="button" data-open="backup">Back Up Eudora…</button><span class="p-note">Everything in one file (or parts), with a password if you like: to move to a new computer or keep safe.</span></div>
+      <div class="p-find"><button type="button" data-open="restore">Restore Eudora…</button><span class="p-note">From a backup made on any computer.</span></div>
+      <div class="p-find"><button type="button" data-open="import">Import…</button><span class="p-note">Classic Eudora folders, mbox and .mbx files, .eml files.</span></div>
+      <div class="p-find"><button type="button" data-open="old-attachments">Find Old Attachments…</button><span class="p-note">Classic Eudora's attachment files, from old backup drives.</span></div>
+      <label class="p-row"><input type="checkbox" id="p-keep-originals"> Keep original messages exactly, for archive and legal purposes (takes more space)</label>
+      <p class="p-note">Microsoft gives Online Archive mail to Eudora in its own format, which Eudora turns into ordinary messages. With this on, Eudora also keeps Microsoft's copy of each item, byte for byte, beside the message (about two-thirds of the message's size again). Off: only the messages are kept, and maintenance removes the copies kept so far. Your mail, its attachments, and the archive on Microsoft's server aren't touched. <a href="#" data-help="keep-originals">More…</a></p>
+      <h3 id="p-keep-h">Mail kept on this computer</h3>
+      <p class="p-note">For a tablet or a laptop with a small drive: keep only recent mail here, and Eudora downloads only that period. <a href="#" data-help="keep-period">More…</a></p>
+      <p class="keep-now" id="p-keep-now"></p>
+      <div class="keep-slider"><input type="range" id="p-keep-range" min="0" max="10" step="1" aria-labelledby="p-keep-h"><b id="p-keep-label"></b></div>
+      <div class="keep-exact">Or exactly the last <input type="number" id="p-keep-n" min="1" max="99999" step="1"> <select id="p-keep-unit"><option value="1">days</option><option value="7">weeks</option><option value="30.4375">months</option><option value="365.25">years</option></select></div>
+      <p class="keep-preview" id="p-keep-preview" aria-live="polite"></p>
+      <div class="keep-warn">
+        <b>This removes mail from this computer only. It never deletes anything from your mail servers.</b>
+        Messages older than the period leave this computer; they stay on Microsoft 365, Gmail, and IMAP servers, and come back here if you choose a longer period later.
+        <b>Before removing a message, Eudora asks its server whether it still has it.</b> A message its server can't confirm stays here.
+        <b>Never removed:</b> mail that exists only on this computer: <b>POP3 mail</b> (a POP3 server keeps mail only until it's collected, so the copy here is often the only one), imported files, and classic Eudora mailboxes; flagged messages; and messages with a change still waiting for their server. Backups you've made aren't touched.
+      </div>
+      <div class="p-find"><button type="button" id="p-keep-apply">Keep Only This Period…</button><button type="button" id="p-keep-all">Keep Everything</button></div>
+      <div class="p-find"><button type="button" data-open="optimize">Optimize Library…</button><span class="p-note">Gives back the space of deleted mail.</span></div>
+      <div class="p-find"><button type="button" data-open="forget-sign-ins">Forget Sign-ins…</button><span class="p-note">Removes saved passwords and sign-ins from this computer.</span></div>
+    </section>
+    </div>
+    <div class="p-buttons"><button id="p-cancel">Cancel</button><button id="p-save" class="primary">Save</button></div>
+  </dialog>
+
+  <dialog id="account-box">
+    <h2 id="a-title">Add account</h2>
+    <div class="a-grid a-top">
+      <label for="a-address">Email address</label><input id="a-address" type="email" autocomplete="off" spellcheck="false" placeholder="you@example.com">
+    </div>
+    <div id="a-kind" class="a-kind">
+      <label><input type="radio" name="a-kind" value="microsoft"> <b>Microsoft 365 or Outlook.com</b> <span>(also Hotmail, Live)</span></label>
+      <label><input type="radio" name="a-kind" value="server" checked> <b>Another mail account</b> <span>(IMAP or POP3: Gmail, Yahoo, iCloud, others)</span></label>
+    </div>
+    <div id="a-ms" class="a-ms" hidden>
+      <b id="a-ms-title">This is a Microsoft account</b>
+      <p>Outlook.com, Hotmail and Microsoft 365 no longer accept passwords from mail programs: Eudora signs in with Microsoft in your browser instead, and gets your mail, sending and folders that way.</p>
+      <div class="p-buttons"><button id="a-ms-cancel">Cancel</button><button id="a-ms-signin" class="primary">Sign in with Microsoft</button></div>
+    </div>
+    <div id="a-google" class="a-ms" hidden>
+      <b id="a-google-title">This is a Google account</b>
+      <p>Sign in with Google in your browser (no app password): Eudora gets the mail, sending, labels, contacts and calendars. Or fill in the IMAP settings below with a Google app password.</p>
+      <div class="p-buttons"><button id="a-google-signin" class="primary">Sign in with Google</button></div>
+    </div>
+    <div class="a-grid">
+      <label for="a-name">Your name</label><input id="a-name" autocomplete="off" placeholder="as it shows in From">
+      <span class="a-section">Incoming mail</span>
+      <span class="a-protocol" title="IMAP keeps your folders on the server; POP3 has only the Inbox (Eudora never deletes mail from the server)">
+        <label><input type="radio" name="a-protocol" value="imap" checked> IMAP</label>
+        <label><input type="radio" name="a-protocol" value="pop3"> POP3</label>
+      </span>
+      <label for="a-server" id="a-server-label">IMAP server</label><input id="a-server" autocomplete="off" spellcheck="false" placeholder="imap.example.com">
+      <label for="a-security">Security</label>
+      <span><select id="a-security"><option value="tls">SSL/TLS</option><option value="starttls">STARTTLS</option><option value="none">None (not encrypted)</option></select>
+        Port <input id="a-port" type="number" min="1" max="65535" value="993" class="a-port"> <span class="a-default" id="a-port-default"></span></span>
+      <label for="a-tls-level">Encryption</label><select id="a-tls-level" title="How strong the encryption must be. High allows only current ciphers; Compatible falls back to older ones only when this server can't do better."><option value="high">High: TLS 1.3 and current TLS 1.2 ciphers (recommended)</option><option value="strict">Strict: TLS 1.3 only</option><option value="compatible">Compatible: allow older ciphers if the server needs them</option></select>
+      <label for="a-username">User name</label><input id="a-username" autocomplete="off" spellcheck="false" placeholder="usually the email address">
+      <label for="a-password">Password</label><input id="a-password" type="password" autocomplete="new-password">
+      <label for="a-pop-days" class="a-pop">Delete from server</label><span class="a-pop" title="POP3 leaves your mail on the server unless you choose: Eudora keeps its copy either way. Empty = never delete."><input id="a-pop-days" type="number" min="0" max="3650" class="a-port" placeholder="never"> days after Eudora has a message</span>
+      <label for="a-pop-mb" class="a-pop">Skip big messages</label><span class="a-pop" title="Messages bigger than this stay on the server, not downloaded; the download says how many. Empty = any size."><input id="a-pop-mb" type="number" min="1" max="10000" class="a-port" placeholder="any size"> MB and over stay on the server</span>
+      <span id="a-writes-gap"></span><label id="a-writes-row" title="Moves, read and replied marks, flags, labels (as IMAP keywords), deleting from the Trash and new folders are made on the server too, so other mail programs and your phone see them. Off: they stay in Eudora only."><input type="checkbox" id="a-writes" checked> Make Eudora's changes on the server too</label>
+      <span class="a-section">Outgoing mail (SMTP)</span><span class="p-note">Leave the server empty if you won't send from this account.</span>
+      <label for="a-smtp-server">SMTP server</label><input id="a-smtp-server" autocomplete="off" spellcheck="false" placeholder="smtp.example.com">
+      <label for="a-smtp-security">Security</label>
+      <span><select id="a-smtp-security"><option value="starttls">STARTTLS</option><option value="tls">SSL/TLS</option><option value="none">None (not encrypted)</option></select>
+        Port <input id="a-smtp-port" type="number" min="1" max="65535" value="587" class="a-port"> <span class="a-default" id="a-smtp-port-default"></span></span>
+      <label for="a-smtp-tls-level">Encryption</label><select id="a-smtp-tls-level" title="How strong the encryption must be when sending."><option value="high">High: TLS 1.3 and current TLS 1.2 ciphers (recommended)</option><option value="strict">Strict: TLS 1.3 only</option><option value="compatible">Compatible: allow older ciphers if the server needs them</option></select>
+      <span></span><label class="a-check"><input type="checkbox" id="a-smtp-auth" checked> Sign in to send</label>
+      <label for="a-smtp-username">User name</label><input id="a-smtp-username" autocomplete="off" spellcheck="false" placeholder="the same as for incoming mail">
+      <label for="a-smtp-password">Password</label><input id="a-smtp-password" type="password" autocomplete="new-password" placeholder="the same as for incoming mail">
+    </div>
+    <p class="p-note" id="a-hint">The password is kept in this computer's password store, never in the mail library.</p>
+    <p class="a-result" id="a-result"></p>
+    <div class="p-buttons"><button id="a-test">Test</button><button id="a-cancel">Cancel</button><button id="a-save" class="primary">Save</button></div>
+  </dialog>
+
+  <div id="dock"></div>
+
+  <!-- one status bar: messages on the left; on the right the download
+       and the background work, a click opens Activity; Stop for a job of the window's; Pause -->
+  <!-- Activity, docked in the main window above the status bar; its top edge sizes it -->
+  <section id="activity-box" class="ac-dock" hidden>
+    <div id="ac-grip" class="ac-grip" title="Drag to make Activity taller or shorter"></div>
+    <div class="ac-head"><h2>Activity</h2><span class="ac-head-tools"><button id="ac-maintain" class="dl-btn" type="button" title="Checks counts, gives back deleted mail's space, merges the search index, refreshes the database's statistics">Run Maintenance Now</button><button id="ac-close" class="dl-btn" type="button" title="Close Activity (the status bar opens it again)">✕ Close</button></span></div>
+    <div class="ac-body">
+      <div id="ac-main">
+        <div id="ac-summary" class="ac-summary"></div>
+        <h3>Working in the background</h3>
+        <table id="ac-jobs" class="ac-jobs"></table>
+        <h3>The download's latest</h3>
+        <pre id="ac-log" class="ac-log"></pre>
+      </div>
+      <!-- a job's details: what it did to each message, its latest run first; More pages back -->
+      <div id="ac-details" hidden>
+        <div class="ac-details-head"><button id="ac-back" class="dl-btn" type="button">← All jobs</button><h3 id="ac-details-title"></h3></div>
+        <table id="ac-details-list" class="ac-jobs ac-details"></table>
+        <div class="ac-details-more"><button id="ac-more" class="dl-btn" type="button" hidden>More (older runs)</button></div>
+      </div>
+    </div>
+  </section>
+
+  <footer id="status"><span id="status-left"></span><button id="bg-work" class="bg-work" type="button" hidden title="What Eudora is doing: click for every process (Tools ▸ Activity)"><span id="download" hidden><span class="dl-dot"></span><span class="dl-text"></span></span><span id="bg-text"></span></button><button id="job-stop" class="job-stop" type="button" hidden title="Stop the spam filter: nothing has moved yet">Stop</button><button id="pause-dl" class="dl-btn" type="button"></button><button id="stop-dl" class="dl-btn" type="button"></button><span id="status-right"></span></footer>
+  <!-- New appointment (calendar.js): place suggestions, an online meeting, people -->
+  <dialog id="appt" class="appt">
+    <h2 id="appt-heading">New Appointment</h2>
+    <label class="appt-row"><span>Title</span><input id="appt-title" type="text" placeholder="What is it?"></label>
+    <label class="appt-row"><span>Calendar</span><select id="appt-calendar"></select></label>
+    <div class="appt-row"><span>Starts</span><input id="appt-start-day" type="date"><input id="appt-start-time" type="time" step="900"><label class="appt-inline"><input id="appt-allday" type="checkbox"> All day</label></div>
+    <div class="appt-row"><span>Ends</span><input id="appt-end-day" type="date"><input id="appt-end-time" type="time" step="900"></div>
+    <div class="appt-row appt-where"><span>Location</span>
+      <div class="appt-field">
+        <input id="appt-location" type="text" autocomplete="off" spellcheck="false" placeholder="A place, an address or a business">
+        <div id="appt-places" class="appt-suggest" hidden></div>
+        <div id="appt-place" class="appt-place" hidden></div>
+      </div>
+    </div>
+    <label class="appt-row"><span>Online meeting</span><select id="appt-conference"><option value="">None</option></select></label>
+    <p id="appt-conference-note" class="p-note appt-note"></p>
+    <div class="appt-row"><span>People</span>
+      <div class="appt-field">
+        <input id="appt-people" type="text" autocomplete="off" spellcheck="false" placeholder="Invite people: names or addresses, separated by commas">
+        <div id="appt-people-suggest" class="appt-suggest" hidden></div>
+      </div>
+    </div>
+    <div class="appt-row"><span>Show as</span>
+      <select id="appt-showas"><option value="busy">Busy</option><option value="tentative">Tentative</option><option value="free">Free</option><option value="oof">Away</option></select>
+      <select id="appt-reminder" title="Reminder"><option value="">No reminder</option><option value="5">5 minutes before</option><option value="15" selected>15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option><option value="1440">1 day before</option></select>
+      <label class="appt-inline"><input id="appt-private" type="checkbox"> Private</label>
+    </div>
+    <div class="appt-row appt-notes"><span>Notes</span><iframe id="appt-notes" title="Notes" sandbox="allow-same-origin"></iframe></div>
+    <p id="appt-status" class="p-note"></p>
+    <div class="p-buttons"><button id="appt-cancel" type="button">Cancel</button><button id="appt-save" type="button" class="primary">Save</button></div>
+  </dialog>
+  <script src="ask.js"></script>
+  <script src="find.js"></script>
+  <script src="app.js"></script>
+  <script src="calendar.js"></script>
+  <script src="todo.js"></script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<section id="search" data-title="Searching your mail" data-index="search; find messages; Ctrl+F; search box; whole library; search results; No results; suggestions; Try">
+<h1>Searching your mail</h1>
+<p>Type in the search box at the top of the window (<span class="ui">Edit ▸ Find Messages…</span>, <kbd>Ctrl</kbd>+<kbd>F</kbd>) and press <kbd>Enter</kbd>. Eudora searches every account, every folder, and every year at once (except mailboxes you <a href="#search-scope">left out of search</a>): subjects, senders and recipients, the text of messages, the names of attachments, and the text inside PDF attachments of receipts and payments.</p>
+<p>Results come newest first. Click a column heading to sort them another way. You can work with search results as with any list: read, reply, move, delete, or run the spam filter or your rules on them.</p>
+<p>The last word you type also matches longer words starting with it: <code>walkerfi</code> finds walkerfield.example.</p>
+<p>When nothing matches, Eudora says <b>No results.</b> When your search has a mistake, Eudora repairs what it safely can, says what it did, and offers corrected searches under <b>Try:</b>. Click one to run it.</p>
+<p class="see">To find words in the message you're reading or writing, use <a href="#find-text">Find Text</a>.</p>
+</section>
+
+<section id="search-words" data-title="Search words and operators" data-index="from:; to:; cc:; subject:; body:; attachment:; hasattachment; received:; sent:; date:; size:; folder:; in:; participants:; recipient:; sender:; AND; OR; NOT; quotes; phrase; wildcard; asterisk; exclude; minus; Outlook search keywords; Gmail search">
+<h1>Search words and operators</h1>
+<h2>Words and phrases</h2>
+<table>
+<tr><td><code>budget report</code></td><td>Messages with both words, anywhere.</td></tr>
+<tr><td><code>"budget report"</code></td><td>The exact phrase.</td></tr>
+<tr><td><code>budget OR forecast</code></td><td>Either word.</td></tr>
+<tr><td><code>budget -draft</code> or <code>budget NOT draft</code></td><td>Leave out messages with "draft".</td></tr>
+<tr><td><code>budg*</code></td><td>Any word starting with "budg".</td></tr>
+<tr><td><code>(budget OR forecast) -draft</code></td><td>Parentheses group parts of a search.</td></tr>
+</table>
+<p><code>AND</code> is allowed but not needed: every word must match anyway.</p>
+<h2>Fields</h2>
+<table>
+<tr><th>Word</th><th>Searches</th><th>Example</th></tr>
+<tr><td><code>from:</code>, <code>sender:</code></td><td>Who sent it</td><td><code>from:ann@example.com</code></td></tr>
+<tr><td><code>to:</code>, <code>cc:</code>, <code>bcc:</code></td><td>One recipient field</td><td><code>to:sales</code></td></tr>
+<tr><td><code>recipient:</code></td><td>To, Cc, or Bcc</td><td><code>recipient:bob</code></td></tr>
+<tr><td><code>participants:</code></td><td>From, To, Cc, or Bcc</td><td><code>participants:ann</code></td></tr>
+<tr><td><code>subject:</code>, <code>title:</code></td><td>The subject</td><td><code>subject:"quarterly report"</code></td></tr>
+<tr><td><code>body:</code></td><td>The text</td><td><code>body:invoice</code></td></tr>
+<tr><td><code>attachment:</code></td><td>Attachment names</td><td><code>attachment:pdf</code></td></tr>
+<tr><td><code>hasattachment:</code></td><td>Has files attached (yes or no); <code>has:attachment</code> too</td><td><code>hasattachment:yes</code></td></tr>
+<tr><td><code>folder:</code>, <code>in:</code></td><td>Folders of that name in any account</td><td><code>in:Inbox</code></td></tr>
+<tr><td><code>received:</code>, <code>sent:</code>, <code>date:</code></td><td>When</td><td><code>received:last week</code></td></tr>
+<tr><td><code>size:</code></td><td>How big</td><td><code>size:&gt;5MB</code></td></tr>
+<tr><td>any header</td><td>Any header of the message</td><td><code>importance:high</code>, <code>list-id:*</code></td></tr>
+</table>
+<h2>Dates</h2>
+<p><code>today</code>, <code>yesterday</code>, <code>this week</code>, <code>last week</code>, <code>this month</code>, <code>last month</code>, <code>this year</code>, <code>last year</code>, a year (<code>2019</code>), a date (<code>3/15/2024</code> or <code>2024-03-15</code>), a range (<code>2023-01-01..2023-06-30</code>), or before / after (<code>&gt;2024-01-01</code>, <code>&lt;=2010</code>). Weeks start on Sunday.</p>
+<h2>Sizes</h2>
+<p><code>tiny</code> (under 10 KB), <code>small</code>, <code>medium</code>, <code>large</code>, <code>very large</code>, <code>huge</code> (1 to 5 MB), <code>enormous</code> (over 5 MB), or numbers: <code>&gt;5MB</code>, <code>1MB..2MB</code>.</p>
+<h2>Headers</h2>
+<p>Any word followed by a colon that isn't one of the words above searches the header of that name: <code>x-mailer:eudora</code>, <code>list-id:*</code> (has the header at all), <code>-list-id:*</code> (doesn't). While Eudora is still indexing headers of older mail, the results say how much it covers so far.</p>
+<p class="note">These are the words Outlook and Gmail use, so what you know from them works here too.</p>
+</section>
+
+<section id="find-text" data-title="Find Text in a message" data-index="Find Text; find in message; F3; Find Again; Ctrl+Alt+F; highlight">
+<h1>Find Text in a message</h1>
+<p><span class="ui">Edit ▸ Find Text…</span> (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd>; in Classic mode <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>) finds words in the message you're writing, or else in the one you're reading, and highlights each. <kbd>F3</kbd> finds the next, <kbd>Shift</kbd>+<kbd>F3</kbd> the one before.</p>
+</section>
+
+<section id="search-scope" data-title="Leaving mailboxes out of search" data-index="leave out of search; exclude from search; search scope; magnifying glass; struck-through magnifying glass; Include all mailboxes; shared mailboxes search; search one account; skip folder in search">
+<h1>Leaving mailboxes out of search</h1>
+<p>Each row on the left (Accounts, Shared Mailboxes, every account, every folder) has a small magnifying glass beside its icon. Click it to leave that mailbox out of search: the magnifying glass is then struck through in red. Click it again to search it again.</p>
+<p>A switch applies to everything under it, and a switch lower down wins. So you can leave out all of <b>Shared Mailboxes</b>, then switch one shared mailbox back on, or leave out a whole account and search just its Inbox.</p>
+<p>Nothing is deleted or taken out of the index: the mail is still kept and still found the moment you search it again. A message that's also in a folder that is searched still shows.</p>
+<p>While anything is left out, a magnifying glass with <b>!</b> appears beside the search box. It's gray while searches leave those mailboxes out; click it to <b>Include all mailboxes</b> (it turns bold and colored), and again to leave them out. When a search finds more in the mailboxes left out, the results say how many, with <b>Include them</b>.</p>
+</section>

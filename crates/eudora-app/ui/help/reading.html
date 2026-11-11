@@ -1,0 +1,133 @@
+<section id="sidebar" data-title="The sidebar" data-index="mailboxes; folders; Recent Mail; All Mail - Filtered; All Mail; Accounts; Views; unread count; Mark All as Read; hidden folders; counts">
+<h1>The sidebar</h1>
+<p>From the top:</p>
+<table>
+<tr><th>Recent Mail</th><td>What the spam filter and your rules sorted out of the Inbox lately (marketing, notifications, mailing lists), never spam, so nothing new goes unseen. By default the last 48 hours, and 72 hours on Mondays to take in the weekend. Change the hours in <span class="ui">Settings ▸ General ▸ Recent Mail</span>.</td></tr>
+<tr><th>All Mail - Filtered</th><td>Every account's real mail: everything except spam, marketing, notifications, mailing lists, trash, drafts, and what you sent. This is where Eudora opens the first time.</td></tr>
+<tr><th>All Mail</th><td>Every message in the library, once each. <span class="ui">Mailbox ▸ Hide Mail I Sent in All Mail</span> (on by default) leaves out what you sent.</td></tr>
+<tr><th>Views</th><td>Messages gathered by what they are, wherever they're filed: Red Alert, Receipts, Invoices, Travel, and more. See <a href="#views">Views</a>.</td></tr>
+<tr><th>Accounts</th><td>Each account with its folder tree. Click the arrow to open or close it.</td></tr>
+<tr><th>Shared Mailboxes</th><td>Microsoft 365 mailboxes shared with you. See <a href="#shared-mailboxes">Shared mailboxes</a>.</td></tr>
+<tr><th>Calendar, Contacts, To Do</th><td>See <a href="#calendar">Calendar</a>, <a href="#contacts">Contacts</a>, and <a href="#todo">To Do</a>.</td></tr>
+</table>
+<h2>Counts</h2>
+<p>Each folder shows how many messages it holds, and in bold how many are unread, for example <b>4,593 (6)</b>. When the sidebar is narrow, big numbers are shortened (2.3M, 4.5K) and then left out, so the names stay readable.</p>
+<h2>Right-click a folder or account</h2>
+<ul>
+<li><b>Mark All as Read</b>: everything in it and in the folders under it. Over 500 messages, Eudora asks first. The servers are told too.</li>
+<li><b>New Mailbox…</b>, <b>New Mailbox Inside…</b>, <b>Rename…</b>, <b>Delete…</b>: see <a href="#mailboxes">Making, renaming, and deleting mailboxes</a>.</li>
+<li><b>Make it active / inactive</b> (shared mailboxes).</li>
+</ul>
+<p>Opening a folder fetches its newest 50 messages from the server first, so it's up to date when you look.</p>
+</section>
+
+<section id="message-list" data-title="The message list" data-index="columns; sort; sorting; select several messages; multiple selection; Shift-click; Ctrl-click; Select All; header columns; unread; bold; paperclip; labels; flag">
+<h1>The message list</h1>
+<p>Unread messages are bold. Marks beside each row show the status (replied, forwarded), priority, attachments (a paperclip, only for files really attached, not pictures shown in the message), a ⚑ for a message flagged as a To Do, and the message's labels in their colors.</p>
+<h2>Columns</h2>
+<p>Right-click the column headings (or <span class="ui">Mailbox ▸ Columns…</span>) to choose them: Who, From, To, Cc, Date, Added to Eudora, Size, Number of attachments, Subject, Preview, Folders, Account, Mailing list, Message-ID, Status, Priority, and <b>any header</b> of the message (<span class="ui">Add a header column…</span>). Drag a heading to move it and its right edge to size it. Each look remembers its own columns; <span class="ui">Reset</span> brings back the usual ones.</p>
+<h2>Sorting</h2>
+<p>Click a column heading to sort by it (▲ / ▼ on the heading); click again for the other way. Dates, sizes, and counts sort newest or biggest first; words sort A to Z. Folders, Account, and header columns don't sort. A very big list (hundreds of thousands of messages) may take a few seconds to sort.</p>
+<h2>Choosing several messages</h2>
+<table>
+<tr><td>Click</td><td>One message.</td></tr>
+<tr><td><kbd>Ctrl</kbd>+click</td><td>Add or take away one.</td></tr>
+<tr><td><kbd>Shift</kbd>+click, <kbd>Shift</kbd>+<kbd>↑</kbd> / <kbd>↓</kbd></td><td>A run of messages.</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td>Every message in the list, even those not loaded yet.</td></tr>
+</table>
+<p>Delete, Transfer, Copy To, Filter Messages, and Forward act on all of them. Forwarding several sends one message with each attached whole. Over 100 messages, Eudora asks first.</p>
+<h2>New mail</h2>
+<p>New mail slips in at the top without moving what you're reading: the message you have selected stays in its place on the screen.</p>
+<h2>Keys</h2>
+<p><kbd>↑</kbd> / <kbd>↓</kbd> move through the list, <kbd>Delete</kbd> deletes, and <kbd>Insert</kbd> flags as a To Do.</p>
+</section>
+
+<section id="reading-pane" data-title="Reading a message" data-index="reading pane; preview; headers; fewer headers; all headers; F7; Blah Blah Blah; maximize; pop out; message window; Originals; source; zoom; mark as read; scroll">
+<h1>Reading a message</h1>
+<p>Select a message to read it in the reading pane. It's marked read after a moment.</p>
+<p>Above the message:</p>
+<ul>
+<li><b>Fewer headers</b>: subject, From, and Date on one line. The choice holds for every message until you change it.</li>
+<li><b>Maximize</b>: the message fills Eudora's window as an inner window. Its buttons restore, minimize, pop out, or close it (<kbd>Esc</kbd>).</li>
+<li><b>Pop out</b>: the message in a window of its own.</li>
+</ul>
+<p>The tabs show the <b>Message</b>, its plain <b>Text</b>, its <b>Headers</b>, and its <b>Source</b> (the raw message). <span class="ui">Message ▸ Show All Headers</span> (<kbd>F7</kbd>; "Blah Blah Blah" in Classic mode) shows every header.</p>
+<p>When Eudora holds more than one original copy of a message (for example your old Eudora file and Microsoft 365's copy), its <b>Originals</b> are listed; click one to see its own bytes in Source.</p>
+<h2>Safe by design</h2>
+<ul>
+<li>Messages are shown in a sealed frame: scripts in mail never run.</li>
+<li>Pictures from the web are blocked until you choose; see <a href="#pictures">Pictures from the web</a>.</li>
+<li>A message the checks find to be a fraud shows a red warning, and its links and pictures are switched off. See <a href="#fraud">Fraud and phishing</a>.</li>
+</ul>
+<h2>Links</h2>
+<p>Clicking a web link opens it in your browser. Point at a link first to see where it really goes. A <code>mailto:</code> link starts a new message.</p>
+<h2>Invitations</h2>
+<p>A message holding a meeting invitation shows a bar with Accept, Tentative, Decline, and Propose New Time. See <a href="#invitations">Invitations</a>.</p>
+<h2>Linked payments</h2>
+<p>A payment and its receipt for the same amount within 30 minutes are linked; the message shows "Linked: Receipt…" or "Linked: Payment…", and a click opens the other.</p>
+</section>
+
+<section id="attachments" data-title="Attachments" data-index="attachments; open attachment; save attachment; Save All; drag attachment; Attachments folder; downloaded from the Internet; quarantine; programs; inline pictures">
+<h1>Attachments</h1>
+<p>Attachments are listed under the message's headers, each with its file type's icon.</p>
+<ul>
+<li><b>Click</b> one to open it with your computer's program for that kind of file.</li>
+<li>The <b>arrow</b> saves it where you choose.</li>
+<li><b>Save All…</b> saves every attachment into a folder.</li>
+<li><b>Drag</b> one out of Eudora onto your desktop or a folder.</li>
+</ul>
+<p>Files Eudora opens go into the library's <code>Attachments</code> folder, in a folder for each year. A file that arrives again in another message isn't stored twice.</p>
+<p>Every file Eudora writes is marked as downloaded from the Internet, so Windows and the Mac treat it with the usual care. Eudora never opens programs or scripts from a message, and never opens a fraud's attachments.</p>
+<p>Pictures shown inside the message (logos, photos placed in the text) aren't listed as attachments on the Message tab; the Text, Headers, and Source tabs list everything.</p>
+</section>
+
+<section id="pictures" data-title="Pictures from the web" data-index="images; remote images; tracking pictures; web bugs; Show pictures; Always show from this sender; privacy">
+<h1>Pictures from the web</h1>
+<p>Many messages load pictures from the web. Loading them can tell the sender when you opened the message, so Eudora doesn't load them until you say so. A bar above the message says how many aren't shown:</p>
+<ul>
+<li><b>Show pictures</b>: this time only.</li>
+<li><b>Always show from &lt;address&gt;</b>: pictures from this sender load by themselves from now on.</li>
+</ul>
+<p>Eudora fetches the pictures itself and puts them into the message; the message never goes online. In <span class="ui">Settings ▸ Mail ▸ Pictures from the web</span> you can choose to keep fetched pictures on this computer (they then show offline, and after the sender deletes them), and remove senders from the "always show" list.</p>
+</section>
+
+<section id="views" data-title="Views" data-index="Views; Red Alert; Maybe Spam; Payments Received; Payments Sent; Receipts; Invoices; Renewals; Bank Transactions; New Accounts; Verification Codes; 2FA; Legal; Government; Travel; Why in these Views; security notices">
+<h1>Views</h1>
+<p>Views gather messages by what they are, wherever they're filed. A message can be in several Views. They aren't folders: nothing is moved.</p>
+<table>
+<tr><th>Red Alert</th><td>Things you must never miss: shut-off, default, and missed-payment notices, collections, lawsuits, tax and regulator notices (from senders that prove who they are), urgent mail from people you write to, and security advisories and patch notices for products you run.</td></tr>
+<tr><th>Maybe Spam</th><td>Mail the spam filter wasn't sure about. It stays in your Inbox and is listed here; mark it Spam or Not Spam to teach the filter.</td></tr>
+<tr><th>Payments Received</th><td>Card processors and payment services telling you money came in.</td></tr>
+<tr><th>Payments Sent</th><td>You paying: PayPal, banks, cards.</td></tr>
+<tr><th>Receipts</th><td>Receipts and order confirmations.</td></tr>
+<tr><th>Invoices</th><td>Invoices and requests to be paid.</td></tr>
+<tr><th>Renewals</th><td>Subscriptions and services renewing.</td></tr>
+<tr><th>Bank Transactions</th><td>Notices from banks and payment services.</td></tr>
+<tr><th>New Accounts</th><td>Welcome and sign-up confirmations.</td></tr>
+<tr><th>Verification Codes</th><td>One-time sign-in codes.</td></tr>
+<tr><th>Legal</th><td>Law firms, court matters, and privileged and confidential mail.</td></tr>
+<tr><th>Government</th><td>Mail from government senders that prove who they are.</td></tr>
+<tr><th>Travel</th><td>Reservations, itineraries, boarding passes, rides, and rentals.</td></tr>
+</table>
+<p>Under each View, its messages are grouped by sender (Amazon, PayPal, Authorize.Net…), biggest first.</p>
+<p>Each account has its own Views under it. The Views at the top of the sidebar combine the accounts you tick (right-click Views); shared mailboxes are left out at first.</p>
+<p>Mail you sent and mail in a Trash folder aren't in any View. A message moved back out of the Trash returns to its Views.</p>
+<h2>Why is a message in a View?</h2>
+<p>Right-click it and choose <span class="ui">Why in these Views?</span> (also <span class="ui">Special ▸ Why in these Views?</span>). Each View works by points: a message needs 2 points, and the window lists what gave each one.</p>
+</section>
+
+<section id="online-archive" data-title="The Online Archive" data-index="Online Archive; archive mailbox; In-Place Archive; auxiliary archive; Exchange export; archive folders">
+<h1>The Online Archive</h1>
+<p>A Microsoft 365 mailbox may have an Online Archive holding older mail. With <span class="ui">Include the Online Archive</span> on (<span class="ui">Settings ▸ Downloading and sync</span>), Eudora brings all of it down: mail, and also the archive's calendar items, contacts, tasks, and notes, each as a readable entry in its folder.</p>
+<p>The archive's folders join your mailbox's folders: the archive's Inbox shows as part of your Inbox, and a folder that exists only in the archive (such as Inbox_2021) shows by its own name. You can manage the whole mailbox as one without knowing what is archived.</p>
+<p>Archive mail you move or sort in Eudora stays in the archive on the server, in folders of the same layout inside it (for example Online Archive ▸ Bulk ▸ Marketing).</p>
+<p>Each download pass says whether every item on the server is in Eudora, or how many aren't yet.</p>
+<p>Eudora also keeps Microsoft's own copy of each archive item, exactly as Microsoft sent it, unless you turn that off: see <a href="#keep-originals">Keeping original messages exactly</a>.</p>
+</section>
+
+<section id="shared-mailboxes" data-title="Shared mailboxes" data-index="shared mailboxes; delegate; Find shared mailboxes; active; inactive; Send As; Send on Behalf">
+<h1>Shared mailboxes</h1>
+<p>In Microsoft 365, mailboxes shared with you (support@, sales@, or a colleague's mailbox you were given) can be added with <span class="ui">Settings ▸ Accounts ▸ Find shared mailboxes…</span>. Eudora tries each mailbox in your organization and lists the ones you may open; tick the ones you want.</p>
+<p>They appear under <b>Shared Mailboxes</b> in the sidebar. Each is <b>inactive</b> at first: it isn't checked in the background. Opening one of its folders and choosing Check Mail brings that folder up to date. Right-click a shared mailbox and choose <span class="ui">Make it active</span> to download it with your own mail.</p>
+<p>You can send from a shared mailbox's address: choose it in the message's From. Eudora sends <b>as</b> the mailbox when you have that right, else <b>on behalf of</b> it.</p>
+</section>

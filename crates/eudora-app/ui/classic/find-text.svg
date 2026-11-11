@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Find Text (tbar32 #60): a blue window with the magnifying glass (purple rim) over it -->
+  <defs>
+    <linearGradient id="pane" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8cd0fb"/><stop offset="1" stop-color="#2d7cc8"/>
+    </linearGradient>
+    <radialGradient id="glass" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#9fd8f7"/>
+    </radialGradient>
+  </defs>
+  <rect x="2.5" y="3.5" width="27" height="22" rx="1" fill="url(#pane)" stroke="#1d3f74"/>
+  <rect x="2.5" y="3.5" width="27" height="3.5" fill="#1d4f9a" stroke="#1d3f74"/>
+  <path d="M22 5.2 H24.5 M25.8 5.2 H28" stroke="#cfe3ff" stroke-width="1.2"/>
+  <circle cx="14" cy="15" r="7" fill="url(#glass)" fill-opacity="0.85" stroke="#7a2f8f" stroke-width="2.4"/>
+  <path d="M19 20 L26 28" stroke="#4a1a5a" stroke-width="4" stroke-linecap="round"/>
+  <path d="M19 20 L26 28" stroke="#c07ad6" stroke-width="2" stroke-linecap="round"/>
+</svg>

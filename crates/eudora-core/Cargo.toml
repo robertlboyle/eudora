@@ -1,0 +1,91 @@
+[package]
+name = "eudora-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+[dependencies]
+argon2 = "0.6.0"
+aho-corasick = "1.1.5"
+base64 = "0.23.1"
+blake3 = "1.8.7"
+chrono = "0.4.45"
+crossbeam-channel = "0.5.17"
+encoding_rs = "0.8.42"
+# Outlook .msg files (OLE compound files); already in the build through Tauri, MIT
+cfb = "=0.14.0"
+uuid = { version = "=1.27.0", default-features = false }
+getrandom = "0.4.3"
+imap = { version = "=3.0.0-alpha.15", default-features = false }
+keyring = "4.2.0"
+# keyring's own interface, for stores of Eudora's own (android_secrets.rs; the iOS Keychain's):
+# comes with keyring already
+keyring-core = "1.0.0"
+mail-parser = { version = "0.11.9", features = ["full_encoding"] }
+memchr = "2.8.3"
+memmap2 = "0.9.11"
+psl = "2.1.241"
+rayon = "1.12.0"
+ring = "0.17.14"
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+rustls = { version = "0.23.45", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+rustls-platform-verifier = "0.7.1"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sha2 = "0.11.0"
+tantivy = "0.26.2"
+thiserror = "2.0.21"
+ureq = { version = "3.4.2", features = ["json", "platform-verifier"] }
+url = "2.5.8"
+walkdir = "2.5.0"
+zstd = "0.14.0"
+lopdf = { version = "0.45.0", default-features = false }
+ocrs = "0.13.1"
+rten = "0.26.0"
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "gif", "bmp"] }
+hickory-resolver = "=0.26.3"
+tokio = { version = "=1.53.2", default-features = false, features = ["rt", "time"] }
+
+
+[build-dependencies]
+# (reads Google's OAuth client JSON at build time: `build.rs`)
+serde_json = "1.0.151"
+
+[dev-dependencies]
+wat = "=1.262.0"
+eudora-testkit = { path = "../eudora-testkit" }
+tempfile = "3.27.0"
+
+# the system's own TLS (Windows SChannel, macOS / iOS Security, OpenSSL on Linux): only for the
+# "Compatible" encryption level's fallback to older ciphers. Not on Android (no OpenSSL there):
+# its mail servers get rustls's High and Strict levels.
+[target.'cfg(not(target_os = "android"))'.dependencies]
+native-tls = "0.2.18"
+
+# plugins (WebAssembly, compiled at run time): not on iOS, where Apple allows no code made at run
+# time
+[target.'cfg(not(target_os = "ios"))'.dependencies]
+wasmtime = { version = "=49.0.3", default-features = false, features = ["cranelift", "runtime", "std"] }
+
+# iOS: the Data Protection Keychain, the only one iOS has (keyring's own setup refuses iOS, so
+# graph::keyring_entry hands it this store); it comes with keyring already
+[target.'cfg(target_os = "ios")'.dependencies]
+apple-native-keyring-store = { version = "1.0.2", features = ["protected"] }
+# signing in through Apple's sign-in sheet (web_auth.rs): the objc2 pieces Tauri already builds there
+objc2 = "0.6.5"
+block2 = "0.6.2"
+dispatch2 = "0.3.1"
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSString", "NSURL"] }
+
+[target."cfg(windows)".dependencies]
+windows = { version = "0.62.2", features = ["Media_Ocr", "Graphics_Imaging", "Storage_Streams", "Foundation", "Globalization", "Win32_System_WinRT", "Win32_Globalization", "Win32_System_Com", "Win32_UI_Shell", "Win32_UI_Shell_Common", "Win32_Foundation", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_Storage_FileSystem", "Win32_Security", "Win32_Security_Authorization", "Win32_System_IO", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse"] }
+
+# the Mac's own Open dialog, spelling, file icons and OCR (pick.rs, spell.rs, file_icons.rs, ocr.rs):
+# the AppKit bindings Tauri's window layer already builds on the Mac (Vision through objc2 itself)
+[target."cfg(target_os = \"macos\")".dependencies]
+objc2 = "0.6.5"
+dispatch2 = "0.3.1"
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSData", "NSDictionary", "NSEnumerator", "NSGeometry", "NSRange", "NSString", "NSURL"] }
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSOpenPanel", "NSSavePanel", "NSPanel", "NSWindow", "NSResponder", "NSApplication"] }

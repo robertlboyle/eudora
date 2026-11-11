@@ -1,0 +1,17 @@
+[workspace]
+resolver = "3"
+members = ["crates/eudora-core", "crates/eudora-testkit", "crates/eudora-cli", "crates/eudora-app", "crates/eudora-web", "crates/eudora-release"]
+
+[workspace.package]
+version = "0.1.8"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+authors = ["Planet Networks"]
+publish = false
+
+[profile.release]
+debug = "line-tables-only"
+
+# Tests run optimized: they push tens of thousands of messages through zstd, SQLite and Tantivy.
+[profile.test]
+opt-level = 2

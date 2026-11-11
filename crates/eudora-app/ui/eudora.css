@@ -1,0 +1,76 @@
+/* The Eudora skin (default): classic Eudora's compact mailbox windows (Who, Date, K, Subject),
+   a "Mailboxes" tree and the preview below, in a cleaner, modern finish. */
+
+body.skin-eudora {
+  --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-size: 12.5px;
+  --mono: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  --mono-size: 12.5px;
+  --row: 20px;
+  --folder-row: 21px;
+  --folder-radius: 0;
+  --folder-margin: 0;
+  --toolbar-pad: 5px 10px;
+  --field-radius: 3px;
+  --button-radius: 3px;
+
+  --text: #1b1b1b;
+  --muted: #666b73;
+  --window: #e9e7e3;
+  --toolbar: #efedea;
+  --sidebar: #f7f6f4;
+  --pane-title: #e4e1dc;
+  --list: #ffffff;
+  --head: linear-gradient(#f8f7f5, #e7e4df);
+  --reader: #ffffff;
+  --reader-head: #faf9f7;
+  --field: #ffffff;
+  --button: #f8f7f5;
+  --hover: #eef3fb;
+  --line: #d6d2cc;
+  --line-strong: #bfbab2;
+  --row-line: #f0eeeb;
+  --accent: #1f5fae;
+  --accent-soft: #1f5fae33;
+  --selected: #1f5fae;
+  --selected-text: #ffffff;
+  --selected-blur: #d5e2f3;
+  --note: #fff4d6;
+  --note-text: #6b4e00;
+  --quote1: #1f5fae;
+  --quote2: #8a3fb0;
+  --quote3: #2f7d32;
+}
+
+body.skin-eudora #list-title { background: var(--pane-title); }
+body.skin-eudora .c-who { font-weight: 500; }
+
+@media (prefers-color-scheme: dark) {
+  body.skin-eudora {
+    --text: #e8e6e3;
+    --muted: #a19d97;
+    --window: #1e1d1b;
+    --toolbar: #262523;
+    --sidebar: #22211f;
+    --pane-title: #2c2a27;
+    --list: #1b1a19;
+    --head: linear-gradient(#2e2c29, #282624);
+    --reader: #1b1a19;
+    --reader-head: #22211f;
+    --field: #161514;
+    --button: #2e2c29;
+    --hover: #2a3442;
+    --line: #3a3834;
+    --line-strong: #4a4742;
+    --row-line: #252422;
+    --accent: #4f8fe0;
+    --accent-soft: #4f8fe044;
+    --selected: #2f6cc0;
+    --selected-blur: #33404f;
+    --note: #3d3315;
+    --note-text: #f1d58a;
+    --quote1: #7fb0f0;
+    --quote2: #c99ae3;
+    --quote3: #8fcf8f;
+  }
+}

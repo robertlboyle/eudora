@@ -1,0 +1,83 @@
+<section id="whats-new" data-title="What's New" data-index="What's New; version history; ARM64; Windows on ARM; Snapdragon; release notes; changes; new version; version 0.1.8; version 0.1.7; version 0.1.6; version 0.1.5; version 0.1.4; version 0.1.3; version 0.1.2; version 0.1.1; version 0.1.0">
+<h1>What's New</h1>
+<p>The changes in each version of Eudora, newest first. <span class="ui">Help ▸ About Eudora</span> shows what's new in the version you have. Every computer gets the same version number for the same Eudora: Windows, the Mac, and Linux 0.1.5 are the same program.</p>
+
+<h2 id="v0-1-8">Version 0.1.8 <span class="when">(November 11, 2026; source code)</span></h2>
+<ul>
+  <li><b>Eudora's source code is public:</b> anyone can read, build, and improve it, at github.com/patlboyle/eudora, with build instructions and setup scripts for Windows, the Mac, and Linux. See <a href="#about">About Eudora and its license</a>.</li>
+  <li><b>Security notices:</b> alerts from more managed security services (Huntress, Arctic Wolf, Expel, Red Canary, and others) are known as alerts about your own computers, not security advisories, so they don't become Red Alerts. Mail from CrowdStrike, SentinelOne, Sophos, and Arctic Wolf is sorted as notifications or marketing. See <a href="#red-alert">Red Alert</a>.</li>
+  <li><b>Payments Received</b> knows more card processors and payment services (Adyen, NMI, Global Payments, Shopify Payments, Checkout.com, and others), and Red Alert more government senders (Social Security, the FTC, the SEC, the Department of Labor, FINRA). See <a href="#views">Views</a>.</li>
+  <li><b>Classic Eudora's license:</b> the Computer History Museum's BSD license for classic Eudora's source, from which Eudora's classic icons and some of its design come, is now included in full with Eudora.</li>
+</ul>
+
+<h2 id="v0-1-7">Version 0.1.7 <span class="when">(November 10, 2026; Windows)</span></h2>
+<ul>
+  <li><b>Eudora for Windows on ARM:</b> a version of its own for ARM64 Windows computers (Snapdragon laptops, Surface, Copilot+ PCs), running natively instead of through Windows' emulation: faster, and easier on the battery. Download <b>Eudora-Setup-arm64.exe</b>; installed over the usual version, it takes its place and keeps your mail and settings. It updates itself from then on, as the usual version does.</li>
+</ul>
+
+<h2 id="v0-1-6">Version 0.1.6 <span class="when">(November 10, 2026)</span></h2>
+<ul>
+  <li><b>Drag messages out as files:</b> drag messages from the list onto the desktop or into a folder to save them as Outlook .msg files; hold <kbd>Ctrl</kbd> or <kbd>Shift</kbd> while dragging for .eml files, the original messages exactly, byte for byte. A .msg keeps the header block word for word and every attachment byte for byte, and a signed message whole, as Outlook does. Several messages at once are written in the background, counted on the status bar. Programs can do the same (<code>v1.mail.save_as</code>). See <a href="#save-as-files">Saving messages as files</a>.</li>
+  <li><b>New mail no longer falls behind Outlook:</b> Eudora could go an hour without new mail while Microsoft made it wait, because each check asked about every folder of a big mailbox and waited for the calendar, contacts, and To Do to be read back. Now each Microsoft Inbox is looked at every minute, new mail there is checked at once, folders that haven't changed are asked about every 2 hours, and what changed on the server is read back on its own. When Microsoft asks Eudora to wait, the log says so. See <a href="#checking">Checking for new mail</a>.</li>
+  <li><b>New mail is unread as it should be:</b> Microsoft 365 mail that arrived straight in a folder other than the Inbox (Bulk, Notifications, Lists, sorted there by the server or by Eudora on another computer) came in marked read until Eudora's hourly look at what's read, so Recent Mail showed it as read. It now comes in unread or read as it is on the server.</li>
+  <li><b>Today's mail says Today</b> beside its time in the message list.</li>
+</ul>
+
+<h2 id="v0-1-5">Version 0.1.5 <span class="when">(November 9, 2026)</span></h2>
+<ul>
+  <li><b>Opening an attachment never freezes Eudora:</b> however long its program takes to start, Eudora carries on at once; if the program fails to start, Eudora says so. See <a href="#attachments">Attachments</a>.</li>
+  <li><b>Mail links open in Eudora:</b> Eudora can be your computer's program for mailto: links, so an email address clicked on a web page or in another program starts a new message, with the address, Cc, Bcc, subject, and text the link carries. Choose Eudora once in your system's default apps. See <a href="#open-files">Opening .eml and .ics files, and mail links</a>.</li>
+  <li><b>Calendar colors:</b> right-click a calendar on the left to choose its color, any color, or its own color again. Eudora's choice only: Outlook and Google keep theirs. See <a href="#calendar">Calendar</a>.</li>
+  <li><b>To Do lists, shown or hidden, in color:</b> each Microsoft To Do list is under To Do on the left. Click one to show or hide its tasks, and right-click for its color, as with calendars. Lists other people shared with you (a colleague's, a shared mailbox's) start hidden. Each task shows its list's color. See <a href="#todo">To Do</a>.</li>
+  <li><b>Flagged email opens from To Do:</b> a flagged email's task has <b>Open Email</b>, found by the message's Message-ID wherever it's filed (before, most couldn't find their message after Eudora's sorting had moved it). When the message isn't on this computer, <b>Find Email</b> searches for it.</li>
+  <li><b>Gmail asked less:</b> when Gmail asks Eudora to slow down, every Eudora program on the computer waits, even after a restart, and opening Eudora no longer reads every Google calendar and contact again. See <a href="#gmail-limits">Gmail on several computers</a>.</li>
+  <li><b>Help ▸ About</b> always shows the version, even when the update check can't run.</li>
+</ul>
+
+<h2 id="v0-1-4">Version 0.1.4 <span class="when">(November 6, 2026)</span></h2>
+<ul>
+  <li><b>Calendar changes the server refuses:</b> declining, accepting, or changing a meeting that Microsoft won't let you change (someone else's calendar, say) no longer stops Eudora recording your other changes on the server. Before, one refused change was tried every few seconds, for ever, and moves made on the server went unrecorded; now it's counted and given up, and everything else carries on.</li>
+  <li><b>Canceled meetings leave the calendar:</b> when someone else cancels a meeting, it's taken off your calendar by itself, as Outlook does (meetings already over stay). Deleting a canceled meeting removes it, and never tries to decline it (Microsoft refuses any answer to a canceled meeting).</li>
+  <li><b>What's New:</b> this version history, in the manual and in <span class="ui">Help ▸ About Eudora</span>, which shows what's new in the version you have.</li>
+</ul>
+
+<h2 id="v0-1-3">Version 0.1.3 <span class="when">(November 6, 2026)</span></h2>
+<ul>
+  <li><b>Mail kept on this computer:</b> choose how much mail this computer keeps, from a month to 20 years or everything, on a slider in <span class="ui">Settings ▸ Library</span> (and in the Welcome window, before anything downloads). It shows what each choice would remove and keep. Older mail leaves only this computer, and only once its server confirms it still has it; mail that's only here (POP3, imported files, classic Eudora), flagged mail, and anything not confirmed stays. A longer period brings older mail back. Each slow step says what it's doing, with the seconds so far. See <a href="#keep-period">Keeping only recent mail on this computer</a>.</li>
+  <li><b>Gmail asked far less:</b> Eudora open on several computers no longer makes Google slow your account down. A Gmail account is checked through Gmail's history of changes between one full listing a day, and when nobody has used Eudora for 15 minutes, Gmail is asked at most every 2 hours (<span class="ui">Settings ▸ Downloading and sync</span>); using Eudora again checks every account at once. See <a href="#gmail-limits">Gmail on several computers</a>.</li>
+  <li><b>A Gmail account not signed in on this computer</b> (one restored from a backup): its changes wait, and Eudora says so once, instead of trying every few seconds and giving up.</li>
+  <li><b>The manual on the Mac:</b> fixed the manual not opening on the Mac ("The manual couldn't be loaded").</li>
+  <li><b>Linux:</b> the build for PCs now works when made on an Apple-silicon Mac.</li>
+  <li><b>Windows:</b> the first Windows release since 0.1.1, with everything in 0.1.2 and 0.1.3.</li>
+</ul>
+
+<h2 id="v0-1-2">Version 0.1.2 <span class="when">(November 6, 2026; the Mac and Linux)</span></h2>
+<ul>
+  <li><b>Eudora for Linux:</b> an AppImage, a .deb (Ubuntu, Debian), and an .rpm (Fedora, openSUSE), for PCs and ARM64 computers. They update themselves, and the .deb and .rpm add Eudora's own package repository, so the system's updates include Eudora.</li>
+  <li><b>Eudora for the Mac:</b> the first release on the website, for Apple-silicon and Intel Macs. The Mac has its own menus: an Eudora menu first (About, Check for Updates, Settings, Hide, Quit), the Mac's Help menu with its search box, and <kbd>⌘</kbd>+<kbd>?</kbd> for Eudora Help.</li>
+  <li><b>The user manual:</b> <span class="ui">Help ▸ Eudora Help</span> (<kbd>F1</kbd>) opens a complete manual: getting started, every task, a reference of every menu, shortcut, and setting, troubleshooting, and what classic Eudora features were removed, with search and an A to Z index. It opens at the page for what you're looking at.</li>
+  <li><b>One Settings window:</b> every setting in one window, a page at a time (Accounts, General, Mail, Calendar, To Do, Downloading and sync, Library, Speed and maintenance, Programs and plugins, Updates). <span class="ui">File ▸ Settings…</span> (<kbd>Ctrl</kbd>+<kbd>,</kbd>) and <span class="ui">File ▸ Accounts…</span>; Personalities, Signatures, Filters, and Plugins open their page. See <a href="#ref-options">Settings</a>.</li>
+  <li><b>Menus that follow the look:</b> the Lookout looks have Outlook's menus and shortcuts (<kbd>Ctrl</kbd>+<kbd>F</kbd> forwards, <kbd>Ctrl</kbd>+<kbd>E</kbd> searches, <kbd>F9</kbd> sends and receives), Thunderbird-style has Thunderbird's, and Gmail-style and Yahoo-style a short menu bar in their own words. See <a href="#ref-look-menus">Menus in the other looks</a>.</li>
+  <li><b>Search where you choose:</b> a magnifying glass beside each account and folder leaves it out of search with a click (a red line across it), and a switch on Accounts or Shared Mailboxes covers everything under it. While anything is left out, a magnifying glass with <b>!</b> beside the search box includes everything, and results say how many more are in the mailboxes left out. See <a href="#search-scope">Leaving mailboxes out of search</a>.</li>
+  <li><b>Delete a whole series:</b> deleting a repeating meeting offers <b>This meeting</b> or <b>The whole series</b>. See <a href="#calendar">Calendar</a>.</li>
+  <li><b>Keep original messages exactly</b> (<span class="ui">Settings ▸ Library</span>, on by default): turned off, Eudora stops keeping Exchange's own copy beside each Online Archive message, and gives back that space (65 GB on one large mailbox). The archive stays on Microsoft's server. See <a href="#keep-originals">Keeping original messages exactly</a>.</li>
+  <li><b>Optimize Library</b> rewrites the message files hundreds of times faster.</li>
+</ul>
+
+<h2 id="v0-1-1">Version 0.1.1 <span class="when">(November 5, 2026; Windows)</span></h2>
+<ul>
+  <li><b>About Eudora</b> shows the version and when that copy was built.</li>
+</ul>
+
+<h2 id="v0-1-0">Version 0.1.0 <span class="when">(November 4, 2026; Windows)</span></h2>
+<p>The first public release, an early release for testing.</p>
+<ul>
+  <li><b>Every account in one place:</b> Microsoft 365, Outlook.com, Gmail and Google Workspace, IMAP, and POP3, with shared mailboxes and the Online Archive, in one library with one search. Imports classic Eudora folders, mbox, and .eml files.</li>
+  <li><b>Fast with tens of millions of messages:</b> instant search with Outlook's search words and any header, lists that open at once, sorting by any column, and everything working offline.</li>
+  <li><b>An inbox for people:</b> a spam filter that learns, fraud warnings, marketing, notifications, and mailing lists sorted aside, <b>Recent Mail</b> for what was sorted away lately, Views (Receipts, Invoices, Red Alert, Travel…), rules, and Subscriptions with Unsubscribe.</li>
+  <li><b>Calendar, contacts, and To Do</b> from Microsoft and Google, with trips added from travel email.</li>
+  <li><b>Looks:</b> Eudora Classic, Eudora Modern, and looks in the style of Outlook, Thunderbird, Gmail, and Yahoo Mail, with dark mode.</li>
+  <li><b>Back up and restore</b> everything to one file, including restoring from the Welcome window and replacing the library Eudora has open.</li>
+  <li><b>Updates itself</b>, checking each new version's signature first.</li>
+</ul>
+</section>

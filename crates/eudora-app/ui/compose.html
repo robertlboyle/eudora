@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New Message – Eudora</title>
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="eudora.css">
+  <link rel="stylesheet" href="thunderbird.css">
+  <link rel="stylesheet" href="lookout-classic.css">
+  <link rel="stylesheet" href="lookout-new.css">
+  <link rel="stylesheet" href="gmail.css">
+  <link rel="stylesheet" href="yahoo.css">
+  <link rel="stylesheet" href="compose.css">
+  <script src="icons/set.js"></script>
+</head>
+<body class="skin-eudora compose">
+  <header id="c-bar">
+    <button id="c-send" class="primary" title="Send Immediately (Ctrl+E)"><span data-icon="paper-plane"></span> Send</button>
+    <button id="c-later" title="Send Later: choose when it goes (it waits in the Out mailbox)"><span data-icon="clock"></span> Send Later…</button>
+    <span id="c-later-box" class="c-later" hidden>
+      <input id="c-later-at" type="datetime-local">
+      <button id="c-later-hour">In an hour</button>
+      <button id="c-later-morning">Tomorrow 8 AM</button>
+      <button id="c-later-go" class="primary">Queue</button>
+    </span>
+    <button id="c-save" title="Save Draft (Ctrl+S)"><span data-icon="file-lines"></span> Save Draft</button>
+    <button id="c-attach" title="Attach File (Ctrl+H)"><span data-icon="paperclip"></span> Attach</button>
+    <span class="c-sep"></span>
+    <button data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+    <button data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+    <button data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+    <button data-cmd="insertUnorderedList" title="Bulleted list">• List</button>
+    <button id="c-link" title="Make Hyperlink">Link</button>
+    <select id="c-format" title="Format: formatted (HTML: bold, links, pictures in the text) or plain text">
+      <option value="html">HTML</option>
+      <option value="plain">Plain text</option>
+    </select>
+    <select id="c-priority" title="Priority">
+      <option value="3">Normal priority</option>
+      <option value="1">Highest</option>
+      <option value="2">High</option>
+      <option value="4">Low</option>
+      <option value="5">Lowest</option>
+    </select>
+    <select id="c-signature" title="Signature (Tools ▸ Signatures)"><option value="">No signature</option></select>
+    <button id="c-spell" title="Check Spelling (Ctrl+6)">Spelling</button>
+    <button id="c-dictate" title="Dictate: talk and it types where the cursor is (the system's voice typing, Windows+H)">🎤</button>
+    <span id="c-status"></span>
+    <button id="c-popout" title="Pop out: in a window of its own" hidden>⇱ Pop out</button>
+  </header>
+  <section id="c-head">
+    <label class="c-row"><span>From</span><select id="c-from"></select></label>
+    <label class="c-row"><span>To</span><input id="c-to" type="text" autocomplete="off" spellcheck="false"></label>
+    <label class="c-row"><span>Cc</span><input id="c-cc" type="text" autocomplete="off" spellcheck="false"></label>
+    <label class="c-row" id="c-bcc-row"><span>Bcc</span><input id="c-bcc" type="text" autocomplete="off" spellcheck="false"></label>
+    <label class="c-row"><span>Subject</span><input id="c-subject" type="text"></label>
+    <div id="c-files"></div>
+  </section>
+  <div id="c-find" class="find-bar" hidden><input id="c-find-text" type="search" placeholder="Find in this message" spellcheck="false"><span id="c-find-count"></span><button id="c-find-prev" title="Previous (Shift+Enter)">↑</button><button id="c-find-next" title="Next (Enter, F3)">↓</button><button id="c-find-close" title="Close (Esc)">✕</button></div>
+  <div id="c-body" contenteditable="true" spellcheck="true"></div>
+  <dialog id="c-spell-box">
+    <h2>Check Spelling</h2>
+    <p id="c-spell-word" class="spell-word"></p>
+    <p id="c-spell-context" class="spell-context"></p>
+    <label>Change to <input id="c-spell-to" type="text" spellcheck="false"></label>
+    <select id="c-spell-list" size="6"></select>
+    <div class="p-buttons">
+      <button id="c-spell-change">Change</button>
+      <button id="c-spell-ignore">Ignore</button>
+      <button id="c-spell-ignore-all">Ignore All</button>
+      <button id="c-spell-add" title="Add to your dictionary (Windows', shared with your other programs)">Add to Dictionary</button>
+      <button id="c-spell-done">Done</button>
+    </div>
+  </dialog>
+  <input id="c-file" type="file" multiple hidden>
+  <script src="ask.js"></script>
+  <script src="find.js"></script>
+  <script src="compose.js"></script>
+</body>
+</html>

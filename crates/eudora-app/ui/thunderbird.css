@@ -1,0 +1,80 @@
+/* The Thunderbird-style skin: roomier rows, Subject first, rounded selection in the folder
+   pane, a lighter blue-gray finish. Same views and commands as the Eudora skin. */
+
+body.skin-thunderbird {
+  --font: system-ui, "Segoe UI", -apple-system, sans-serif;
+  --font-size: 13.5px;
+  --mono: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  --mono-size: 13px;
+  --row: 26px;
+  --folder-row: 28px;
+  --folder-radius: 6px;
+  --folder-margin: 6px;
+  --toolbar-pad: 8px 12px;
+  --field-radius: 16px;
+  --button-radius: 6px;
+
+  --text: #15141a;
+  --muted: #5b5b66;
+  --window: #f0f0f4;
+  --toolbar: #f0f0f4;
+  --sidebar: #f0f0f4;
+  --pane-title: #f9f9fb;
+  --list: #ffffff;
+  --head: #f9f9fb;
+  --reader: #ffffff;
+  --reader-head: #ffffff;
+  --field: #ffffff;
+  --button: #ffffff;
+  --hover: #e5ecf7;
+  --line: #e0e0e6;
+  --line-strong: #cfcfd8;
+  --row-line: transparent;
+  --accent: #0061e0;
+  --accent-soft: #0061e033;
+  --selected: #0061e0;
+  --selected-text: #ffffff;
+  --selected-blur: #dfe6f0;
+  --note: #fff4d6;
+  --note-text: #6b4e00;
+  --quote1: #0061e0;
+  --quote2: #8f0fc2;
+  --quote3: #058b00;
+}
+
+body.skin-thunderbird .c-subject { font-weight: 500; }
+body.skin-thunderbird .row .c-who { color: var(--muted); }
+body.skin-thunderbird .row.on .c-who { color: inherit; }
+body.skin-thunderbird #list-head .cell { border-right: 0; }
+body.skin-thunderbird .pane-title { text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.82em; border-bottom: 0; background: transparent; }
+body.skin-thunderbird #folders-pane { border-right: 0; }
+body.skin-thunderbird #m-subject { font-size: 1.35em; }
+
+@media (prefers-color-scheme: dark) {
+  body.skin-thunderbird {
+    --text: #fbfbfe;
+    --muted: #b3b3bd;
+    --window: #1c1b22;
+    --toolbar: #1c1b22;
+    --sidebar: #1c1b22;
+    --pane-title: #23222b;
+    --list: #23222b;
+    --head: #2b2a33;
+    --reader: #23222b;
+    --reader-head: #23222b;
+    --field: #2b2a33;
+    --button: #2b2a33;
+    --hover: #343441;
+    --line: #3a3944;
+    --line-strong: #52525e;
+    --accent: #3d8ce8;
+    --accent-soft: #3d8ce844;
+    --selected: #2c64b0;
+    --selected-blur: #383b48;
+    --note: #3d3315;
+    --note-text: #f1d58a;
+    --quote1: #7cb4ff;
+    --quote2: #d59cf0;
+    --quote3: #7ed98a;
+  }
+}

@@ -1,0 +1,79 @@
+<section id="moving" data-title="Moving, copying, and deleting" data-index="transfer; move; copy; Copy To; Transfer To; delete; Ctrl+D; undo; Ctrl+Z; Trash; Deleted Items; drag to folder">
+<h1>Moving, copying, and deleting</h1>
+<ul>
+<li><b>Transfer To…</b> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd>, <span class="ui">Transfer</span> on the toolbar): type part of a folder's name to find it in any account, then <kbd>Enter</kbd>. The arrow keys open and close folders in the list.</li>
+<li><b>Copy To…</b>: the same, keeping the message where it is too.</li>
+<li><b>Transfer ▸ To a New Mailbox…</b>: makes a folder and moves the messages into it.</li>
+<li><b>Delete</b> (<kbd>Ctrl</kbd>+<kbd>D</kbd> or the <kbd>Delete</kbd> key): moves the messages to the account's Trash (Deleted Items in Microsoft 365).</li>
+<li><b>Edit ▸ Undo</b> (<kbd>Ctrl</kbd>+<kbd>Z</kbd>) moves them back.</li>
+</ul>
+<p>Moves happen in Eudora at once and are made on the server in the background, even if you're offline at the time. A move between two accounts is a copy: the original stays on its own server.</p>
+<p>These work on a selection of many messages, and on search results (each message from its own folder).</p>
+</section>
+
+<section id="save-as-files" data-title="Saving messages as files (.msg and .eml)" data-index="drag message; drag to desktop; drag to folder; save message; export message; msg; .msg; Outlook msg; eml; .eml; original message; legal evidence; e-discovery; v1.mail.save_as">
+<h1>Saving messages as files (.msg and .eml)</h1>
+<p>Drag messages from the message list onto your desktop or into a folder in File Explorer (the Finder on a Mac) to save them there as files, each named after its subject. Select several first (<kbd>Ctrl</kbd>+click, <kbd>Shift</kbd>+click, <kbd>Ctrl</kbd>+<kbd>A</kbd>) and drag any of them to save them all.</p>
+<ul>
+<li><b>Drag</b>: Outlook's <b>.msg</b> files, which Outlook and most legal and archiving tools open.</li>
+<li><b>Hold <kbd>Ctrl</kbd> or <kbd>Shift</kbd> while dragging</b>: <b>.eml</b> files, the original message exactly as Eudora received it, byte for byte. Outlook, Eudora, and other mail programs open these too.</li>
+</ul>
+<p>Eudora writes the files in the background, with the count on the status bar ("Writing messages as .msg files: 120 of 400"), so you can carry on meanwhile. The drag starts once they're written. If you let go of the mouse before that, Eudora asks which folder to put them in.</p>
+
+<h2>Which to use as evidence</h2>
+<p>An <b>.eml</b> is the message itself: the same bytes the mail server delivered, so it can be checked against a copy kept anywhere else, and a digital signature on it still checks. Use .eml when the exact original matters.</p>
+<p>A <b>.msg</b> is what Outlook saves: the message as Outlook's own fields, not its original bytes. Outlook's own .msg files are made the same way, because Microsoft 365 converts every message into those fields when it arrives. Eudora writes a .msg the way Microsoft 365 and Outlook do:</p>
+<ul>
+<li>The message's <b>header block is kept word for word</b> (every Received line, the authentication results, the Message-ID), as Outlook keeps it. In Outlook it's under <span class="ui">File ▸ Properties ▸ Internet headers</span>.</li>
+<li><b>Every attachment is kept byte for byte.</b> A forwarded message attached to it is kept as a message inside it.</li>
+<li>The text and the HTML are kept as text and HTML. Their encoding may change (Eudora writes the HTML as UTF-8), so the words are the same but the bytes may not be.</li>
+<li>A message that's <b>digitally signed or encrypted</b> (S/MIME) is kept whole and unchanged inside the .msg, as Outlook keeps one, so its signature can still be checked.</li>
+<li>A message from the <b>Online Archive</b> is written from Exchange's own copy of it, the one Eudora keeps when <a href="#keep-originals">Keep original messages exactly</a> is on: the fields exactly as Microsoft holds them.</li>
+</ul>
+<p>Every file Eudora saves is marked as downloaded from the Internet, as attachments are.</p>
+<p>Programs and scripts can save messages the same way: <code>eudora call v1.mail.save_as '{"ids": [123, 456], "dir": "C:/Evidence", "format": "eml"}'</code> (format <code>msg</code> or <code>eml</code>). See <a href="#api">the local API</a>.</p>
+</section>
+
+<section id="mailboxes" data-title="Making, renaming, and deleting mailboxes" data-index="new mailbox; new folder; rename folder; delete folder; mailbox; subfolder; Mailbox New">
+<h1>Making, renaming, and deleting mailboxes</h1>
+<ul>
+<li><b>Make one</b>: <span class="ui">Mailbox ▸ New Mailbox…</span>, or right-click an account (<span class="ui">New Mailbox…</span>) or a folder (<span class="ui">New Mailbox Inside…</span>). Type "/" in the name for levels, such as <code>Projects/2026</code>.</li>
+<li><b>Rename</b>: right-click the folder, <span class="ui">Rename…</span>.</li>
+<li><b>Delete</b>: right-click the folder, <span class="ui">Delete…</span>. The folder, its mail, and its folders go into Deleted Items (or Trash), as Outlook does. A folder already in the Trash is removed only when it's empty.</li>
+</ul>
+<p>Each change is made on the server too (Microsoft 365, IMAP, Gmail labels). The server's own folders (Inbox, Sent, Drafts, Deleted Items, Junk, Archive) and the Online Archive's can't be renamed or deleted. A folder renamed in Outlook or on your phone takes its new name in Eudora too.</p>
+</section>
+
+<section id="marks" data-title="Status, priority, and labels" data-index="status; read; unread; replied; forwarded; priority; labels; categories; colors; Change Label; Outlook categories; edit labels">
+<h1>Status, priority, and labels</h1>
+<h2>Status</h2>
+<p><span class="ui">Message ▸ Change Status</span>: Unread, Read, Replied, Forwarded, Redirected. Read and unread reach the server.</p>
+<h2>Priority</h2>
+<p><span class="ui">Message ▸ Change Priority</span>: Highest to Lowest, Raise, Lower, or As the Message Says. High priority shows as a flag on IMAP servers and as a star in Gmail.</p>
+<h2>Labels</h2>
+<p><span class="ui">Message ▸ Change Label…</span>: tick the labels the message should carry (press <kbd>1</kbd>–<kbd>9</kbd> to tick quickly), or None. A message can carry several. Labels show as colored chips in the list.</p>
+<p>In Microsoft 365 mailboxes, labels are Outlook's <b>categories</b> with the same names, so Outlook and your phone show them too. On IMAP servers they're keywords.</p>
+<p>Edit the list in <span class="ui">Settings ▸ Mail ▸ Labels</span> (or <span class="ui">Edit Labels…</span> in the Change Label window). Renaming a label renames it on its messages. The list travels to your other computers.</p>
+</section>
+
+<section id="trash" data-title="Emptying the Trash" data-index="Empty Trash; delete forever; Deleted Items; Recoverable Items; purge">
+<h1>Emptying the Trash</h1>
+<p><span class="ui">Special ▸ Empty Trash…</span> lists each account's Trash with how many messages it holds, and asks before doing anything.</p>
+<ul>
+<li><b>Microsoft 365</b>: deleted from Deleted Items on the server. Exchange still keeps them in Recoverable Items for a while, as when you empty Deleted Items in Outlook.</li>
+<li><b>IMAP</b>: deleted on the server.</li>
+<li><b>Gmail</b>: left in Gmail's Trash, which Gmail empties after 30 days (so a mistake can still be undone there).</li>
+<li><b>The Online Archive's Deleted Items</b> are never touched.</li>
+</ul>
+<p>Messages that were only in the Trash leave the library. Their space comes back at the next <a href="#maintenance">maintenance</a>.</p>
+</section>
+
+<section id="open-files" data-title="Opening .eml and .ics files, and mail links" data-index="eml; ics; mailto; mail links; email links; default email program; open file; Ctrl+O; double-click; default mail program; calendar file">
+<h1>Opening .eml and .ics files, and mail links</h1>
+<p>Double-click a <b>.eml</b> file (or use <span class="ui">File ▸ Open File…</span>, <kbd>Ctrl</kbd>+<kbd>O</kbd>) to open it in a message window, as if it were in your library: reply, forward, save its attachments, print. It isn't added to the library. To add files, use <a href="#import">Import</a>.</p>
+<p>A <b>.ics</b> calendar file opens in a window listing its events: time (in your time zone), place, organizer, people, and notes. <b>Add to my calendar</b> puts an event on one of your calendars without inviting its people.</p>
+<p>To make Eudora open these files, on Windows choose <span class="ui">Open with ▸ Choose another app ▸ Eudora ▸ Always</span> once (Windows lets no program make itself the default). On the Mac, use the Finder's <span class="ui">Get Info ▸ Open with ▸ Change All…</span>.</p>
+<h2>Mail links (mailto:)</h2>
+<p>Eudora can be the program that opens <b>mailto:</b> links: an email address you click on a web page or in another program starts a new message in Eudora, with the address, any Cc and Bcc, the subject, and the text the link carries. Nothing is sent until you choose Send. Links in your mail do the same.</p>
+<p>To choose Eudora for mail links: on Windows, <span class="ui">Settings ▸ Apps ▸ Default apps ▸ Eudora</span>, then set <b>MAILTO</b> to Eudora (Windows lets no program choose itself); on the Mac, <span class="ui">Mail ▸ Settings ▸ General ▸ Default email reader ▸ Eudora</span>; on Linux, your desktop's default applications settings (Eudora's .deb and .rpm offer it).</p>
+</section>

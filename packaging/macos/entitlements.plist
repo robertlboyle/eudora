@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Hardened runtime exceptions for Eudora on the Mac (scripts/mac_app.sh, 2026-10-27): plugins
+     run in WebAssembly through wasmtime, which compiles them to machine code at run time
+     (Cranelift), in the window and in the background download alike. Nothing else is needed:
+     the web view's own JIT runs in WebKit's processes, not Eudora's. -->
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+</dict>
+</plist>

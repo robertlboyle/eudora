@@ -1,0 +1,72 @@
+<section id="trouble" data-title="Troubleshooting" data-index="problems; troubleshooting; not working; help; error">
+<h1>Troubleshooting</h1>
+<p>Start with <a href="#activity">Activity</a> (click the status bar): it shows what every background job did last, what's waiting, and the download's latest lines, which usually say what went wrong.</p>
+<p>The topics below cover the usual problems. If none fits, see <a href="#feedback">Reporting a problem</a>.</p>
+</section>
+
+<section id="trouble-no-mail" data-title="New mail isn't arriving" data-index="no new mail; mail not arriving; download stopped; waiting for the network; not checking; stuck">
+<h1>New mail isn't arriving</h1>
+<ol>
+<li>Look at the status bar. "Waiting for the network" means the connection dropped; Eudora carries on by itself once it's back.</li>
+<li>Is it paused or stopped? The status bar then shows <b>▶ Resume</b>. Is <span class="ui">File ▸ Work Offline</span> on (an <b>Offline</b> badge)?</li>
+<li>Choose <span class="ui">File ▸ Check Mail</span> (<kbd>Ctrl</kbd>+<kbd>M</kbd>).</li>
+<li>Is the account checked rarely? See <span class="ui">Check every</span> in the Accounts settings.</li>
+<li>Was the mail sorted out of the Inbox? Look in <b>Recent Mail</b>, and use <span class="ui">Special ▸ Why? (Spam Filter)</span> on it.</li>
+<li>"Still working… (a long step)" means the download is busy with something large; it's not stuck. "Stopped" means it stopped unexpectedly; Eudora starts it again by itself.</li>
+<li>For a Microsoft or Google account that says it needs signing in, choose <span class="ui">Sign in to Microsoft 365 again…</span> or add the Google account again.</li>
+</ol>
+</section>
+
+<section id="trouble-signin" data-title="Sign-in and password problems" data-index="sign in failed; password rejected; app password; authentication failed; consent; administrator approval; Keychain asks; IMAP login">
+<h1>Sign-in and password problems</h1>
+<ul>
+<li><b>IMAP or SMTP refuses your password</b>: many providers need an <b>app password</b> made on their website (Gmail, Yahoo, iCloud, Outlook.com). Microsoft and Google accounts should be added with Sign in with Microsoft / Google instead.</li>
+<li><b>Microsoft says an administrator must approve Eudora</b>: your organization allows only approved apps; ask its IT department to approve "Eudora 27".</li>
+<li><b>Changes don't reach Microsoft 365</b> (Activity shows them waiting): choose <span class="ui">Sign in to Microsoft 365 again…</span>; the Accounts settings show what Eudora may do on the server.</li>
+<li><b>Encryption errors</b> with an old mail server: the error names the next level to try; see <a href="#add-imap">Ports and security</a>.</li>
+<li><b>Google sign-in stops after a week</b>: while Eudora's Google connection is in testing, Google asks you to sign in again every 7 days.</li>
+</ul>
+</section>
+
+<section id="trouble-sending" data-title="A message won't send" data-index="can't send; stuck in Out; sending failed; SMTP error; send as refused">
+<h1>A message won't send</h1>
+<p>Messages that can't go wait in <span class="ui">Mailbox ▸ Out</span> and are tried again after 1, 2, 4… up to 60 minutes. The main window's status bar says why each failed.</p>
+<ul>
+<li>A bad address or From is caught before sending, in the message's own window.</li>
+<li>Is <span class="ui">Work Offline</span> on?</li>
+<li>Sending from a shared mailbox needs Send As or Send on Behalf rights given by your administrator.</li>
+<li>A send cut off partway is never repeated by itself, so the message isn't sent twice: check the recipient got it, then use Send now in Out if not.</li>
+</ul>
+</section>
+
+<section id="trouble-missing" data-title="I can't find a message" data-index="missing message; lost message; where did it go; deleted; moved by rules; sorted away; not in Inbox">
+<h1>I can't find a message</h1>
+<ul>
+<li>Search for it: the search covers every account, folder, and year.</li>
+<li>Look in <b>Recent Mail</b>: it lists what was sorted out of the Inbox lately.</li>
+<li>Select it and choose <span class="ui">Special ▸ Why? (Spam Filter)</span> to see why it went where it did; <a href="#activity">Activity</a> ▸ Details shows what the rules and the spam filter did, message by message.</li>
+<li>Look in the Trash (Deleted Items), and use <span class="ui">Edit ▸ Undo</span> right after a mistaken move.</li>
+<li>A fraud's links are switched off on purpose; see <a href="#fraud">Fraud and phishing</a>.</li>
+</ul>
+</section>
+
+<section id="trouble-slow" data-title="Eudora is slow, or uses a lot of space" data-index="slow; performance; disk space; library size; big library; space used; memory">
+<h1>Eudora is slow, or uses a lot of space</h1>
+<ul>
+<li>The first download of a big mailbox takes hours; newest mail comes first, and the window stays usable.</li>
+<li>Give Eudora more memory: <a href="#speed">Speed settings</a>.</li>
+<li>Run maintenance: <span class="ui">Settings ▸ Speed and maintenance ▸ Run Maintenance Now</span>.</li>
+<li>The library holds every message's original bytes, compressed, plus the search indexes. Online Archive mail also keeps Microsoft's own copy of each item, which you can turn off: see <a href="#keep-originals">Keeping original messages exactly</a>. <span class="ui">Help ▸ Statistics…</span> shows where the space goes.</li>
+<li>Never keep the library in Dropbox, OneDrive, or another syncing folder.</li>
+</ul>
+</section>
+
+<section id="trouble-sorting" data-title="The spam filter sorted something wrongly" data-index="wrong folder; false positive; good mail in spam; spam in inbox; misfiled; Not Spam">
+<h1>The spam filter sorted something wrongly</h1>
+<ul>
+<li>Good mail in Spam: <b>Not Spam</b> (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>J</kbd>) puts the sender on your whitelist and moves it back.</li>
+<li>Spam in the Inbox: <b>Spam</b> (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd>).</li>
+<li>Both teach the filter. To change where a kind of mail goes, see <a href="#mail-filter-rules">Mail Filter Rules</a>: switch a rule off, or give it exceptions.</li>
+<li>A rule of yours above the spam filter that stops ("Skip the rest") keeps the spam filter from those messages, by design.</li>
+</ul>
+</section>

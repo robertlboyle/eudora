@@ -1,0 +1,105 @@
+/* Gmail-style: the feel of Gmail on the web. A light, airy page, the search box as a big gray
+   pill, one line per message (sender, labels, subject - preview, date), the message opening in
+   place of the list, rounded selection in the sidebar. Same views and commands as every other
+   look (labels or folders: the user's choice in Preferences). */
+
+body.skin-gmail {
+  --font: "Google Sans", Roboto, "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-size: 14px;
+  --mono: "Roboto Mono", "Cascadia Mono", Consolas, monospace;
+  --mono-size: 13px;
+  --row: 40px;
+  --folder-row: 32px;
+  --folder-radius: 0 16px 16px 0;
+  --folder-margin: 0 8px 0 0;
+  --toolbar-pad: 8px 16px;
+  --field-radius: 24px;
+  --button-radius: 18px;
+
+  --text: #202124;
+  --muted: #5f6368;
+  --window: #f6f8fc;
+  --toolbar: #f6f8fc;
+  --sidebar: #f6f8fc;
+  --pane-title: transparent;
+  --list: #ffffff;
+  --head: #ffffff;
+  --reader: #ffffff;
+  --reader-head: #ffffff;
+  --field: #eaf1fb;
+  --button: #ffffff;
+  --hover: #f2f6fc;
+  --line: #eceff1;
+  --line-strong: #dadce0;
+  --row-line: #f1f3f4;
+  --accent: #0b57d0;
+  --accent-soft: #0b57d033;
+  --selected: #c2e7ff;
+  --selected-text: #001d35;
+  --selected-blur: #e8f0fe;
+  --note: #fef7e0;
+  --note-text: #7a5c00;
+  --quote1: #1a73e8;
+  --quote2: #9334e6;
+  --quote3: #188038;
+  --label-bg: #e8eaed;
+  --label-text: #3c4043;
+}
+
+body.skin-gmail #toolbar { border-bottom: 0; }
+body.skin-gmail .search { border: 0; padding: 4px 8px 4px 16px; max-width: 760px; }
+body.skin-gmail .search:focus-within { background: #ffffff; box-shadow: 0 1px 3px #3c40434d; }
+body.skin-gmail .tool { border: 0; background: transparent; }
+body.skin-gmail .tool:hover { background: #e8eaed; }
+body.skin-gmail #status { border-top: 0; }
+
+body.skin-gmail .pane-title { display: none; }
+body.skin-gmail .folder { padding-left: calc(18px + var(--depth) * 16px); }
+body.skin-gmail .folder.on { background: #d3e3fd; color: #041e49; font-weight: 600; }
+body.skin-gmail .folder.on .f-count { color: inherit; }
+body.skin-gmail .splitter { background: transparent; border-color: transparent; }
+
+body.skin-gmail #list-pane, body.skin-gmail #message-pane {
+  margin: 0 16px 8px 0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+body.skin-gmail #list-title { background: var(--list); border-bottom: 1px solid var(--line); padding: 10px 16px; }
+body.skin-gmail #list-head { display: none; }
+body.skin-gmail .row { border-bottom: 1px solid var(--row-line); }
+body.skin-gmail .row:hover { box-shadow: inset 1px 0 0 #dadce0, inset -1px 0 0 #dadce0, 0 1px 2px 0 #3c40434d; z-index: 1; background: var(--list); }
+body.skin-gmail .row.on { background: var(--selected); }
+body.skin-gmail #list:not(:focus) .row.on { background: var(--selected-blur); color: var(--text); }
+body.skin-gmail #message-head { border-bottom: 0; padding: 16px 24px 0; }
+body.skin-gmail #m-subject { font-size: 1.6em; font-weight: 400; }
+body.skin-gmail #m-views button.on { border-bottom-color: var(--accent); }
+body.skin-gmail .chip { border-radius: 8px; }
+
+@media (prefers-color-scheme: dark) {
+  body.skin-gmail {
+    --text: #e3e3e3;
+    --muted: #a8adb3;
+    --window: #1f1f1f;
+    --toolbar: #1f1f1f;
+    --sidebar: #1f1f1f;
+    --list: #282a2c;
+    --head: #282a2c;
+    --reader: #282a2c;
+    --reader-head: #282a2c;
+    --field: #303134;
+    --button: #303134;
+    --hover: #35363a;
+    --line: #3c4043;
+    --line-strong: #5f6368;
+    --row-line: #35363a;
+    --accent: #a8c7fa;
+    --selected: #004a77;
+    --selected-text: #ffffff;
+    --selected-blur: #3c4043;
+    --note: #3d3315;
+    --note-text: #f1d58a;
+  }
+  body.skin-gmail .folder.on { background: #004a77; color: #c2e7ff; }
+  body.skin-gmail .search:focus-within { background: #303134; }
+  body.skin-gmail .row:hover { background: #2d2f31; }
+}

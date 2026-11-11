@@ -1,0 +1,60 @@
+[package]
+name = "eudora-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+# Eudora 27's window (Tauri 2). The front end is plain HTML / CSS / JS in ui/ (no npm).
+# A library too: the phone apps (Android, iOS) are built from it by Tauri's mobile builds.
+[lib]
+name = "eudora_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "eudora27"
+path = "src/main.rs"
+
+[build-dependencies]
+serde_json = "1.0.151"
+tauri-build = { version = "2.7.1", features = [] }
+
+[dependencies]
+base64 = "0.23.1"
+chrono = "0.4.45"
+eudora-core = { version = "0.1.0", path = "../eudora-core" }
+mail-parser = { version = "0.11.9", features = ["full_encoding"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+tauri = { version = "2.12.1", features = ["tray-icon", "image-png"] }
+
+# (desktops only: phones have no dragging of files out of a window)
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+# dragging attachments out as files (desktop, Slack, Teams…; approved 2026-10-23; MIT OR Apache-2.0)
+drag = "=2.1.1"
+
+# (phones only: opening links and sign-in pages in the browser, through an Android intent or iOS's
+# own call; desktops use the system's command, graph::open_browser. Tauri's own plugin,
+# Apache-2.0 OR MIT; approved 2026-10-27)
+[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
+tauri-plugin-opener = "=2.7.2"
+
+# (Android only: handing rustls-platform-verifier the app's Java VM and context, android.rs;
+# the same versions the build already has through Tauri and rustls)
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "=0.22.4"
+ndk-context = "=0.1.1"
+rustls-platform-verifier = "=0.7.1"
+
+# (iOS only: new mail while closed, its notifications and the icon's number, ios.rs: the
+# objc2 pieces and SQLite the build already has)
+[target.'cfg(target_os = "ios")'.dependencies]
+objc2 = "0.6.5"
+block2 = "0.6.2"
+dispatch2 = "0.3.1"
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSDate", "NSString"] }
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"

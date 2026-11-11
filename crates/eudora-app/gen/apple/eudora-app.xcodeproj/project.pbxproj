@@ -1,0 +1,502 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		049C817AA56B9530D494B3B8 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9020D53915A9C9147773C243 /* UIKit.framework */; };
+		0713E377522FE8DFB1C64116 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AFF31BB57A35BA7B59EB49AB /* WebKit.framework */; };
+		1943F5EA52EFEABAF019B349 /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = DE1E3A255D4FD83B896D745A /* main.mm */; };
+		1DA6A50D4C2D7D786569EE13 /* BackgroundTasks.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 897EB2E42655372E564C82DC /* BackgroundTasks.framework */; };
+		31A97851466B9BBAF843EE8E /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C1ADFAD1013E1A69CFB2DDB7 /* QuartzCore.framework */; };
+		40D332B965E689F1412EBE92 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A39AB23D9BDEDF98BB7B80B7 /* MetalKit.framework */; };
+		806E9455AF554B809BDCA336 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA314DC41A2C1ED5BCC9341A /* UserNotifications.framework */; };
+		833699608C20B1BECF8C7E9A /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CFF328539899FA9166D2193 /* CoreGraphics.framework */; };
+		8F79536EBEC864C00A828603 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9B0AA22AA305AF7D230BD223 /* SystemConfiguration.framework */; };
+		93FC980170268D14832C9827 /* QuickLook.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F6CDAEEB3F8555CA8CDAC155 /* QuickLook.framework */; };
+		94E6FA42035FBF05FF2E02EF /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9D5E06844352B0E59FC317B3 /* Security.framework */; };
+		A53C4F247A63693A489CE375 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 614C9166F08A6B1E4708A446 /* LaunchScreen.storyboard */; };
+		C5C9B683BDF910434A9C2382 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7ACAA0E46AB1E3D03E318532 /* Metal.framework */; };
+		CF3C93347EA0D7D647B89648 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 52BBD1AD5A767139AE362E9D /* Assets.xcassets */; };
+		D30AF4A360D7E8AB81AC73EE /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E813199ABB0159D35AA6A2A2 /* libapp.a */; };
+		DB0D962B8C0835D8CD636111 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 84ED5843A1DDF5A26D3FAD6C /* assets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		049EF2EA26B34F970BFC4F55 /* eudora-app_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "eudora-app_iOS.entitlements"; sourceTree = "<group>"; };
+		0D87E44E9286B88A45AE7596 /* api_host.rs */ = {isa = PBXFileReference; path = api_host.rs; sourceTree = "<group>"; };
+		0E06C839935CC8B1F6FCD20E /* ios.rs */ = {isa = PBXFileReference; path = ios.rs; sourceTree = "<group>"; };
+		1CFF328539899FA9166D2193 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		237548CDDDB78DAEDC76A9DD /* bindings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bindings.h; sourceTree = "<group>"; };
+		52BBD1AD5A767139AE362E9D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		5E00AAF2A96044526F5A421A /* opening.rs */ = {isa = PBXFileReference; path = opening.rs; sourceTree = "<group>"; };
+		607EEB6B1D747377C44361F7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		614C9166F08A6B1E4708A446 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		7ACAA0E46AB1E3D03E318532 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		83763DD66640DC0DE8DC38EA /* tray.rs */ = {isa = PBXFileReference; path = tray.rs; sourceTree = "<group>"; };
+		84ED5843A1DDF5A26D3FAD6C /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
+		897EB2E42655372E564C82DC /* BackgroundTasks.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BackgroundTasks.framework; path = System/Library/Frameworks/BackgroundTasks.framework; sourceTree = SDKROOT; };
+		9020D53915A9C9147773C243 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		983B07482E5B08AF35B1A541 /* eudora-app_iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "eudora-app_iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9B0AA22AA305AF7D230BD223 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
+		9D5E06844352B0E59FC317B3 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		A39AB23D9BDEDF98BB7B80B7 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		AFF31BB57A35BA7B59EB49AB /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		BD3625352E81759B37E2358C /* lib.rs */ = {isa = PBXFileReference; path = lib.rs; sourceTree = "<group>"; };
+		C1ADFAD1013E1A69CFB2DDB7 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		D9F05CFFFF37762903CB03AA /* android.rs */ = {isa = PBXFileReference; path = android.rs; sourceTree = "<group>"; };
+		DE1E3A255D4FD83B896D745A /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
+		E0ED9B472AB130394E63C6FB /* main.rs */ = {isa = PBXFileReference; path = main.rs; sourceTree = "<group>"; };
+		E813199ABB0159D35AA6A2A2 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
+		EA314DC41A2C1ED5BCC9341A /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
+		F6CDAEEB3F8555CA8CDAC155 /* QuickLook.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickLook.framework; path = System/Library/Frameworks/QuickLook.framework; sourceTree = SDKROOT; };
+		F8F22FE84023646C20ADEBD1 /* background.rs */ = {isa = PBXFileReference; path = background.rs; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		33202A6FDC4B2AD3A2119058 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D30AF4A360D7E8AB81AC73EE /* libapp.a in Frameworks */,
+				833699608C20B1BECF8C7E9A /* CoreGraphics.framework in Frameworks */,
+				C5C9B683BDF910434A9C2382 /* Metal.framework in Frameworks */,
+				40D332B965E689F1412EBE92 /* MetalKit.framework in Frameworks */,
+				31A97851466B9BBAF843EE8E /* QuartzCore.framework in Frameworks */,
+				94E6FA42035FBF05FF2E02EF /* Security.framework in Frameworks */,
+				8F79536EBEC864C00A828603 /* SystemConfiguration.framework in Frameworks */,
+				93FC980170268D14832C9827 /* QuickLook.framework in Frameworks */,
+				1DA6A50D4C2D7D786569EE13 /* BackgroundTasks.framework in Frameworks */,
+				806E9455AF554B809BDCA336 /* UserNotifications.framework in Frameworks */,
+				049C817AA56B9530D494B3B8 /* UIKit.framework in Frameworks */,
+				0713E377522FE8DFB1C64116 /* WebKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0EBC6AF07CE36007BD683F4C /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				84F3BD676EA5503468928877 /* eudora-app */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		2223259D6B2D57816AEA1AD6 /* bindings */ = {
+			isa = PBXGroup;
+			children = (
+				237548CDDDB78DAEDC76A9DD /* bindings.h */,
+			);
+			path = bindings;
+			sourceTree = "<group>";
+		};
+		2BD9B90696340FA242767517 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				983B07482E5B08AF35B1A541 /* eudora-app_iOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		84F3BD676EA5503468928877 /* eudora-app */ = {
+			isa = PBXGroup;
+			children = (
+				DE1E3A255D4FD83B896D745A /* main.mm */,
+				2223259D6B2D57816AEA1AD6 /* bindings */,
+			);
+			path = "eudora-app";
+			sourceTree = "<group>";
+		};
+		8ECA2F78C9A5365C22169B57 = {
+			isa = PBXGroup;
+			children = (
+				84ED5843A1DDF5A26D3FAD6C /* assets */,
+				52BBD1AD5A767139AE362E9D /* Assets.xcassets */,
+				614C9166F08A6B1E4708A446 /* LaunchScreen.storyboard */,
+				D2D2B096B315341579CF243A /* eudora-app_iOS */,
+				E50F89769F5F4FAB6791EA2B /* Externals */,
+				0EBC6AF07CE36007BD683F4C /* Sources */,
+				CB45F71246D4332B160650CF /* src */,
+				FF8ED60499BECD32907A2E9E /* Frameworks */,
+				2BD9B90696340FA242767517 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CB45F71246D4332B160650CF /* src */ = {
+			isa = PBXGroup;
+			children = (
+				D9F05CFFFF37762903CB03AA /* android.rs */,
+				0D87E44E9286B88A45AE7596 /* api_host.rs */,
+				F8F22FE84023646C20ADEBD1 /* background.rs */,
+				0E06C839935CC8B1F6FCD20E /* ios.rs */,
+				BD3625352E81759B37E2358C /* lib.rs */,
+				E0ED9B472AB130394E63C6FB /* main.rs */,
+				5E00AAF2A96044526F5A421A /* opening.rs */,
+				83763DD66640DC0DE8DC38EA /* tray.rs */,
+			);
+			name = src;
+			path = ../../src;
+			sourceTree = "<group>";
+		};
+		D2D2B096B315341579CF243A /* eudora-app_iOS */ = {
+			isa = PBXGroup;
+			children = (
+				049EF2EA26B34F970BFC4F55 /* eudora-app_iOS.entitlements */,
+				607EEB6B1D747377C44361F7 /* Info.plist */,
+			);
+			path = "eudora-app_iOS";
+			sourceTree = "<group>";
+		};
+		E50F89769F5F4FAB6791EA2B /* Externals */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Externals;
+			sourceTree = "<group>";
+		};
+		FF8ED60499BECD32907A2E9E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				897EB2E42655372E564C82DC /* BackgroundTasks.framework */,
+				1CFF328539899FA9166D2193 /* CoreGraphics.framework */,
+				E813199ABB0159D35AA6A2A2 /* libapp.a */,
+				7ACAA0E46AB1E3D03E318532 /* Metal.framework */,
+				A39AB23D9BDEDF98BB7B80B7 /* MetalKit.framework */,
+				C1ADFAD1013E1A69CFB2DDB7 /* QuartzCore.framework */,
+				F6CDAEEB3F8555CA8CDAC155 /* QuickLook.framework */,
+				9D5E06844352B0E59FC317B3 /* Security.framework */,
+				9B0AA22AA305AF7D230BD223 /* SystemConfiguration.framework */,
+				9020D53915A9C9147773C243 /* UIKit.framework */,
+				EA314DC41A2C1ED5BCC9341A /* UserNotifications.framework */,
+				AFF31BB57A35BA7B59EB49AB /* WebKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		"TEMP_4EFD7220-E4EA-43C1-B774-2480436AEDD4" /* x86_64 */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = x86_64;
+			sourceTree = "<group>";
+		};
+		"TEMP_BC160D16-B588-4783-9615-1A05AC081AC9" /* arm64 */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = arm64;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		409514049D39B7E518D6AD19 /* eudora-app_iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7597747899F4C2ED62048EA6 /* Build configuration list for PBXNativeTarget "eudora-app_iOS" */;
+			buildPhases = (
+				D983BF5DE4369F33518A3A3F /* Build Rust Code */,
+				15D57B93DE54AE75C19672F5 /* Sources */,
+				FF139D0F6C3961E80C74A3CE /* Resources */,
+				33202A6FDC4B2AD3A2119058 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "eudora-app_iOS";
+			packageProductDependencies = (
+			);
+			productName = "eudora-app_iOS";
+			productReference = 983B07482E5B08AF35B1A541 /* eudora-app_iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		30C1B0973A57CD7443B34D64 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = B67FA8365A25B2B99C5A8952 /* Build configuration list for PBXProject "eudora-app" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 8ECA2F78C9A5365C22169B57;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 2BD9B90696340FA242767517 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				409514049D39B7E518D6AD19 /* eudora-app_iOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		FF139D0F6C3961E80C74A3CE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CF3C93347EA0D7D647B89648 /* Assets.xcassets in Resources */,
+				A53C4F247A63693A489CE375 /* LaunchScreen.storyboard in Resources */,
+				DB0D962B8C0835D8CD636111 /* assets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		D983BF5DE4369F33518A3A3F /* Build Rust Code */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build Rust Code";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Externals/x86_64/${CONFIGURATION}/libapp.a",
+				"$(SRCROOT)/Externals/arm64/${CONFIGURATION}/libapp.a",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cargo tauri ios xcode-script -v --platform \"${PLATFORM_DISPLAY_NAME:?}\" --sdk-root \"${SDKROOT:?}\" --framework-search-paths \"${FRAMEWORK_SEARCH_PATHS:?}\" --header-search-paths \"${HEADER_SEARCH_PATHS:?}\" --gcc-preprocessor-definitions \"${GCC_PREPROCESSOR_DEFINITIONS:-}\" --configuration \"${CONFIGURATION:?}\" ${FORCE_COLOR} ${ARCHS:?}\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		15D57B93DE54AE75C19672F5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1943F5EA52EFEABAF019B349 /* main.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		20B8C322BA788DF2FC72AAEC /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ARCHS = (
+					arm64,
+				);
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "eudora-app_iOS/eudora-app_iOS.entitlements";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_BITCODE = NO;
+				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\".\"",
+				);
+				INFOPLIST_FILE = "eudora-app_iOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = net.planet.eudora27;
+				PRODUCT_NAME = "Eudora";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALID_ARCHS = arm64;
+			};
+			name = release;
+		};
+		9A0E1C4AE67EF1B1B519F7FF /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = debug;
+		};
+		C5288EC543BE2C9464DE8462 /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = release;
+		};
+		E549343E9175CBB7008772A3 /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ARCHS = (
+					arm64,
+				);
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "eudora-app_iOS/eudora-app_iOS.entitlements";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_BITCODE = NO;
+				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\".\"",
+				);
+				INFOPLIST_FILE = "eudora-app_iOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = net.planet.eudora27;
+				PRODUCT_NAME = "Eudora";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALID_ARCHS = arm64;
+			};
+			name = debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7597747899F4C2ED62048EA6 /* Build configuration list for PBXNativeTarget "eudora-app_iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E549343E9175CBB7008772A3 /* debug */,
+				20B8C322BA788DF2FC72AAEC /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+		B67FA8365A25B2B99C5A8952 /* Build configuration list for PBXProject "eudora-app" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9A0E1C4AE67EF1B1B519F7FF /* debug */,
+				C5288EC543BE2C9464DE8462 /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 30C1B0973A57CD7443B34D64 /* Project object */;
+}
