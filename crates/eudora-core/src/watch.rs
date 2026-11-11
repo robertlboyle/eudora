@@ -1,4 +1,4 @@
-//! Keeping a library up to date: the download that runs while Eudora is open (`eudora graph
+//! Keeping a library up to date: the download that runs while Eudora is open (`eudora-cli graph
 //! download --watch`, started by the desktop window as a program of its own), moved here from the
 //! command line so a phone app, which can't start another program, runs the same loop in a thread
 //! of its own.
@@ -88,7 +88,7 @@ pub fn sign_ins(library: &Library, w: &Watch, progress: &dyn Progress) -> Result
             }
         } else if !has_microsoft {
             return Err(Error::Other(
-                "no accounts to download: sign in to Microsoft 365 (`eudora graph login`) or add an IMAP / POP3 account (Settings ▸ Accounts ▸ Add account)".into(),
+                "no accounts to download: sign in to Microsoft 365 (`eudora-cli graph login`) or add an IMAP / POP3 account (Settings ▸ Accounts ▸ Add account)".into(),
             ));
         } else {
             // (says why: the default sign-in can't be renewed)

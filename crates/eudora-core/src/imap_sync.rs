@@ -367,7 +367,7 @@ pub fn fetch(session: &mut Session, uids: &[u32]) -> Result<Vec<(u32, Vec<u8>, O
         .collect())
 }
 
-/// One message as an IMAP server has it (for looking at an account: `eudora imap show`).
+/// One message as an IMAP server has it (for looking at an account: `eudora-cli imap show`).
 #[derive(Clone, Debug, Serialize)]
 pub struct ServerMessage {
     pub uid: u32,

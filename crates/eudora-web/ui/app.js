@@ -1,4 +1,4 @@
-// Eudora 27 on the web. Plain JavaScript, no libraries. Talks to eudora-web's /api.
+// Eudora on the web. Plain JavaScript, no libraries. Talks to eudora-web's /api.
 "use strict";
 
 const $ = (id) => document.getElementById(id);

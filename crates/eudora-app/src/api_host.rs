@@ -1,6 +1,6 @@
 //! The local API, served by the window while it's open (Settings ▸ Programs and plugins:
 //! on by default while open; served without the window only when the user allows it, by
-//! `eudora api serve`). Every call goes through the window's own library connection and
+//! `eudora-cli api serve`). Every call goes through the window's own library connection and
 //! `Library::api_call` (permissions, rate limits, the log).
 
 use std::sync::atomic::{AtomicBool, Ordering};

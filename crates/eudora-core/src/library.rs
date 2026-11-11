@@ -177,21 +177,313 @@ pub struct Stats {
 }
 
 /// Where the library goes when none is named: the system's place for an app's local data,
-/// never a synced folder (Windows: `%LOCALAPPDATA%\Eudora 27\Library`; the Mac:
-/// `~/Library/Application Support/Eudora 27/Library`; Linux: `$XDG_DATA_HOME/eudora27/library`
-/// or `~/.local/share/eudora27/library`).
+/// never a synced folder (Windows: `%LOCALAPPDATA%\Eudora\Library`; the Mac:
+/// `~/Library/Application Support/Eudora/Library`; Linux: `$XDG_DATA_HOME/eudora/library` or
+/// `~/.local/share/eudora/library`).
 pub fn default_library_path() -> Option<PathBuf> {
     // a phone app's own storage, as its system names it (set_app_data_dir)
     if let Some(dir) = APP_DATA.get() {
         return Some(dir.join("Library"));
     }
+    desktop_dir().map(|d| d.join(LIBRARY_DIR))
+}
+
+const LIBRARY_DIR: &str = if cfg!(any(windows, target_os = "macos")) { "Library" } else { "library" };
+
+// ------------------------------------------------------------------ the move from "Eudora 27"
+//
+// Before 1.0.0 Eudora was "Eudora 27" in its folders, its credential store, and its app
+// identifier (net.planet.eudora27). The first Eudora to start after that moves everything to
+// the plain names, once: a rename, so a library of 100 GB moves at once. Until it has moved,
+// Eudora keeps using the old folder, so a move that can't happen yet never leaves an empty
+// library in its place. (Secrets move in `graph::keyring_entry`.)
+
+/// Eudora's own folder on a desktop; `old`: the name it had before 1.0.0.
+fn desktop_dir_named(old: bool) -> Option<PathBuf> {
     let var = |name: &str| std::env::var_os(name).filter(|v| !v.is_empty()).map(PathBuf::from);
     if cfg!(windows) {
-        var("LOCALAPPDATA").map(|d| d.join("Eudora 27").join("Library"))
+        var("LOCALAPPDATA").map(|d| d.join(if old { "Eudora 27" } else { "Eudora" }))
     } else if cfg!(target_os = "macos") {
-        var("HOME").map(|h| h.join("Library").join("Application Support").join("Eudora 27").join("Library"))
+        var("HOME").map(|h| h.join("Library").join("Application Support").join(if old { "Eudora 27" } else { "Eudora" }))
     } else {
-        var("XDG_DATA_HOME").or_else(|| var("HOME").map(|h| h.join(".local").join("share"))).map(|d| d.join("eudora27").join("library"))
+        var("XDG_DATA_HOME").or_else(|| var("HOME").map(|h| h.join(".local").join("share"))).map(|d| d.join(if old { "eudora27" } else { "eudora" }))
+    }
+}
+
+/// Eudora's own folder on a desktop, moved from its old name first when that's still there.
+fn desktop_dir() -> Option<PathBuf> {
+    static DIR: std::sync::OnceLock<Option<PathBuf>> = std::sync::OnceLock::new();
+    DIR.get_or_init(|| {
+        let new = desktop_dir_named(false)?;
+        if running_tests() {
+            return Some(new);
+        }
+        let Some(old) = desktop_dir_named(true).filter(|o| o.is_dir()) else { return Some(new) };
+        move_other_folders();
+        match move_app_folder(&old, &new) {
+            Ok(()) => Some(new),
+            Err(why) => {
+                eprintln!("Eudora's folder stays at {} for now: {why}", old.display());
+                let _ = BLOCKED.set(MoveBlocked { from: old.display().to_string(), to: new.display().to_string(), why, programs: programs_holding(&old) });
+                Some(old)
+            }
+        }
+    })
+    .clone()
+}
+
+/// Why Eudora's folder couldn't move from its old name this run (`move_from_eudora_27`), and the
+/// programs that had files in it open (Windows; empty elsewhere: the Mac and Linux rename a folder
+/// whatever is open in it). Eudora uses the old folder meanwhile and tries again at each start.
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct MoveBlocked {
+    pub from: String,
+    pub to: String,
+    pub why: String,
+    /// "PlanetPDF (bridespeed overbuild.pdf)", or the program alone when the file isn't known.
+    pub programs: Vec<String>,
+}
+
+static BLOCKED: std::sync::OnceLock<MoveBlocked> = std::sync::OnceLock::new();
+
+/// Whether the move from "Eudora 27" was held up this run, and by what.
+pub fn folder_move_blocked() -> Option<MoveBlocked> {
+    BLOCKED.get().cloned()
+}
+
+/// After Eudora restarted itself (`EUDORA_RESTARTED`): waits up to 15 s for the window it
+/// replaces to let go of its lock, so this start doesn't take it for a window still open (and
+/// the folder can move).
+pub fn wait_for_previous_window() {
+    let locks: Vec<PathBuf> = [true, false].into_iter().filter_map(desktop_dir_named).map(|d| d.join("window.lock")).collect();
+    let started = std::time::Instant::now();
+    while locks.iter().any(|l| locked(l)) && started.elapsed() < std::time::Duration::from_secs(15) {
+        std::thread::sleep(std::time::Duration::from_millis(250));
+    }
+}
+
+/// The programs that have files in `dir` open (Windows' Restart Manager), each with one of the
+/// files when it can be told within a few seconds. The library's own big folders are left out:
+/// only Eudora opens those, and Eudora is closed for this.
+#[cfg(windows)]
+fn programs_holding(dir: &Path) -> Vec<String> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows::Win32::Foundation::ERROR_SUCCESS;
+    use windows::Win32::System::RestartManager::{CCH_RM_SESSION_KEY, RM_PROCESS_INFO, RmEndSession, RmGetList, RmRegisterResources, RmStartSession};
+    use windows::core::{PCWSTR, PWSTR};
+    // every file in it but the packs and indexes (at most 20,000)
+    let mut files = Vec::new();
+    let mut folders = vec![dir.to_path_buf()];
+    while let Some(folder) = folders.pop() {
+        let Ok(entries) = std::fs::read_dir(&folder) else { continue };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().to_lowercase();
+            if path.is_dir() {
+                if !matches!(name.as_str(), "packs" | "index" | "header-index") {
+                    folders.push(path);
+                }
+            } else if files.len() < 20_000 {
+                files.push(path);
+            }
+        }
+    }
+    // the programs holding any of `files`: (process id, its name)
+    let holders = |files: &[PathBuf]| -> Vec<(u32, String)> {
+        let wide: Vec<Vec<u16>> = files.iter().map(|p| p.as_os_str().encode_wide().chain(std::iter::once(0)).collect()).collect();
+        let names: Vec<PCWSTR> = wide.iter().map(|w| PCWSTR(w.as_ptr())).collect();
+        let mut session = 0u32;
+        let mut key = [0u16; CCH_RM_SESSION_KEY as usize + 1];
+        unsafe {
+            if RmStartSession(&mut session, None, PWSTR(key.as_mut_ptr())) != ERROR_SUCCESS {
+                return Vec::new();
+            }
+            let mut found = Vec::new();
+            if RmRegisterResources(session, Some(&names), None, None) == ERROR_SUCCESS {
+                let (mut needed, mut count, mut reasons) = (0u32, 0u32, 0u32);
+                let _ = RmGetList(session, &mut needed, &mut count, None, &mut reasons);
+                if needed > 0 {
+                    let mut info = vec![RM_PROCESS_INFO::default(); needed as usize];
+                    count = needed;
+                    if RmGetList(session, &mut needed, &mut count, Some(info.as_mut_ptr()), &mut reasons) == ERROR_SUCCESS {
+                        for p in info.iter().take(count as usize) {
+                            let len = p.strAppName.iter().position(|&c| c == 0).unwrap_or(p.strAppName.len());
+                            found.push((p.Process.dwProcessId, String::from_utf16_lossy(&p.strAppName[..len])));
+                        }
+                    }
+                }
+            }
+            let _ = RmEndSession(session);
+            found
+        }
+    };
+    let mut programs = holders(&files);
+    programs.sort();
+    programs.dedup();
+    // which file each holds: looked for one file at a time, a few seconds at most
+    let started = std::time::Instant::now();
+    let mut named: Vec<(u32, String, Option<String>)> = programs.into_iter().map(|(id, name)| (id, name, None)).collect();
+    for file in &files {
+        if named.iter().all(|n| n.2.is_some()) || started.elapsed() > std::time::Duration::from_secs(4) {
+            break;
+        }
+        for (id, _) in holders(std::slice::from_ref(file)) {
+            if let Some(n) = named.iter_mut().find(|n| n.0 == id && n.2.is_none()) {
+                n.2 = file.file_name().map(|f| f.to_string_lossy().to_string());
+            }
+        }
+    }
+    named.into_iter().map(|(_, name, file)| match file { Some(f) => format!("{name} ({f})"), None => name }).collect()
+}
+
+#[cfg(not(windows))]
+fn programs_holding(_dir: &Path) -> Vec<String> {
+    Vec::new()
+}
+
+/// Whether this program is a test (cargo's test programs run from a `deps` folder; Eudora's own
+/// never do): tests run on computers whose own Eudora uses the real folders and secrets, so they
+/// never move them.
+pub(crate) fn running_tests() -> bool {
+    cfg!(test) || std::env::current_exe().ok().and_then(|e| e.parent().and_then(|p| p.file_name()).map(|n| n == "deps")).unwrap_or(false)
+}
+
+/// Moves Eudora's folders from their old names ("Eudora 27", net.planet.eudora27) now, before
+/// anything opens them. Every desktop program calls it first; later calls do nothing.
+pub fn move_from_eudora_27() {
+    let _ = desktop_dir();
+}
+
+/// Whether another program holds `file`'s lock (a library's or the window's).
+fn locked(file: &Path) -> bool {
+    file.exists() && std::fs::OpenOptions::new().write(true).open(file).map(|f| f.try_lock().is_err()).unwrap_or(false)
+}
+
+/// Moves `old` (the "Eudora 27" folder) to `new`: renamed whole when `new` isn't there yet, else
+/// whatever `new` lacks moved into it. Ok only when the library (if there was one) is in `new`.
+fn move_app_folder(old: &Path, new: &Path) -> std::result::Result<(), String> {
+    // a window of the old Eudora still running (or closing as this one starts): next time
+    let started = std::time::Instant::now();
+    while locked(&old.join("window.lock")) {
+        if started.elapsed() > std::time::Duration::from_secs(5) {
+            return Err("an older Eudora is still running".into());
+        }
+        std::thread::sleep(std::time::Duration::from_millis(250));
+    }
+    // its download (a copy in the library's bin folder) may outlive the window: stopped
+    let lock = old.join(LIBRARY_DIR).join("library.lock");
+    if locked(&lock) {
+        stop_programs_in(&old.join(LIBRARY_DIR).join("bin"));
+        let started = std::time::Instant::now();
+        while locked(&lock) {
+            if started.elapsed() > std::time::Duration::from_secs(30) {
+                return Err("the library is in use (an older Eudora's download, or one started by hand)".into());
+            }
+            std::thread::sleep(std::time::Duration::from_millis(500));
+        }
+    }
+    move_folder(old, new)
+}
+
+/// The move itself (`move_app_folder`, after it has checked nothing holds the folder).
+fn move_folder(old: &Path, new: &Path) -> std::result::Result<(), String> {
+    // a rename can be refused for a moment (an antivirus or the search indexer reading a file)
+    let rename = |from: &Path, to: &Path| -> std::io::Result<()> {
+        let mut tries = 0;
+        loop {
+            match std::fs::rename(from, to) {
+                Ok(()) => return Ok(()),
+                Err(_) if tries < 20 => {
+                    tries += 1;
+                    std::thread::sleep(std::time::Duration::from_millis(500));
+                }
+                Err(e) => return Err(e),
+            }
+        }
+    };
+    if !new.exists() {
+        if let Some(parent) = new.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        rename(old, new).map_err(|e| format!("moving it to {}: {e}", new.display()))?;
+    } else {
+        for entry in std::fs::read_dir(old).map_err(|e| e.to_string())?.flatten() {
+            let to = new.join(entry.file_name());
+            if !to.exists() {
+                rename(&entry.path(), &to).map_err(|e| format!("moving {} to {}: {e}", entry.path().display(), to.display()))?;
+            }
+        }
+        if old.join(LIBRARY_DIR).exists() {
+            return Err(format!("{} holds a library too", new.display()));
+        }
+        let _ = std::fs::remove_dir_all(old); // (what's left: things `new` has its own of)
+    }
+    // the files that name folders inside it (the remembered library, a restore waiting)
+    for name in ["last-library.txt", REPLACE_FILE, REPLACED_FILE, "retired-library.txt"] {
+        let file = new.join(name);
+        if let Ok(text) = std::fs::read_to_string(&file) {
+            let fixed = text.replace(&old.display().to_string(), &new.display().to_string());
+            if fixed != text {
+                let _ = std::fs::write(&file, fixed);
+            }
+        }
+    }
+    let bin = new.join(LIBRARY_DIR).join("bin");
+    for name in ["eudora", "eudora.exe"] {
+        let _ = std::fs::remove_file(bin.join(name)); // (the old name of the download's copy)
+    }
+    let _ = std::fs::write(new.join("moved-from-eudora-27.txt"), format!("Moved from {} on {}\n", old.display(), chrono::Local::now().format("%Y-%m-%d %H:%M:%S")));
+    Ok(())
+}
+
+/// Stops the programs running from `dir` (an older Eudora's download, run from its copy in the
+/// library's bin folder). They pick up where they left off when started again.
+fn stop_programs_in(dir: &Path) {
+    let dir = dir.display().to_string();
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let pattern = format!("{}\\*", dir.replace('\'', "''"));
+        let _ = std::process::Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &format!("Get-Process | Where-Object {{ $_.Path -like '{pattern}' }} | Stop-Process -Force")])
+            .creation_flags(0x0800_0000) // CREATE_NO_WINDOW
+            .status();
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = std::process::Command::new("pkill").args(["-f", &format!("{dir}/")]).status();
+    }
+}
+
+/// The system's other folders named after the old app identifier or name (the window's web view
+/// data, caches), moved when the new name isn't taken yet. Nothing in them is essential.
+fn move_other_folders() {
+    let var = |name: &str| std::env::var_os(name).filter(|v| !v.is_empty()).map(PathBuf::from);
+    let mut pairs: Vec<(PathBuf, PathBuf)> = Vec::new();
+    let mut by_name = |base: Option<PathBuf>, old: &str, new: &str| {
+        if let Some(base) = base {
+            pairs.push((base.join(old), base.join(new)));
+        }
+    };
+    if cfg!(windows) {
+        by_name(var("LOCALAPPDATA"), "net.planet.eudora27", "net.planet.eudora");
+    } else if cfg!(target_os = "macos") {
+        let home = var("HOME").map(|h| h.join("Library"));
+        for sub in ["Application Support", "Caches", "WebKit"] {
+            by_name(home.as_ref().map(|h| h.join(sub)), "net.planet.eudora27", "net.planet.eudora");
+        }
+        by_name(home.as_ref().map(|h| h.join("Caches")), "Eudora 27", "Eudora");
+    } else {
+        let data = var("XDG_DATA_HOME").or_else(|| var("HOME").map(|h| h.join(".local").join("share")));
+        let cache = var("XDG_CACHE_HOME").or_else(|| var("HOME").map(|h| h.join(".cache")));
+        by_name(data, "net.planet.eudora27", "net.planet.eudora");
+        by_name(cache.clone(), "net.planet.eudora27", "net.planet.eudora");
+        by_name(cache, "Eudora 27", "Eudora");
+    }
+    for (old, new) in pairs {
+        if old.is_dir() && !new.exists() {
+            let _ = std::fs::rename(&old, &new);
+        }
     }
 }
 
@@ -224,6 +516,10 @@ pub fn remembered_library() -> Option<PathBuf> {
 
 /// Remembers a library opened by name (see `remembered_library`).
 pub fn remember_library(path: &Path) {
+    // (a file is never a library: an .msg opened by a Eudora that didn't know them was taken for one)
+    if path.is_file() {
+        return;
+    }
     let Some(file) = remembered_file() else { return };
     let path = std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
     if let Some(dir) = file.parent() {
@@ -267,7 +563,7 @@ pub fn restore_target() -> Option<PathBuf> {
     (1..1000).map(|n| usual.with_file_name(if n == 1 { base.clone() } else { format!("{base} {n}") })).find(|p| empty(p))
 }
 
-/// Restores a backup as Eudora's library (File ▸ Restore Eudora, `eudora restore`,
+/// Restores a backup as Eudora's library (File ▸ Restore Eudora, `eudora-cli restore`,
 /// `v1.library.restore`): into `dest` (else [`restore_target`]), never inside a sync service's
 /// folder; the search index built when the backup has none; and the folder **becomes the library
 /// Eudora opens** from then on. `replace`: the user agreed to replace the Eudora library already
@@ -2019,9 +2315,52 @@ mod tests {
     use crate::progress::Silent;
 
     #[test]
+    fn the_eudora_27_folder_moves_to_eudora_with_its_library_and_remembered_paths() {
+        let root = tempfile::tempdir().unwrap();
+        let (old, new) = (root.path().join("Eudora 27"), root.path().join("Eudora"));
+        std::fs::create_dir_all(old.join(LIBRARY_DIR).join("bin")).unwrap();
+        std::fs::write(old.join(LIBRARY_DIR).join("eudora.db"), "mail").unwrap();
+        std::fs::write(old.join(LIBRARY_DIR).join("bin").join("eudora.exe"), "the old download").unwrap();
+        std::fs::write(old.join("last-library.txt"), old.join(LIBRARY_DIR).display().to_string()).unwrap();
+        std::fs::write(old.join(REPLACE_FILE), format!("{}\n{}\n", root.path().join("elsewhere").display(), old.join(LIBRARY_DIR).display())).unwrap();
+        // nothing holds it: moved whole
+        move_app_folder(&old, &new).unwrap();
+        assert!(!old.exists());
+        assert_eq!(std::fs::read_to_string(new.join(LIBRARY_DIR).join("eudora.db")).unwrap(), "mail");
+        assert_eq!(std::fs::read_to_string(new.join("last-library.txt")).unwrap(), new.join(LIBRARY_DIR).display().to_string());
+        assert!(std::fs::read_to_string(new.join(REPLACE_FILE)).unwrap().contains(&new.join(LIBRARY_DIR).display().to_string()));
+        assert!(!new.join(LIBRARY_DIR).join("bin").join("eudora.exe").exists(), "the old download's copy goes");
+        assert!(new.join("moved-from-eudora-27.txt").exists());
+
+        // the new folder already there (made by something else): what it lacks moves in
+        let old = root.path().join("Eudora 27 again");
+        let new = root.path().join("Eudora again");
+        std::fs::create_dir_all(old.join(LIBRARY_DIR)).unwrap();
+        std::fs::write(old.join(LIBRARY_DIR).join("eudora.db"), "mail").unwrap();
+        std::fs::create_dir_all(old.join("updates")).unwrap();
+        std::fs::create_dir_all(new.join("updates")).unwrap();
+        std::fs::write(new.join("updates").join("state.json"), "new").unwrap();
+        move_app_folder(&old, &new).unwrap();
+        assert_eq!(std::fs::read_to_string(new.join(LIBRARY_DIR).join("eudora.db")).unwrap(), "mail");
+        assert_eq!(std::fs::read_to_string(new.join("updates").join("state.json")).unwrap(), "new", "the new one's own files are kept");
+        assert!(!old.exists());
+
+        // both holding a library: nothing is lost, and Eudora keeps using the old folder
+        let old = root.path().join("Eudora 27 both");
+        let new = root.path().join("Eudora both");
+        for dir in [&old, &new] {
+            std::fs::create_dir_all(dir.join(LIBRARY_DIR)).unwrap();
+            std::fs::write(dir.join(LIBRARY_DIR).join("eudora.db"), dir.display().to_string()).unwrap();
+        }
+        assert!(move_app_folder(&old, &new).is_err());
+        assert_eq!(std::fs::read_to_string(old.join(LIBRARY_DIR).join("eudora.db")).unwrap(), old.display().to_string());
+        assert_eq!(std::fs::read_to_string(new.join(LIBRARY_DIR).join("eudora.db")).unwrap(), new.display().to_string());
+    }
+
+    #[test]
     fn a_restore_over_the_open_library_takes_its_place_at_the_next_start() {
         let root = tempfile::tempdir().unwrap();
-        let app = root.path().join("Eudora 27");
+        let app = root.path().join("Eudora");
         let target = app.join("Library");
         let staged = staging_for(&target);
         assert_eq!(staged.file_name().unwrap(), "Library (restoring)");
@@ -2068,14 +2407,14 @@ mod tests {
             ("/Users/ann/Dropbox/Mail", Some("Dropbox")),
             ("/Users/ann/Library/CloudStorage/OneDrive-Contoso/Mail", Some("OneDrive")),
             ("/Users/ann/Library/Mobile Documents/com~apple~CloudDocs/Mail", Some("iCloud Drive")),
-            ("/Users/ann/Library/Application Support/Eudora 27/Library", None),
+            ("/Users/ann/Library/Application Support/Eudora/Library", None),
         ];
         let windows_cases = [
             (r"C:\Users\Ann\Dropbox\Ann\Eudora", Some("Dropbox")),
             (r"C:\Users\Ann\Dropbox\Mail", Some("Dropbox")),
             (r"C:\Users\Ann\OneDrive - Contoso\Mail", Some("OneDrive")),
             (r"G:\My Drive\Mail", Some("Google Drive")),
-            (r"C:\Users\Ann\AppData\Local\Eudora 27\Library", None),
+            (r"C:\Users\Ann\AppData\Local\Eudora\Library", None),
             (r"C:\EudoraTest\library", None),
         ];
         for (path, service) in cases.into_iter().chain(windows_cases.into_iter().filter(windows)) {

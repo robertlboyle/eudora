@@ -15,7 +15,7 @@ written, from the repository's top folder.
 |---|---|
 | `crates/eudora-core` | The core library, in Rust: downloading (Microsoft Graph, Gmail API, IMAP, POP3), storage (SQLite + compressed message packs), search (Tantivy), the spam filter, rules, sync, backups, the local API and plugins (wasmtime). No user interface. |
 | `crates/eudora-app` | The window: Tauri 2 with a plain HTML / CSS / JavaScript front end in `ui/` (no npm, no bundler). `ui/phone/` is the phone version's interface; `gen/android` and `gen/apple` are the phone projects. |
-| `crates/eudora-cli` | The `eudora` command line: every function of the window, for scripts. The window also runs it in the background to download mail. |
+| `crates/eudora-cli` | The `eudora-cli` command line: every function of the window, for scripts. The window also runs it in the background to download mail. |
 | `crates/eudora-release` | Signs release files for Eudora's self-updating (`keygen`, `publish`). |
 | `crates/eudora-web` | A web interface (not developed further at the moment). |
 | `crates/eudora-testkit` | Makes synthetic mail for tests. |
@@ -79,14 +79,14 @@ On Windows, also `rustup show` should say the host is `x86_64-pc-windows-msvc` (
 cargo build --release -p eudora-app -p eudora-cli
 ```
 
-Then start the window: `target/release/eudora27` (`target\release\eudora27.exe` on Windows). The
-command line is `target/release/eudora`; `eudora --help` lists its commands. The first build takes
+Then start the window: `target/release/eudora` (`target\release\eudora.exe` on Windows). The
+command line is `target/release/eudora-cli`; `eudora-cli --help` lists its commands. The first build takes
 several minutes; `Cargo.lock` pins every library to the tested version.
 
 A new library (where Eudora keeps the mail) is made in the system's usual place for program data
-the first time: `%LOCALAPPDATA%\Eudora 27\Library` on Windows, `~/Library/Application Support/Eudora 27/Library`
-on the Mac, `~/.local/share/eudora27/library` on Linux. Name another with
-`eudora27 <folder>` or the `EUDORA_LIBRARY` variable. **Never put a library in Dropbox, OneDrive,
+the first time: `%LOCALAPPDATA%\Eudora\Library` on Windows, `~/Library/Application Support/Eudora/Library`
+on the Mac, `~/.local/share/eudora/library` on Linux. Name another with
+`eudora <folder>` or the `EUDORA_LIBRARY` variable. **Never put a library in Dropbox, OneDrive,
 or another syncing folder:** their file locks damage a live database.
 
 ## Test
@@ -103,8 +103,8 @@ your own) and are skipped.
 
 | Platform | Command | Result |
 |---|---|---|
-| Windows (x64) | `.\scripts\build-installer.ps1` | `dist\Eudora-27-Setup-<version>.exe` |
-| Windows on ARM | `.\scripts\build-installer.ps1 -Arch arm64` | `dist\Eudora-27-Setup-<version>-arm64.exe` |
+| Windows (x64) | `.\scripts\build-installer.ps1` | `dist\Eudora-Setup-<version>.exe` |
+| Windows on ARM | `.\scripts\build-installer.ps1 -Arch arm64` | `dist\Eudora-Setup-<version>-arm64.exe` |
 | Mac | `bash scripts/build-mac.sh` | `dist/Eudora-<version>.dmg` (one app for Apple silicon and Intel) |
 | Linux | `python3 scripts/build_linux.py --arch x86_64` (or `arm64`, `both`) | AppImage, .deb, and .rpm in `dist/`, built in Docker |
 | Android | `.\scripts\build-android.ps1` | `dist\Eudora-<version>-android.apk` |
@@ -155,7 +155,7 @@ registration:
 1. Supported account types: **Accounts in any organizational directory and personal Microsoft
    accounts**.
 2. Redirect URI: platform **Public client / native (mobile & desktop)**, `http://localhost`. For
-   iOS, also `net.planet.eudora27://auth` (or your own app identifier's scheme).
+   iOS, also `net.planet.eudora://auth` (or your own app identifier's scheme).
 3. Authentication ▸ **Allow public client flows: Yes**. There is no client secret: Eudora signs in
    with the authorization code and PKCE.
 4. API permissions ▸ Microsoft Graph ▸ Delegated: `offline_access`, `User.Read`,

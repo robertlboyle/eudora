@@ -1,5 +1,5 @@
 //! The local API's transport: JSON-RPC 2.0, one request per line, over a **named pipe** on
-//! Windows (`\\.\pipe\eudora27-<user>`) and a **Unix socket** elsewhere
+//! Windows (`\\.\pipe\eudora-<user>`) and a **Unix socket** elsewhere
 //! (`<library>/api.sock`, readable by the user only). No network port: other computers and
 //! web pages can't reach it.
 //!
@@ -35,7 +35,7 @@ pub fn address(root: &std::path::Path) -> String {
         let _ = root;
         let user = std::env::var("USERNAME").unwrap_or_else(|_| "user".into());
         let clean: String = user.chars().map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '-' }).collect();
-        format!(r"\\.\pipe\eudora27-{clean}")
+        format!(r"\\.\pipe\eudora-{clean}")
     }
     #[cfg(not(windows))]
     {
@@ -277,7 +277,7 @@ mod tests {
         let handler: Handler = Arc::new(|_, method, _| Ok(json!({ "method": method })));
         let stop = Arc::new(AtomicBool::new(false));
         // (a test pipe of its own, so a running Eudora isn't disturbed)
-        let name = if cfg!(windows) { format!(r"\\.\pipe\eudora27-test-{}", std::process::id()) } else { dir.path().join("t.sock").display().to_string() };
+        let name = if cfg!(windows) { format!(r"\\.\pipe\eudora-test-{}", std::process::id()) } else { dir.path().join("t.sock").display().to_string() };
         let (n, h, s) = (name.clone(), handler.clone(), stop.clone());
         let server = std::thread::spawn(move || system::serve(&n, h, s));
         std::thread::sleep(std::time::Duration::from_millis(300));

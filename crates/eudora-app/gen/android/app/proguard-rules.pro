@@ -10,11 +10,11 @@
 -keep, includedescriptorclasses class org.rustls.platformverifier.** { *; }
 
 # Eudora's own Kotlin called from (or calling) Rust: EudoraNative's native method, the worker
--keep class net.planet.eudora27.EudoraNative { *; }
--keep class net.planet.eudora27.CheckWorker { *; }
--keep class net.planet.eudora27.SignInService { *; }
--keep class net.planet.eudora27.SecretBox { *; }
--keep class net.planet.eudora27.DocumentPicker { *; }
+-keep class net.planet.eudora.EudoraNative { *; }
+-keep class net.planet.eudora.CheckWorker { *; }
+-keep class net.planet.eudora.SignInService { *; }
+-keep class net.planet.eudora.SecretBox { *; }
+-keep class net.planet.eudora.DocumentPicker { *; }
 
 # If your project uses WebView with JS, uncomment the following
 # and specify the fully qualified class name to the JavaScript interface

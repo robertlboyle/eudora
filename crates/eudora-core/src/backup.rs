@@ -177,7 +177,7 @@ pub fn sizes(root: &Path) -> Result<Sizes> {
 /// the Twos token: added 2026-10-26, "We have added a lot. Does the backup and restore still
 /// work?"). Never this computer's device name, never a sign-in (Microsoft 365, Google, Zoom: signed
 /// in again on the new computer). A secret not on this computer is simply not there.
-fn secret_names(conn: &rusqlite::Connection) -> Result<Vec<String>> {
+pub(crate) fn secret_names(conn: &rusqlite::Connection) -> Result<Vec<String>> {
     let mut stmt = conn.prepare("SELECT lower(address) FROM accounts WHERE kind IN ('imap', 'pop3') AND address IS NOT NULL")?;
     let addresses: Vec<String> = stmt.query_map([], |r| r.get(0))?.collect::<rusqlite::Result<_>>()?;
     let mut names: Vec<String> = addresses.iter().flat_map(|a| [format!("imap:{a}"), format!("smtp:{a}")]).collect();

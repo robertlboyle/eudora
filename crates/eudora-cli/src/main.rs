@@ -1,4 +1,4 @@
-//! `eudora`: the command-line tool for Eudora 27's core (import, search, check, benchmark, and
+//! `eudora-cli`: the command-line tool for Eudora's core (import, search, check, benchmark, and
 //! the Microsoft account connection), until the UI exists.
 
 use std::io::Write;
@@ -13,7 +13,7 @@ use eudora_core::progress::thousands;
 use eudora_core::{Access, ImportOptions, Library, PageCursor, Progress, SortOrder};
 
 #[derive(Parser)]
-#[command(name = "eudora", version, about = "Eudora: the mail library from the command line")]
+#[command(name = "eudora-cli", version, about = "Eudora: the mail library from the command line")]
 struct Cli {
     /// The library folder (never inside Dropbox or another sync folder).
     #[arg(long, short = 'l', env = "EUDORA_LIBRARY", global = true)]
@@ -51,7 +51,7 @@ enum Command {
     /// Gives an account a name of your own (shown instead of its address); "" goes back to the address.
     Name { account: String, name: String },
     /// Changes the address of an account made from files (a classic Eudora archive): ACCOUNT is
-    /// its number in `eudora accounts`.
+    /// its number in `eudora-cli accounts`.
     Readdress { account: i64, address: String },
     /// Maintenance for libraries made before imports recognized classic Eudora folders: the
     /// imported-files account becomes the Eudora folder's own account.
@@ -159,7 +159,7 @@ enum Command {
     Contacts {
         /// Words to look for (name, address, number, company).
         query: Vec<String>,
-        /// One account only (its number from `eudora accounts`).
+        /// One account only (its number from `eudora-cli accounts`).
         #[arg(long)]
         account: Option<i64>,
         /// Write them to this file: vCard (.vcf) or CSV (.csv).
@@ -273,7 +273,7 @@ enum Command {
     /// Special ▸ Empty Trash: lists each account's Trash; with --yes, empties those named by
     /// --account (all when none). Microsoft 365: deleted on the server too (Recoverable Items).
     EmptyTrash {
-        /// An account's number (as `eudora accounts` shows); may be given several times.
+        /// An account's number (as `eudora-cli accounts` shows); may be given several times.
         #[arg(long)]
         account: Vec<i64>,
         #[arg(long)]
@@ -337,7 +337,7 @@ enum Command {
     /// Compares an imported corpus with its manifest.json, and times searches and folder pages.
     CheckCorpus { corpus: PathBuf },
     /// Any of Eudora's functions by its API method, as the owner (no permission needed; logged
-    /// as "command line"): `eudora call v1.mail.search '{"query": "from:ann"}'`. `eudora api
+    /// as "command line"): `eudora-cli call v1.mail.search '{"query": "from:ann"}'`. `eudora-cli api
     /// methods` lists them all.
     Call {
         method: String,
@@ -420,7 +420,7 @@ enum SyncCommand {
 #[derive(Subcommand)]
 enum PluginCommand {
     /// Installs a plugin (.wasm); then Eudora's window asks what it may do (or answer with
-    /// `eudora api clients` / the window).
+    /// `eudora-cli api clients` / the window).
     Install { file: PathBuf },
     List,
     /// Runs a plugin's command on messages.
@@ -458,7 +458,7 @@ enum ApiCommand {
     },
     /// The programs and plugins allowed, and what each may do.
     Clients,
-    /// Takes every permission away from a client (its number in `eudora api clients`).
+    /// Takes every permission away from a client (its number in `eudora-cli api clients`).
     Revoke { client: i64 },
     /// What programs did (newest first).
     Log {
@@ -722,6 +722,13 @@ fn print_rows(rows: &[eudora_core::MessageRow]) {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    // Eudora's folder under its old name ("Eudora 27", before 1.0.0) moved first, once
+    eudora_core::library::move_from_eudora_27();
+    if let Some(blocked) = eudora_core::library::folder_move_blocked() {
+        for program in &blocked.programs {
+            eprintln!("  {program} has a file in it open: close it, then run Eudora again.");
+        }
+    }
     let console = Console::new(cli.log.as_deref())?;
     let result = run(&cli, &console);
     match &result {
@@ -787,7 +794,7 @@ fn run(cli: &Cli, console: &Console) -> Result<()> {
                 started.elapsed().as_secs_f64() / 60.0,
                 if s.index { "" } else { " (without the search index: it's rebuilt after restoring)" }
             );
-            println!("On the other computer: eudora -l <new folder> seed-restore {}", out.display());
+            println!("On the other computer: eudora-cli -l <new folder> seed-restore {}", out.display());
         }
         Command::SeedRestore { seed } => {
             let target = library_path(&cli)?;
@@ -798,7 +805,7 @@ fn run(cli: &Cli, console: &Console) -> Result<()> {
             let library = Library::open(&target, Access::Write, console)?;
             library.close(console)?;
             console.done();
-            println!("Ready. Sign in (eudora graph login --archive), then download: only what's new since the seed is fetched.");
+            println!("Ready. Sign in (eudora-cli graph login --archive), then download: only what's new since the seed is fetched.");
         }
         Command::Rules { command } => {
             let library = Library::open(&library_path(&cli)?, Access::Read, console)?;
@@ -1040,7 +1047,7 @@ fn run(cli: &Cli, console: &Console) -> Result<()> {
                 std::fs::write(path, out)?;
                 println!("\nEvery decision written to {} ({} rows).", path.display(), thousands(preview.proposals.len() as u64));
             }
-            println!("\nOne message in detail: eudora triage --id <id>.  What a \"like this one\" rule would catch: eudora triage --like <id>.");
+            println!("\nOne message in detail: eudora-cli triage --id <id>.  What a \"like this one\" rule would catch: eudora-cli triage --like <id>.");
         }
         Command::List { folder, limit, skip } => {
             let library = Library::open(&library_path(&cli)?, Access::Read, console)?;
@@ -1143,8 +1150,8 @@ fn run(cli: &Cli, console: &Console) -> Result<()> {
             if r.rebuild_indexes {
                 println!("Search index built.");
             }
-            println!("It's now the library Eudora opens (the Start Menu shortcut and `eudora` without --library).");
-            println!("Microsoft 365 accounts sign in again on this computer: eudora graph login --archive");
+            println!("It's now the library Eudora opens (the Start Menu shortcut and `eudora-cli` without --library).");
+            println!("Microsoft 365 accounts sign in again on this computer: eudora-cli graph login --archive");
         }
         Command::OldAttachments { folders } => {
             let library = Library::open(&library_path(&cli)?, Access::Write, console)?;
@@ -1312,7 +1319,7 @@ fn run(cli: &Cli, console: &Console) -> Result<()> {
                         library.set_api_settings(&settings)?;
                     }
                     if !settings.without_window {
-                        bail!("the API is off while Eudora's window is closed: allow it in Settings ▸ Programs and plugins, or run `eudora api serve --allow`");
+                        bail!("the API is off while Eudora's window is closed: allow it in Settings ▸ Programs and plugins, or run `eudora-cli api serve --allow`");
                     }
                     let library = std::sync::Arc::new(std::sync::Mutex::new(library));
                     let limits = std::sync::Arc::new(eudora_core::api::Limits::default());
@@ -1364,7 +1371,7 @@ fn run(cli: &Cli, console: &Console) -> Result<()> {
                 let library = Library::open(&path, Access::Write, console)?;
                 let (n, bytes) = library.drop_exchange_exports()?;
                 library.close(console)?;
-                println!("Removed {n} Exchange exports ({:.1} GB as stored); new archive items won't keep one. Run `eudora optimize` to give the space back.", bytes as f64 / 1e9);
+                println!("Removed {n} Exchange exports ({:.1} GB as stored); new archive items won't keep one. Run `eudora-cli optimize` to give the space back.", bytes as f64 / 1e9);
             }
         }
         Command::Optimize { vacuum } => {
@@ -1718,7 +1725,7 @@ If it doesn't open, go to:
                 println!("{:>8}  → Online Archive/{to}", thousands(*n));
             }
             let state = library.setting(eudora_core::archive_moves::SETTING)?.unwrap_or_default();
-            println!("Reorganizing on the server: {}", if state == "on" { "on (the download moves them)" } else { "off (eudora graph archive-refile --on starts it)" });
+            println!("Reorganizing on the server: {}", if state == "on" { "on (the download moves them)" } else { "off (eudora-cli graph archive-refile --on starts it)" });
         }
         Command::Graph { command: GraphCommand::Changes { retry, list, drop_marks } } => {
             let library = Library::open(&library_path(&cli)?, Access::Read, console)?;
@@ -1743,7 +1750,7 @@ If it doesn't open, go to:
                 println!("Of those given up after repeated errors: {}", thousands(marks_given_up));
             }
             if given_up > 0 {
-                println!("Given up after repeated errors: {} (eudora graph changes --retry tries them again)", thousands(given_up));
+                println!("Given up after repeated errors: {} (eudora-cli graph changes --retry tries them again)", thousands(given_up));
             }
             if let Some(last) = last {
                 println!("Last error: {last}");
@@ -1796,12 +1803,12 @@ If it doesn't open, go to:
             match command {
                 SyncCommand::Setup => {
                     if let Some(key) = SyncKey::load() {
-                        anyhow::bail!("this computer already has a sync key ({}); `eudora sync phrase` shows its phrase", key.id());
+                        anyhow::bail!("this computer already has a sync key ({}); `eudora-cli sync phrase` shows its phrase", key.id());
                     }
                     let key = SyncKey::generate()?;
                     key.store()?;
                     println!("Sync is set up on this computer (key {}).\n", key.id());
-                    println!("Your recovery phrase (type it on your other computers with `eudora sync join`, and keep a copy somewhere safe):\n\n    {}\n", key.phrase());
+                    println!("Your recovery phrase (type it on your other computers with `eudora-cli sync join`, and keep a copy somewhere safe):\n\n    {}\n", key.phrase());
                 }
                 SyncCommand::Join { phrase } => {
                     let key = SyncKey::from_phrase(&phrase.join(" "))?;
@@ -1815,7 +1822,7 @@ If it doesn't open, go to:
                 }
                 SyncCommand::Phrase => match SyncKey::load() {
                     Some(key) => println!("{}", key.phrase()),
-                    None => println!("This computer has no sync key yet: `eudora sync setup` (first computer) or `eudora sync join PHRASE`."),
+                    None => println!("This computer has no sync key yet: `eudora-cli sync setup` (first computer) or `eudora-cli sync join PHRASE`."),
                 },
                 SyncCommand::Now | SyncCommand::Repair => {
                     let library = Library::open(&library_path(&cli)?, Access::Read, console)?;
@@ -1824,7 +1831,7 @@ If it doesn't open, go to:
                     let repair = matches!(command, SyncCommand::Repair);
                     report_sync(&eudora_core::sync_run::sync_all(&library, client.as_mut(), repair)?, console);
                     if SyncKey::load().is_none() {
-                        println!("Sync isn't set up on this computer: `eudora sync setup` or `eudora sync join PHRASE`.");
+                        println!("Sync isn't set up on this computer: `eudora-cli sync setup` or `eudora-cli sync join PHRASE`.");
                     }
                 }
             }
@@ -2082,7 +2089,7 @@ fn graph(command: &GraphCommand) -> Result<()> {
             for m in &open {
                 println!("{:<40} {:<34} Inbox: {}", m.address, cut(&m.name, 34), thousands(m.inbox));
             }
-            println!("You can open {} mailboxes. Add the ones you want: eudora graph add-shared ADDRESS…", open.len());
+            println!("You can open {} mailboxes. Add the ones you want: eudora-cli graph add-shared ADDRESS…", open.len());
         }
         GraphCommand::Login { archive, account } => {
             let show = |url: &str| {

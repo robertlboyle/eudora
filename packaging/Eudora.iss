@@ -1,10 +1,10 @@
-; Eudora 27 installer (Inno Setup 6, as PlanetPDF's). Built by scripts\build-installer.ps1,
+; Eudora installer (Inno Setup 6, as PlanetPDF's). Built by scripts\build-installer.ps1,
 ; which passes /DAppVersion=… /DStage=… /DOutput=….
 ;
-; Installs for the user who runs it (no administrator; %LOCALAPPDATA%\Programs\Eudora 27, where
+; Installs for the user who runs it (no administrator; %LOCALAPPDATA%\Programs\Eudora, where
 ; scripts\install-dev.ps1 puts development builds too), or for everyone when chosen. The mail
 ; library is never part of the install: it stays where it is (the one last opened is remembered,
-; else %LOCALAPPDATA%\Eudora 27\Library), and uninstalling never removes it.
+; else %LOCALAPPDATA%\Eudora\Library), and uninstalling never removes it.
 ; Silent install for IT: /VERYSILENT /SUPPRESSMSGBOXES (/ALLUSERS for every user).
 
 #ifndef AppVersion
@@ -23,8 +23,10 @@ AppPublisher={#Publisher}
 VersionInfoVersion={#AppVersion}
 VersionInfoCompany={#Publisher}
 VersionInfoDescription={#AppName} Setup
-; (the folder keeps its first name, so updates replace what's there)
-DefaultDirName={autopf}\Eudora 27
+; The folder was "Eudora 27" before 1.0.0 (the program eudora27.exe, the command line eudora.exe):
+; an update installs into "Eudora" (not the folder used before) and removes the old one (below).
+DefaultDirName={autopf}\Eudora
+UsePreviousAppDir=no
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
@@ -44,12 +46,12 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir={#Output}
 #if Arch == "arm64"
-OutputBaseFilename=Eudora-27-Setup-{#AppVersion}-arm64
+OutputBaseFilename=Eudora-Setup-{#AppVersion}-arm64
 #else
-OutputBaseFilename=Eudora-27-Setup-{#AppVersion}
+OutputBaseFilename=Eudora-Setup-{#AppVersion}
 #endif
 SetupIconFile={#Stage}\icon.ico
-UninstallDisplayIcon={app}\eudora27.exe
+UninstallDisplayIcon={app}\eudora.exe
 UninstallDisplayName={#AppName}
 WizardStyle=modern
 WizardImageFile=images\wizard-164x314.png,images\wizard-192x386.png,images\wizard-246x459.png,images\wizard-273x556.png,images\wizard-328x604.png,images\wizard-355x700.png,images\wizard-410x797.png
@@ -66,43 +68,44 @@ UsePreviousTasks=no
 ChangesAssociations=yes
 
 [Files]
-Source: "{#Stage}\eudora27.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#Stage}\eudora.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#Stage}\eudora-cli.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#Stage}\eudora-web.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#Stage}\LICENSE-MIT"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#Stage}\LICENSE-APACHE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#Stage}\THIRD-PARTY-NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\{#AppName}"; Filename: "{app}\eudora27.exe"; Comment: "Mail for decades of messages"; AppUserModelID: "net.planet.eudora27"
-Name: "{autodesktop}\{#AppName}"; Filename: "{app}\eudora27.exe"; Tasks: desktopicon; AppUserModelID: "net.planet.eudora27"
+Name: "{autoprograms}\{#AppName}"; Filename: "{app}\eudora.exe"; Comment: "Mail for decades of messages"; AppUserModelID: "net.planet.eudora"
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\eudora.exe"; Tasks: desktopicon; AppUserModelID: "net.planet.eudora"
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"
-Name: "addtopath"; Description: "Let command prompts and scripts run eudora (adds Eudora to the PATH)"
+Name: "addtopath"; Description: "Let command prompts and scripts run eudora-cli (adds Eudora to the PATH)"
 
 [Registry]
 ; Eudora opens .eml messages and .ics calendar files, and Outlook .msg files in its message
 ; viewer: listed under Open with and in Windows' Default apps, where the user picks it (Windows
 ; lets no program make itself the default). HKA = this user's, or every user's when installed for
-; everyone.
+; everyone. (the old program's own entry, eudora27.exe before 1.0.0)
+Root: HKA; Subkey: "Software\Classes\Applications\eudora27.exe"; Flags: deletekey dontcreatekey
 Root: HKA; Subkey: "Software\Classes\Eudora.eml"; ValueType: string; ValueName: ""; ValueData: "Email message"; Flags: uninsdeletekey
-Root: HKA; Subkey: "Software\Classes\Eudora.eml\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\eudora27.exe,0"
-Root: HKA; Subkey: "Software\Classes\Eudora.eml\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\eudora27.exe"" ""%1"""
+Root: HKA; Subkey: "Software\Classes\Eudora.eml\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\eudora.exe,0"
+Root: HKA; Subkey: "Software\Classes\Eudora.eml\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\eudora.exe"" ""%1"""
 Root: HKA; Subkey: "Software\Classes\Eudora.msg"; ValueType: string; ValueName: ""; ValueData: "Outlook message"; Flags: uninsdeletekey
-Root: HKA; Subkey: "Software\Classes\Eudora.msg\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\eudora27.exe,0"
-Root: HKA; Subkey: "Software\Classes\Eudora.msg\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\eudora27.exe"" ""%1"""
+Root: HKA; Subkey: "Software\Classes\Eudora.msg\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\eudora.exe,0"
+Root: HKA; Subkey: "Software\Classes\Eudora.msg\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\eudora.exe"" ""%1"""
 Root: HKA; Subkey: "Software\Classes\Eudora.ics"; ValueType: string; ValueName: ""; ValueData: "Calendar file"; Flags: uninsdeletekey
-Root: HKA; Subkey: "Software\Classes\Eudora.ics\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\eudora27.exe,0"
-Root: HKA; Subkey: "Software\Classes\Eudora.ics\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\eudora27.exe"" ""%1"""
+Root: HKA; Subkey: "Software\Classes\Eudora.ics\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\eudora.exe,0"
+Root: HKA; Subkey: "Software\Classes\Eudora.ics\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\eudora.exe"" ""%1"""
 Root: HKA; Subkey: "Software\Classes\.eml\OpenWithProgids"; ValueType: string; ValueName: "Eudora.eml"; ValueData: ""; Flags: uninsdeletevalue
 Root: HKA; Subkey: "Software\Classes\.ics\OpenWithProgids"; ValueType: string; ValueName: "Eudora.ics"; ValueData: ""; Flags: uninsdeletevalue
 Root: HKA; Subkey: "Software\Classes\.msg\OpenWithProgids"; ValueType: string; ValueName: "Eudora.msg"; ValueData: ""; Flags: uninsdeletevalue
-Root: HKA; Subkey: "Software\Classes\Applications\eudora27.exe\SupportedTypes"; ValueType: string; ValueName: ".eml"; ValueData: ""; Flags: uninsdeletekey
-Root: HKA; Subkey: "Software\Classes\Applications\eudora27.exe"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "Eudora"
-Root: HKA; Subkey: "Software\Classes\Applications\eudora27.exe\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\eudora27.exe"" ""%1"""
-Root: HKA; Subkey: "Software\Classes\Applications\eudora27.exe\SupportedTypes"; ValueType: string; ValueName: ".ics"; ValueData: ""
-Root: HKA; Subkey: "Software\Classes\Applications\eudora27.exe\SupportedTypes"; ValueType: string; ValueName: ".msg"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\Applications\eudora.exe\SupportedTypes"; ValueType: string; ValueName: ".eml"; ValueData: ""; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Applications\eudora.exe"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "Eudora"
+Root: HKA; Subkey: "Software\Classes\Applications\eudora.exe\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\eudora.exe"" ""%1"""
+Root: HKA; Subkey: "Software\Classes\Applications\eudora.exe\SupportedTypes"; ValueType: string; ValueName: ".ics"; ValueData: ""
+Root: HKA; Subkey: "Software\Classes\Applications\eudora.exe\SupportedTypes"; ValueType: string; ValueName: ".msg"; ValueData: ""
 Root: HKA; Subkey: "Software\Planet Networks\Eudora\Capabilities"; ValueType: string; ValueName: "ApplicationName"; ValueData: "Eudora"; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Planet Networks\Eudora\Capabilities"; ValueType: string; ValueName: "ApplicationDescription"; ValueData: "Mail for decades of messages"
 Root: HKA; Subkey: "Software\Planet Networks\Eudora\Capabilities\FileAssociations"; ValueType: string; ValueName: ".eml"; ValueData: "Eudora.eml"
@@ -111,8 +114,8 @@ Root: HKA; Subkey: "Software\Planet Networks\Eudora\Capabilities\FileAssociation
 ; mailto: links: a URL protocol class, offered in Default apps as the mail program
 Root: HKA; Subkey: "Software\Classes\Eudora.mailto"; ValueType: string; ValueName: ""; ValueData: "URL:MailTo Protocol"; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Classes\Eudora.mailto"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
-Root: HKA; Subkey: "Software\Classes\Eudora.mailto\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\eudora27.exe,0"
-Root: HKA; Subkey: "Software\Classes\Eudora.mailto\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\eudora27.exe"" ""%1"""
+Root: HKA; Subkey: "Software\Classes\Eudora.mailto\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\eudora.exe,0"
+Root: HKA; Subkey: "Software\Classes\Eudora.mailto\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\eudora.exe"" ""%1"""
 Root: HKA; Subkey: "Software\Planet Networks\Eudora\Capabilities\URLAssociations"; ValueType: string; ValueName: "mailto"; ValueData: "Eudora.mailto"
 Root: HKA; Subkey: "Software\Clients\Mail\Eudora"; ValueType: string; ValueName: ""; ValueData: "Eudora"; Flags: uninsdeletekey
 Root: HKA; Subkey: "Software\Clients\Mail\Eudora\Capabilities"; ValueType: string; ValueName: "ApplicationName"; ValueData: "Eudora"
@@ -122,12 +125,14 @@ Root: HKA; Subkey: "Software\RegisteredApplications"; ValueType: string; ValueNa
 [InstallDelete]
 ; development builds' old copies (scripts\install-dev.ps1 renames the one replaced)
 Type: files; Name: "{app}\*.old"
+; the folder Eudora was installed in before 1.0.0 (its window is closed first: PrepareToInstall)
+Type: filesandordirs; Name: "{autopf}\Eudora 27"
 
 [Run]
-Filename: "{app}\eudora27.exe"; Description: "Start Eudora"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\eudora.exe"; Description: "Start Eudora"; Flags: nowait postinstall skipifsilent
 ; an update Eudora started (Restart Now: /SILENT … /relaunch=1; eudora-core/src/update.rs) starts
 ; Eudora again, as the user who ran it
-Filename: "{app}\eudora27.exe"; Flags: nowait runasoriginaluser; Check: Relaunch
+Filename: "{app}\eudora.exe"; Flags: nowait runasoriginaluser; Check: Relaunch
 
 [Code]
 { Started by Eudora's own update with Restart Now. }
@@ -163,16 +168,14 @@ begin
   RegWriteExpandStringValue(EnvRoot, EnvKey, 'Path', Path + Folder);
 end;
 
-procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+{ Takes Folder out of the PATH, if it's there. }
+procedure RemoveFromPath(Folder: String);
 var
-  Path, Folder: String;
+  Path: String;
   P: Integer;
 begin
-  if CurUninstallStep <> usPostUninstall then
-    exit;
   if not RegQueryStringValue(EnvRoot, EnvKey, 'Path', Path) then
     exit;
-  Folder := ExpandConstant('{app}');
   P := Pos(';' + Uppercase(Folder) + ';', ';' + Uppercase(Path) + ';');
   if P = 0 then
     exit;
@@ -180,6 +183,32 @@ begin
   if (Length(Path) > 0) and (Path[1] = ';') then
     Delete(Path, 1, 1);
   RegWriteExpandStringValue(EnvRoot, EnvKey, 'Path', Path);
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usPostUninstall then
+    RemoveFromPath(ExpandConstant('{app}'));
+end;
+
+{ Eudora before 1.0.0 ran as eudora27.exe from the "Eudora 27" folder: its window is asked to
+  close (it then stops its background download), else stopped, so the old folder can go. }
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  Code, Tries: Integer;
+begin
+  Result := '';
+  if not FileExists(ExpandConstant('{autopf}\Eudora 27\eudora27.exe')) then
+    exit;
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM eudora27.exe', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Tries := 0;
+  while (Tries < 20) and (Exec(ExpandConstant('{sys}\cmd.exe'), '/c tasklist /FI "IMAGENAME eq eudora27.exe" | find /I "eudora27.exe" >nul', '', SW_HIDE, ewWaitUntilTerminated, Code)) and (Code = 0) do
+  begin
+    Sleep(500);
+    Tries := Tries + 1;
+  end;
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM eudora27.exe', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  RemoveFromPath(ExpandConstant('{autopf}\Eudora 27'));
 end;
 
 { Eudora's window is drawn by Microsoft Edge WebView2, part of Windows 11 and of current
@@ -257,7 +286,7 @@ begin
   AddTip('Flag any message as To Do (Ctrl+Shift+G): the task opens the message again with one click, on any computer.');
   AddTip('Send Later waits in the Out mailbox and goes by itself at the time you chose, even if you close Eudora.');
   AddTip('File > Back Up Eudora puts your whole setup in one file (with a password if you like), to move it to a new computer, Windows or Mac.');
-  AddTip('Everything Eudora does can be scripted: type "eudora --help" in a command prompt. Programs and plugins only get the permissions you grant them.');
+  AddTip('Everything Eudora does can be scripted: type "eudora-cli --help" in a command prompt. Programs and plugins only get the permissions you grant them.');
   AddTip('Work Offline keeps everything you do (moves, flags, replies) and sends it to the servers once you''re back online.');
 
   Page := WizardForm.InstallingPage;

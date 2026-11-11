@@ -1,6 +1,6 @@
 //! The download, run by the window while it's open.
 //!
-//! The window only reads the library; the download (`eudora graph download`) is its one
+//! The window only reads the library; the download (`eudora-cli graph download`) is its one
 //! writer. So the window starts that program itself: hidden, at below-normal priority, beside
 //! its own exe, and stops it when the window closes. When another copy already holds the
 //! library's write lock (`download.cmd` started by hand), it leaves it alone and looks again
@@ -69,11 +69,11 @@ pub struct Background {
     held: Arc<AtomicBool>,
 }
 
-/// The download program: `eudora.exe` beside this one (both are built and installed together).
+/// The download program: `eudora-cli` beside this one (both are built and installed together).
 #[cfg(desktop)]
 pub fn program() -> Option<PathBuf> {
     let me = std::env::current_exe().ok()?;
-    let exe = me.with_file_name(if cfg!(windows) { "eudora.exe" } else { "eudora" });
+    let exe = me.with_file_name(if cfg!(windows) { "eudora-cli.exe" } else { "eudora-cli" });
     exe.is_file().then_some(exe)
 }
 
@@ -219,7 +219,7 @@ fn run(
         #[cfg(desktop)]
         {
         let Some(exe) = program() else {
-            set(&state, "missing", None, "The download program (eudora.exe) isn't beside Eudora's own program.".into(), &log);
+            set(&state, "missing", None, "The download program (eudora-cli) isn't beside Eudora's own program.".into(), &log);
             pause(&stop, &restart, 30);
             continue;
         };
@@ -301,7 +301,7 @@ fn run(
     set(&state, "off", None, "Eudora is closing.".into(), &log);
 }
 
-/// The download in this thread (phones): the core's loop (`watch::run`, as `eudora graph
+/// The download in this thread (phones): the core's loop (`watch::run`, as `eudora-cli graph
 /// download --watch 5` runs it on a desktop), stopped by the window closing, new options or a
 /// hold; its events go to the download log as the desktop's program writes them.
 #[cfg(mobile)]
@@ -357,11 +357,11 @@ mod tests {
     #[test]
     fn the_running_copy_follows_the_original() {
         let dir = tempfile::tempdir().unwrap();
-        let original = dir.path().join("eudora.exe");
+        let original = dir.path().join("eudora-cli.exe");
         std::fs::write(&original, b"version 1").unwrap();
         let library = dir.path().join("library");
         let copy = running_copy(&original, &library).unwrap();
-        assert_eq!(copy, library.join("bin").join("eudora.exe"));
+        assert_eq!(copy, library.join("bin").join("eudora-cli.exe"));
         assert_eq!(std::fs::read(&copy).unwrap(), b"version 1");
         std::fs::write(&original, b"version 2, longer").unwrap();
         running_copy(&original, &library).unwrap();

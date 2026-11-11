@@ -1,10 +1,10 @@
-<section id="command-line" data-title="The command line" data-index="command line; eudora command; CLI; scripting; terminal; PowerShell; eudora call; JSON; --library">
+<section id="command-line" data-title="The command line" data-index="command line; eudora-cli; eudora command; CLI; scripting; terminal; PowerShell; eudora-cli call; JSON; --library">
 <h1>The command line</h1>
-<p>Everything Eudora does can also be done from a terminal (PowerShell or Command Prompt on Windows, Terminal on the Mac) with the <code>eudora</code> program installed beside Eudora. It works on the same library; <code>--library FOLDER</code> names another.</p>
-<pre><code>eudora --help
-eudora search "from:ann invoice"
-eudora accounts
-eudora backup D:\Backups\Eudora --part-size 4GB</code></pre>
+<p>Everything Eudora does can also be done from a terminal (PowerShell or Command Prompt on Windows, Terminal on the Mac) with the <code>eudora-cli</code> program installed beside Eudora (called <code>eudora</code> before version 1.0.0, now the name of Eudora's window). It works on the same library; <code>--library FOLDER</code> names another.</p>
+<pre><code>eudora-cli --help
+eudora-cli search "from:ann invoice"
+eudora-cli accounts
+eudora-cli backup D:\Backups\Eudora --part-size 4GB</code></pre>
 <p>Some useful commands:</p>
 <table>
 <tr><td><code>search</code>, <code>list</code>, <code>show</code>, <code>folders</code></td><td>Find and read mail.</td></tr>
@@ -17,7 +17,7 @@ eudora backup D:\Backups\Eudora --part-size 4GB</code></pre>
 <tr><td><code>backup</code>, <code>restore</code></td><td>Back up and restore (see <a href="#backup">Backing up Eudora</a>).</td></tr>
 <tr><td><code>mail-stats</code>, <code>stats</code>, <code>verify</code></td><td>Statistics; sizes; check every stored message against its checksum.</td></tr>
 <tr><td><code>offline</code>, <code>empty-trash</code>, <code>forget-sign-ins</code></td><td>As the menu items of the same names.</td></tr>
-<tr><td><code>call</code></td><td>Any of Eudora's functions by its API method: <code>eudora call v1.mail.search '{"query": "from:ann"}'</code>. <code>eudora api methods</code> lists them all.</td></tr>
+<tr><td><code>call</code></td><td>Any of Eudora's functions by its API method: <code>eudora-cli call v1.mail.search '{"query": "from:ann"}'</code>. <code>eudora-cli api methods</code> lists them all.</td></tr>
 </table>
 <p>Answers meant for scripts are JSON, and the program ends with a real exit code (0 when all went well). <code>eudora COMMAND --help</code> describes each command.</p>
 <p class="note">Commands that change the whole library at once (<code>optimize</code>, <code>backup</code>) need the background download to be stopped; when Eudora's window is open, use the menu items instead, which pause it for you.</p>
@@ -32,7 +32,7 @@ eudora backup D:\Backups\Eudora --part-size 4GB</code></pre>
 <li>Every message a program wants to send waits for you: <b>Send</b>, <b>Don't send</b>, or <b>Send, and allow all from it</b> once you trust it.</li>
 </ol>
 <p><span class="ui">Settings ▸ Programs and plugins</span> lists every program and plugin with its permissions and when it was last used. <b>Revoke</b> takes its access away. Everything each one does is logged in Eudora (<b>Show the log…</b>); once you trust one, you can log only its changes, or only what was refused.</p>
-<p>Programs can never read your passwords, sign-ins, or recovery phrase, nor grant themselves permissions or approve their own messages. The API is reachable only from your own user account on this computer, never from the network, and only while Eudora is open (unless you allow <code>eudora api serve</code> to run without it).</p>
+<p>Programs can never read your passwords, sign-ins, or recovery phrase, nor grant themselves permissions or approve their own messages. The API is reachable only from your own user account on this computer, never from the network, and only while Eudora is open (unless you allow <code>eudora-cli api serve</code> to run without it).</p>
 <p class="see">Programmers: the API is described in <code>docs/API.md</code> in Eudora's source.</p>
 </section>
 

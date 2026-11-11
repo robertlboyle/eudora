@@ -20,7 +20,7 @@ base64 = "0.23.1"
 chrono = "0.4.45"
 ciborium = "0.2.2"
 clap = { version = "4.6.7", features = ["derive", "env"] }
-eudora-core = { version = "0.1.0", path = "../eudora-core" }
+eudora-core = { version = "1.0.0", path = "../eudora-core" }
 getrandom = "0.4.3"
 rcgen = { version = "0.14.10", default-features = false, features = ["crypto", "pem", "ring"] }
 ring = "0.17.14"

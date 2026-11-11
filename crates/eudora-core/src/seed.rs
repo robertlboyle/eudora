@@ -7,7 +7,7 @@
 //! when it opens). Sign-ins are never in it (they stay in each computer's credential store);
 //! after restoring, sign in, and the next download fetches only what's new.
 //!
-//! The file: `EUDORA27-SEED 1\n`, then one entry per file (u16 path length, path, u64 size,
+//! The file: `EUDORA-SEED 1\n` (`EUDORA27-SEED 1\n` before 1.0.0, still read), then one entry per file (u16 path length, path, u64 size,
 //! the bytes, their BLAKE3), then a JSON summary, its u64 length and `END`.
 
 use std::fs::File;
@@ -19,7 +19,9 @@ use serde::{Deserialize, Serialize};
 use crate::error::{Error, IoContext, Result};
 use crate::progress::{Progress, thousands};
 
-const MAGIC: &[u8] = b"EUDORA27-SEED 1\n";
+const MAGIC: &[u8] = b"EUDORA-SEED 1\n";
+/// What seeds began with before 1.0.0 (still read).
+const OLD_MAGIC: &[u8] = b"EUDORA27-SEED 1\n";
 const END: &[u8] = b"END";
 
 /// What a seed holds (its last part).
@@ -210,12 +212,17 @@ pub fn restore(seed: &Path, target: &Path, progress: &dyn Progress) -> Result<Su
     let mut magic = vec![0u8; MAGIC.len()];
     input.read_exact(&mut magic).map_err(r)?;
     if magic != MAGIC {
-        return Err(Error::Other(format!("{} isn't an Eudora seed", seed.display())));
+        let mut more = vec![0u8; OLD_MAGIC.len() - MAGIC.len()];
+        input.read_exact(&mut more).map_err(r)?;
+        magic.extend(more);
+        if magic != OLD_MAGIC {
+            return Err(Error::Other(format!("{} isn't an Eudora seed", seed.display())));
+        }
     }
     let partial = target.with_extension("restoring");
     let _ = std::fs::remove_dir_all(&partial);
     std::fs::create_dir_all(&partial).context(|| format!("creating {}", partial.display()))?;
-    let mut done = MAGIC.len() as u64;
+    let mut done = magic.len() as u64;
     let mut buf = vec![0u8; 4 << 20];
     loop {
         let mut two = [0u8; 2];
@@ -318,6 +325,15 @@ mod tests {
         assert_eq!(restored.setting("rules").unwrap().as_deref(), Some("[]"));
         let id: i64 = restored.connection().query_row("SELECT id FROM messages LIMIT 1", [], |r| r.get(0)).unwrap();
         assert!(!restored.raw_message(id).unwrap().is_empty());
+        drop(restored);
+
+        // a seed made before 1.0.0 (its old first line) still restores
+        let bytes = std::fs::read(&seed).unwrap();
+        let old_seed = dir.path().join("old.eudora-seed");
+        std::fs::write(&old_seed, [OLD_MAGIC, &bytes[MAGIC.len()..]].concat()).unwrap();
+        let target = dir.path().join("restored-old");
+        restore(&old_seed, &target, &Silent).unwrap();
+        assert_eq!(crate::Library::open(&target, Access::Write, &Silent).unwrap().count(&[]).unwrap(), 30);
 
         // a damaged seed is refused
         let mut bytes = std::fs::read(&seed).unwrap();

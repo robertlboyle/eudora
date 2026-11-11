@@ -286,7 +286,7 @@ pub struct LogLine {
 pub struct ApiSettings {
     /// While Eudora's window is open.
     pub with_window: bool,
-    /// Also without the window (`eudora api serve`): off unless the user overrides (2026-10-16).
+    /// Also without the window (`eudora-cli api serve`): off unless the user overrides (2026-10-16).
     pub without_window: bool,
 }
 
@@ -335,7 +335,7 @@ fn find_method(name: &str) -> Option<&'static Method> {
     all_methods().find(|m| m.name == name)
 }
 
-/// What only the program serving the API can do (the window, or `eudora api serve`).
+/// What only the program serving the API can do (the window, or `eudora-cli api serve`).
 pub trait Host: Sync {
     /// Runs `work`, which opens the library for writing itself (a backup, an import,
     /// Optimize…): the window lets go of its download meanwhile.
@@ -594,11 +594,11 @@ impl Library {
         self.call_as_client(limits, host, client, m, permission, method, params)
     }
 
-    /// A call by the owner of the computer (the command line: `eudora call`): every method,
+    /// A call by the owner of the computer (the command line: `eudora-cli call`): every method,
     /// no permission needed, logged as "command line".
     pub fn api_owner_call(&self, host: &dyn Host, method: &str, params: &Value) -> Answer {
         let Some(m) = find_method(method) else {
-            return Err(Refusal::new(-32601, format!("there's no method {method} (eudora api methods lists them)")));
+            return Err(Refusal::new(-32601, format!("there's no method {method} (eudora-cli api methods lists them)")));
         };
         if m.permission.is_none() {
             return self.open_method(None, method, params);

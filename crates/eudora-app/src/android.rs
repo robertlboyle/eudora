@@ -70,7 +70,7 @@ fn app_class<'local>(env: &mut Env<'local>, context: &JObject, name: &str) -> Re
 /// Seals (`seal`) or opens a secret with the Keystore's key: `SecretBox.kt`.
 fn secret_box(bytes: &[u8], seal: bool) -> Result<Vec<u8>, String> {
     with_app(|env, context| {
-        let class = app_class(env, context, "net.planet.eudora27.SecretBox")?;
+        let class = app_class(env, context, "net.planet.eudora.SecretBox")?;
         let input = env.byte_array_from_slice(bytes)?;
         let method = if seal { jni_str!("seal") } else { jni_str!("open") };
         let out = env.call_static_method(&class, method, jni_sig!("([B)[B"), &[JValue::Object(&input)]);
@@ -101,7 +101,7 @@ fn owned_file(fd: i32) -> Option<std::fs::File> {
 /// the person: none when canceled. Called on a thread that may wait (never the main one).
 pub fn pick_backups() -> Result<Vec<Picked>, String> {
     let answer = with_app(|env, context| -> Result<Option<String>, jni::errors::Error> {
-        let class = app_class(env, context, "net.planet.eudora27.DocumentPicker")?;
+        let class = app_class(env, context, "net.planet.eudora.DocumentPicker")?;
         let out = env.call_static_method(&class, jni_str!("openBackups"), jni_sig!("()Ljava/lang/String;"), &[]);
         if out.is_err() {
             env.exception_clear();
@@ -127,7 +127,7 @@ pub fn pick_backups() -> Result<Vec<Picked>, String> {
 /// the file, open for writing, or none when canceled.
 pub fn save_as(name: &str) -> Result<Option<std::fs::File>, String> {
     let fd = with_app(|env, context| -> Result<jint, jni::errors::Error> {
-        let class = app_class(env, context, "net.planet.eudora27.DocumentPicker")?;
+        let class = app_class(env, context, "net.planet.eudora.DocumentPicker")?;
         let name = env.new_string(name)?;
         let out = env.call_static_method(&class, jni_str!("saveAs"), jni_sig!("(Ljava/lang/String;)I"), &[JValue::Object(&name)]);
         if out.is_err() {
@@ -142,7 +142,7 @@ pub fn save_as(name: &str) -> Result<Option<std::fs::File>, String> {
 /// place it's in lists it whole (without this, Downloads showed a saved backup as 0 bytes).
 pub fn saved() {
     let _ = with_app(|env, context| -> Result<(), jni::errors::Error> {
-        let class = app_class(env, context, "net.planet.eudora27.DocumentPicker")?;
+        let class = app_class(env, context, "net.planet.eudora.DocumentPicker")?;
         if env.call_static_method(&class, jni_str!("saved"), jni_sig!("()V"), &[]).is_err() {
             env.exception_clear();
         }
@@ -159,7 +159,7 @@ pub fn keep_answering(on: bool) {
     let done = with_app(|env, app| -> Result<(), jni::errors::Error> {
         // an Intent naming the service (Android's own classes are found from any thread)
         let package = env.call_method(&app, jni_str!("getPackageName"), jni_sig!("()Ljava/lang/String;"), &[])?.l()?;
-        let service = env.new_string("net.planet.eudora27.SignInService")?;
+        let service = env.new_string("net.planet.eudora.SignInService")?;
         let intent_class = env.find_class(jni_str!("android/content/Intent"))?;
         let intent = env.new_object(&intent_class, jni_sig!("()V"), &[])?;
         env.call_method(
@@ -264,7 +264,7 @@ fn check_once(android_data_dir: &Path) -> jint {
 /// `EudoraNative.checkOnce(context, dataDir)` (Kotlin): the background check, called by
 /// `CheckWorker` with the app's context and Android's data folder for it.
 #[unsafe(no_mangle)]
-pub extern "system" fn Java_net_planet_eudora27_EudoraNative_checkOnce<'caller>(
+pub extern "system" fn Java_net_planet_eudora_EudoraNative_checkOnce<'caller>(
     mut unowned_env: jni::EnvUnowned<'caller>,
     _class: JClass<'caller>,
     context: JObject<'caller>,

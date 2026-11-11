@@ -1,4 +1,4 @@
-"""Builds Eudora 27's icon files from the vector originals in crates/eudora-app/icons/.
+"""Builds Eudora's icon files from the vector originals in crates/eudora-app/icons/.
 
 The SVGs are rendered by a headless Chromium-family browser (Edge, Chrome or Chromium: whichever
 this computer has, on Windows, the Mac or Linux) with a transparent background (no SVG library

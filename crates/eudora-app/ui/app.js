@@ -1,4 +1,4 @@
-// Eudora 27's front end: the sidebar (All Mail, then Accounts with their folders, or Labels),
+// Eudora's front end: the sidebar (All Mail, then Accounts with their folders, or Labels),
 // the message list (virtual: only the rows on screen exist), and the message. Everything comes
 // from the Rust commands in src/lib.rs. Every look and both ways of organizing work on the
 // same library, whatever the accounts are (Microsoft 365, Gmail, IMAP, POP3, old archives).
@@ -2564,7 +2564,7 @@ const BG_STATES = {
   elsewhere: "Another copy of the download (download.cmd) is keeping your mail up to date; Eudora takes over when it ends.",
   off: "Not downloading.",
   restarting: "The download stopped; it starts again by itself.",
-  missing: "The download program (eudora.exe) isn't beside Eudora's own program, so Eudora can't download by itself.",
+  missing: "The download program (eudora-cli) isn't beside Eudora's own program, so Eudora can't download by itself.",
   starting: "Starting…",
 };
 
@@ -2685,7 +2685,26 @@ for (const id of ["p-upd-start", "p-upd-days"]) {
 }
 $("p-upd-now").addEventListener("click", () => checkUpdates(true));
 
+/** Eudora's folder couldn't move from its old name ("Eudora 27") this time: says what's in the
+ *  way (another program with an attachment open, usually) and offers to restart once it's closed. */
+async function folderMoveBlocked() {
+  const blocked = await invoke("folder_move_blocked").catch(() => null);
+  if (!blocked) return;
+  const programs = blocked.programs || [];
+  const who = programs.length
+    ? `These programs have files from it open (attachments you opened, usually):\n\n${programs.map((p) => "• " + p).join("\n")}\n\nClose those files (or the programs), then restart Eudora.`
+    : `Something has a file in it open (${blocked.why}). Close any attachments you opened from Eudora, then restart Eudora.`;
+  const go = await askYesNo(
+    "Eudora couldn't finish moving its folder",
+    `Eudora now keeps your mail in ${blocked.to} (it was ${blocked.from}). Your mail is fine and Eudora works as usual from the old folder until it moves.\n\n${who}`,
+    "Restart Eudora",
+    "Later",
+  );
+  if (go) await invoke("restart_eudora").catch((e) => status(String(e)));
+}
+
 if (!READER) {
+  setTimeout(folderMoveBlocked, 1500);
   setTimeout(() => checkUpdates(false, true), 20000);
   setInterval(() => checkUpdates(false), 3600000);
 }

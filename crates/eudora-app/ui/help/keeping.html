@@ -70,7 +70,7 @@
 </ul>
 <p>Turning it on again keeps copies for new archive mail. Copies already removed aren't fetched again.</p>
 <p class="note">Space comes back as maintenance rewrites the storage files. A file is rewritten only when at least a quarter of it is unused, so a little of the space may stay until more mail in that file is deleted.</p>
-<p>From the command line: <code>eudora drop-exports</code> says how many copies there are and how much room they take; <code>eudora drop-exports --yes</code> turns the setting off and removes them (the download must not be running), then <code>eudora optimize</code> gives the space back.</p>
+<p>From the command line: <code>eudora-cli drop-exports</code> says how many copies there are and how much room they take; <code>eudora-cli drop-exports --yes</code> turns the setting off and removes them (the download must not be running), then <code>eudora-cli optimize</code> gives the space back.</p>
 </section>
 
 <section id="keep-period" data-title="Keeping only recent mail on this computer" data-index="keep recent mail; small drive; tablet; laptop; disk space; purge; remove old mail; trim; mail kept on this computer; download period; POP3; Keep Only This Period; Keep Everything">
@@ -94,7 +94,7 @@
 <h2>Getting older mail back</h2>
 <p>Choose a longer period, or <b>Keep Everything</b>. No confirmation is needed: nothing is removed. Over the next checks, Eudora downloads the older mail again from the servers, folder by folder.</p>
 <p class="note">The Online Archive is downloaded only for the period chosen as well.</p>
-<p>From the command line: <code>eudora call v1.accounts.keep_preview '{"days": 730}'</code> says what keeping two years would mean; <code>eudora call v1.accounts.download_period_set '{"days": 730}'</code> chooses it (<code>{"days": null}</code> keeps everything).</p>
+<p>From the command line: <code>eudora-cli call v1.accounts.keep_preview '{"days": 730}'</code> says what keeping two years would mean; <code>eudora-cli call v1.accounts.download_period_set '{"days": 730}'</code> chooses it (<code>{"days": null}</code> keeps everything).</p>
 </section>
 
 <section id="speed" data-title="Speed settings" data-index="speed; memory; RAM; faster; performance; Memory for speed">

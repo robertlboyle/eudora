@@ -1,4 +1,4 @@
-//! `eudora-web`: Eudora 27 in a web browser, made for phones (and fine on a computer): read,
+//! `eudora-web`: Eudora in a web browser, made for phones (and fine on a computer): read,
 //! search, write, reply, forward, delete, move. HTTPS only (its own certificate until a real one
 //! is set up), one password and passkeys, a session per device.
 //!
@@ -612,7 +612,7 @@ async fn icon(UrlPath(name): UrlPath<String>) -> Response {
 /// sign-in needed).
 async fn ca_certificate(State(state): State<Shared>) -> Result<Response, ApiError> {
     let pem = std::fs::read(state.root.join("web").join("tls").join("ca.pem")).map_err(|_| bad(StatusCode::NOT_FOUND, "Eudora isn't using its own certificate"))?;
-    Ok(([(header::CONTENT_TYPE, "application/x-x509-ca-cert"), (header::CONTENT_DISPOSITION, "attachment; filename=\"eudora-27-local-ca.crt\"")], pem).into_response())
+    Ok(([(header::CONTENT_TYPE, "application/x-x509-ca-cert"), (header::CONTENT_DISPOSITION, "attachment; filename=\"eudora-local-ca.crt\"")], pem).into_response())
 }
 
 fn router(state: Shared) -> Router {
@@ -659,6 +659,7 @@ fn router(state: Shared) -> Router {
 
 #[tokio::main]
 async fn main() {
+    eudora_core::library::move_from_eudora_27();
     if let Err(e) = run().await {
         eprintln!("eudora-web: {e}");
         std::process::exit(1);

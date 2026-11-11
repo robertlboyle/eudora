@@ -1,4 +1,4 @@
-# An example client for Eudora 27's local API (docs/API.md), in Windows PowerShell 5.1 or 7.
+# An example client for Eudora's local API (docs/API.md), in Windows PowerShell 5.1 or 7.
 #
 #   . .\eudora-api.ps1                     # load the functions
 #   $r = Request-EudoraAccess -Name "My Report" -Publisher "Me" -Reason "Counts my unread mail" `
@@ -12,7 +12,7 @@
 
 function Get-EudoraPipeName {
     $user = ($env:USERNAME.ToLower() -replace '[^a-z0-9]', '-')
-    "eudora27-$user"
+    "eudora-$user"
 }
 
 function Invoke-Eudora {

@@ -5,7 +5,7 @@
 //! regex_icase / greater / less on a header (From:, To:, Subject:, any header by name),
 //! «Any Header», «Any Recipient», «Body» or «Personality»; two tests joined by and / or /
 //! unless; actions transfer / copy / label / priority / status / junk / subject / forward /
-//! redirect / reply / notify / stop. Eudora 27 allows any number of tests (all of them / any
+//! redirect / reply / notify / stop. Eudora allows any number of tests (all of them / any
 //! of them, plus "unless" tests).
 
 use serde::{Deserialize, Serialize};

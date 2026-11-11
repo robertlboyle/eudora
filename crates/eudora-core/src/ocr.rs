@@ -21,7 +21,7 @@ pub fn picture_text(bytes: &[u8]) -> Option<String> {
     text.map(|t| t.trim().to_string()).filter(|t| !t.is_empty())
 }
 
-/// The fallback alone (`eudora ocr --fallback`, to check it where the system has OCR).
+/// The fallback alone (`eudora-cli ocr --fallback`, to check it where the system has OCR).
 pub fn fallback_text(bytes: &[u8]) -> Option<String> {
     crate::ocr_fallback::read(bytes).map(|t| t.trim().to_string()).filter(|t| !t.is_empty())
 }

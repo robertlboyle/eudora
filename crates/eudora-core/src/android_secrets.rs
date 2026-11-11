@@ -147,7 +147,7 @@ mod tests {
         }));
         let dir = tempfile::tempdir().unwrap();
         let store = Store::new(dir.path().join("secrets"));
-        let entry = store.build("Eudora 27", "graph:ann@example.com#0", None).unwrap();
+        let entry = store.build("Eudora", "graph:ann@example.com#0", None).unwrap();
         assert!(matches!(entry.get_secret(), Err(Error::NoEntry)));
         entry.set_secret(b"refresh token").unwrap();
         let file = std::fs::read_dir(dir.path().join("secrets")).unwrap().next().unwrap().unwrap().path();
@@ -160,8 +160,8 @@ mod tests {
         std::fs::write(&file, [SEALED, b"garbage"].concat()).unwrap();
         assert!(matches!(entry.get_secret(), Err(Error::NoEntry)));
         entry.set_secret(b"refresh token").unwrap();
-        assert_eq!(store.build("Eudora 27", "graph:ann@example.com#0", None).unwrap().get_secret().unwrap(), b"refresh token");
-        assert!(matches!(store.build("Eudora 27", "graph:bob@example.com#0", None).unwrap().get_secret(), Err(Error::NoEntry)));
+        assert_eq!(store.build("Eudora", "graph:ann@example.com#0", None).unwrap().get_secret().unwrap(), b"refresh token");
+        assert!(matches!(store.build("Eudora", "graph:bob@example.com#0", None).unwrap().get_secret(), Err(Error::NoEntry)));
         entry.delete_credential().unwrap();
         assert!(matches!(entry.delete_credential(), Err(Error::NoEntry)));
     }

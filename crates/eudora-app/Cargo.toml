@@ -6,14 +6,14 @@ license.workspace = true
 authors.workspace = true
 publish.workspace = true
 
-# Eudora 27's window (Tauri 2). The front end is plain HTML / CSS / JS in ui/ (no npm).
+# Eudora's window (Tauri 2). The front end is plain HTML / CSS / JS in ui/ (no npm).
 # A library too: the phone apps (Android, iOS) are built from it by Tauri's mobile builds.
 [lib]
 name = "eudora_app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [[bin]]
-name = "eudora27"
+name = "eudora"
 path = "src/main.rs"
 
 [build-dependencies]
@@ -23,7 +23,7 @@ tauri-build = { version = "2.7.1", features = [] }
 [dependencies]
 base64 = "0.23.1"
 chrono = "0.4.45"
-eudora-core = { version = "0.1.0", path = "../eudora-core" }
+eudora-core = { version = "1.0.0", path = "../eudora-core" }
 mail-parser = { version = "0.11.9", features = ["full_encoding"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"

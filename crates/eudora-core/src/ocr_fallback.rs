@@ -19,7 +19,7 @@ fn models_dir() -> Option<PathBuf> {
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("XDG_CACHE_HOME").map(PathBuf::from))
         .or_else(|| std::env::var_os("HOME").map(|h| if cfg!(target_os = "macos") { PathBuf::from(h).join("Library").join("Caches") } else { PathBuf::from(h).join(".cache") }))?;
-    Some(base.join("Eudora 27").join("ocr-models"))
+    Some(base.join("Eudora").join("ocr-models"))
 }
 
 /// The model files, downloaded the first time (None: no network, nowhere to keep them).

@@ -23,13 +23,13 @@ icons="$root/crates/eudora-app/icons"
 entitlements="$root/packaging/macos/entitlements.plist"
 version="$(sed -n 's/^ *"version": *"\(.*\)",*$/\1/p' "$root/crates/eudora-app/tauri.conf.json" | head -1)"
 
-for name in eudora27 eudora; do
+for name in eudora eudora-cli; do
     [ -x "$build/$name" ] || { echo "$build/$name isn't built yet (cargo build --release -p eudora-app -p eudora-cli)" >&2; exit 1; }
 done
 
 rm -rf "$dest"
 mkdir -p "$dest/Contents/MacOS" "$dest/Contents/Resources"
-cp "$build/eudora27" "$build/eudora" "$dest/Contents/MacOS/"
+cp "$build/eudora" "$build/eudora-cli" "$dest/Contents/MacOS/"
 
 # the icon: the 1024-pixel PNG made by scripts/make_icons.py, in every size macOS wants
 work="$(mktemp -d)"
@@ -49,8 +49,8 @@ cat > "$dest/Contents/Info.plist" <<EOF
 <dict>
     <key>CFBundleName</key><string>Eudora</string>
     <key>CFBundleDisplayName</key><string>Eudora</string>
-    <key>CFBundleIdentifier</key><string>net.planet.eudora27</string>
-    <key>CFBundleExecutable</key><string>eudora27</string>
+    <key>CFBundleIdentifier</key><string>net.planet.eudora</string>
+    <key>CFBundleExecutable</key><string>eudora</string>
     <key>CFBundleIconFile</key><string>Eudora</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>$version</string>
@@ -102,12 +102,12 @@ if [ -n "$identity" ]; then
     # under the app's one identity: the Keychain lets a saved password be read without asking
     # only by the identity that saved it, and the window and its download share every one
     # (signed apart, the download asked about every minute: 2026-10-27)
-    "${sign[@]}" --identifier net.planet.eudora27 "$dest/Contents/MacOS/eudora"
+    "${sign[@]}" --identifier net.planet.eudora "$dest/Contents/MacOS/eudora-cli"
     "${sign[@]}" "$dest"
     codesign --verify --deep --strict "$dest"
     echo "Signed: $(security find-identity -v -p codesigning | sed -n "s/.*$identity \"\(.*\)\"/\1/p")"
 else
-    codesign --force --sign - "$dest/Contents/MacOS/eudora"
+    codesign --force --sign - "$dest/Contents/MacOS/eudora-cli"
     codesign --force --sign - "$dest"
     echo "No Developer ID certificate in the keychain: signed ad hoc (runs on this Mac only)." >&2
 fi

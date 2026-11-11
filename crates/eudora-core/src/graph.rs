@@ -1,6 +1,6 @@
 //! Microsoft Graph: signing in to Microsoft 365 / Outlook.com and reading mail.
 //!
-//! Sign-in is OAuth 2.0 authorization code + PKCE with the "Eudora 27" app registration (a
+//! Sign-in is OAuth 2.0 authorization code + PKCE with the "Eudora" app registration (a
 //! public client: no secret). The browser shows Microsoft's sign-in and consent pages and comes
 //! back to `http://localhost:<port>`, where Eudora listens just long enough to get the code.
 //! The refresh token is kept in Windows Credential Manager / the macOS Keychain (never in the
@@ -21,7 +21,7 @@ use sha2::{Digest, Sha256};
 
 use crate::error::{Error, Result};
 
-/// The app registration Eudora signs in with (`official`: Planet Networks' "Eudora 27" in its
+/// The app registration Eudora signs in with (`official`: Planet Networks' "Eudora" in its
 /// own builds; any organization or personal account).
 pub const CLIENT_ID: &str = crate::official::MICROSOFT_CLIENT_ID;
 pub const SCOPES: &str = "offline_access User.Read Mail.Read";
@@ -61,14 +61,17 @@ pub const SYNC_SUBJECT: &str = "Eudora sync";
 pub const SYNC_ITEM_LIMIT: usize = 2_800 * 1024;
 const AUTHORITY: &str = "https://login.microsoftonline.com/common/oauth2/v2.0";
 pub const GRAPH: &str = "https://graph.microsoft.com/v1.0";
-const KEYRING_SERVICE: &str = "Eudora 27";
+const KEYRING_SERVICE: &str = "Eudora";
+/// The name secrets were kept under before 1.0.0 (`keyring_entry` moves each one across).
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
+const OLD_KEYRING_SERVICE: &str = "Eudora 27";
 const DEFAULT_ACCOUNT: &str = "graph:default";
 /// Where Microsoft's page comes back to on iOS (a "Mobile and desktop applications" redirect on
-/// the Eudora 27 app registration; the scheme is the app's bundle id).
+/// the app registration; the scheme is the app's bundle id).
 #[cfg(target_os = "ios")]
-const IOS_REDIRECT: &str = "net.planet.eudora27://auth";
+const IOS_REDIRECT: &str = "net.planet.eudora://auth";
 #[cfg(target_os = "ios")]
-const IOS_SCHEME: &str = "net.planet.eudora27";
+const IOS_SCHEME: &str = "net.planet.eudora";
 /// How long the browser sign-in may take.
 const SIGN_IN_WAIT: Duration = Duration::from_secs(300);
 
@@ -339,7 +342,55 @@ pub(crate) fn keyring_entry(name: &str) -> Result<keyring::Entry> {
         return keyring_core::Entry::new(KEYRING_SERVICE, name).map(|inner| keyring::Entry { inner }).map_err(|e| Error::Other(format!("credential store: {e}")));
     }
     #[allow(unreachable_code)]
-    keyring::Entry::new(KEYRING_SERVICE, name).map_err(|e| Error::Other(format!("credential store: {e}")))
+    {
+        #[cfg(not(any(target_os = "ios", target_os = "android")))]
+        move_from_old_name(name);
+        keyring::Entry::new(KEYRING_SERVICE, name).map_err(|e| Error::Other(format!("credential store: {e}")))
+    }
+}
+
+/// Moves a secret kept under the old name ("Eudora 27", before 1.0.0) to "Eudora" the first time
+/// this program asks for it: copied, checked, then the old one deleted. Once per name per run.
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
+fn move_from_old_name(name: &str) {
+    // (never from a test: tests run on a computer whose own Eudora uses its secrets)
+    if crate::library::running_tests() {
+        return;
+    }
+    static DONE: std::sync::Mutex<Option<std::collections::HashSet<String>>> = std::sync::Mutex::new(None);
+    {
+        let mut done = DONE.lock().unwrap_or_else(|e| e.into_inner());
+        if !done.get_or_insert_with(Default::default).insert(name.to_string()) {
+            return;
+        }
+    }
+    let (Ok(old), Ok(new)) = (keyring::Entry::new(OLD_KEYRING_SERVICE, name), keyring::Entry::new(KEYRING_SERVICE, name)) else { return };
+    let Ok(secret) = old.get_secret() else { return };
+    if new.get_secret().is_err() && new.set_secret(&secret).is_err() {
+        return; // (kept under the old name; tried again next run)
+    }
+    if new.get_secret().is_ok() {
+        let _ = old.delete_credential();
+    }
+}
+
+/// Moves every secret this library knows of from the old name ("Eudora 27") at once, so none is
+/// left behind under it (secrets are otherwise moved as they're used). Microsoft and Google
+/// sign-ins, the accounts' passwords, and the keys the user typed in.
+#[cfg(not(any(target_os = "ios", target_os = "android")))]
+pub fn move_secrets_from_old_name(conn: &rusqlite::Connection) {
+    // (the lists of sign-ins first: reading them moves them, and they name the rest)
+    let mut names: Vec<String> = vec![ACCOUNT_LIST.into(), DEFAULT_ACCOUNT.into(), "google:accounts".into(), "zoom:refresh".into(), "sync-device".into()];
+    for name in &names {
+        let _ = keyring_entry(name);
+    }
+    names.extend(crate::backup::secret_names(conn).unwrap_or_default());
+    names.extend(GraphClient::signed_in_accounts().into_iter().map(|a| format!("graph:{a}")));
+    names.extend(crate::google::signed_in_accounts().into_iter().map(|a| format!("google:{a}")));
+    for name in names {
+        let _ = keyring_entry(&name);
+        let _ = load_secret(&name); // (each piece "<name>#0", "#1"… moves as it's read)
+    }
 }
 
 /// Windows Credential Manager holds at most 2,560 bytes per entry, and Microsoft's refresh
@@ -555,15 +606,15 @@ impl GraphClient {
             Some(a) => a.to_string(),
             None => keyring_entry(DEFAULT_ACCOUNT)?
                 .get_password()
-                .map_err(|_| Error::Other("no Microsoft account is signed in on this computer yet: run `eudora graph login`".into()))?,
+                .map_err(|_| Error::Other("no Microsoft account is signed in on this computer yet: run `eudora-cli graph login`".into()))?,
         };
         let refresh = load_secret(&format!("graph:{account}"))
             .and_then(|b| String::from_utf8(b).ok())
-            .ok_or_else(|| Error::Other(format!("{account} isn't signed in on this computer: run `eudora graph login`")))?;
+            .ok_or_else(|| Error::Other(format!("{account} isn't signed in on this computer: run `eudora-cli graph login`")))?;
         let agent = agent();
         let tokens = token_request(&agent, &[("client_id", CLIENT_ID), ("grant_type", "refresh_token"), ("refresh_token", &refresh), ("scope", scopes)])
             .map_err(|e| if scopes != SCOPES {
-                Error::Other(format!("{e}\nThe archive, shared mailboxes and sending need one more sign-in: run `eudora graph login --archive`"))
+                Error::Other(format!("{e}\nThe archive, shared mailboxes and sending need one more sign-in: run `eudora-cli graph login --archive`"))
             } else { e })?;
         let mut client = GraphClient { agent, tokens, scopes, account, display_name: String::new(), link: Arc::default(), mailbox: None };
         client.load_profile()?;

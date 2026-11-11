@@ -1794,8 +1794,8 @@ const GMAIL_FULL_EVERY: i64 = 86_400;
 
 /// Items of Microsoft 365 mailboxes that couldn't be downloaded, by server id (setting, JSON):
 /// tried again once a day for a week, then given up, so no message stays in the queue for
-/// ever. Given-up items stay listed (`eudora graph failed`), never dropped silently, and can
-/// be asked for again (`--retry`).
+/// ever. Given-up items stay listed (`eudora-cli graph failed`), never dropped silently, and
+/// can be asked for again (`--retry`).
 pub const FAILED_SETTING: &str = "download-failed";
 const RETRY_WAIT: i64 = 86400;
 /// The first try and seven daily ones.
@@ -1871,7 +1871,7 @@ fn record_failures(library: &Library, failures: Vec<(i64, String, String, String
     }
     if given_up > 0 {
         progress.event(&format!(
-            "Gave up on {} items after a week of daily tries: listed by \"eudora graph failed\", which can ask for them again.",
+            "Gave up on {} items after a week of daily tries: listed by \"eudora-cli graph failed\", which can ask for them again.",
             thousands(given_up)
         ));
     }

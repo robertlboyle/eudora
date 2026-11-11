@@ -101,7 +101,7 @@ pub struct FilingSynced {
     pub parts: usize,
     /// Computers whose newest upload here is damaged or cut short (their changes may be lost).
     pub broken: Vec<String>,
-    /// This computer asked for a full copy (an SOS: bad data found, or `eudora sync repair`).
+    /// This computer asked for a full copy (an SOS: bad data found, or `eudora-cli sync repair`).
     pub asked: bool,
     /// SOS requests from other computers this one answered with a full copy.
     pub answered: usize,
@@ -357,7 +357,7 @@ pub fn sync_account(library: &Library, store: &mut dyn SyncStore, key: &SyncKey,
     sync_account_with(library, store, key, device, account, address, false)
 }
 
-/// `sync_account`, and `ask_for_full`: send an SOS even when nothing looks wrong (`eudora sync
+/// `sync_account`, and `ask_for_full`: send an SOS even when nothing looks wrong (`eudora-cli sync
 /// repair`: this computer's filing doesn't look right).
 ///
 /// The SOS: a computer that finds another's newest upload damaged or cut short stores an SOS;
@@ -541,7 +541,7 @@ fn with_store<T>(library: &Library, graph: &mut Option<&mut GraphClient>, place:
     }
 }
 
-/// Checks that an account can hold sync's data (`eudora sync check`): a test item stored in its
+/// Checks that an account can hold sync's data (`eudora-cli sync check`): a test item stored in its
 /// sync folder or label, read back, and deleted. Needs no sync key. Returns what was found, in
 /// words.
 pub fn check_store(library: &Library, mut graph: Option<&mut GraphClient>, address: &str) -> Result<String> {
@@ -579,7 +579,7 @@ pub fn check_store(library: &Library, mut graph: Option<&mut GraphClient>, addre
 /// account's; then the settings through the home account and the others ticked. `graph`: the
 /// Microsoft 365 sign-in, when there is one. Nothing happens until sync is set up (a sync key
 /// on this computer). Returns, per account address, what happened.
-/// `ask_for_full`: send an SOS for every account (`eudora sync repair`).
+/// `ask_for_full`: send an SOS for every account (`eudora-cli sync repair`).
 pub fn sync_all(library: &Library, mut graph: Option<&mut GraphClient>, ask_for_full: bool) -> Result<SyncAll> {
     let Some(key) = SyncKey::load() else { return Ok(SyncAll::default()) };
     let device = crate::sync_envelope::device_id()?;
@@ -774,7 +774,7 @@ mod tests {
         let r = sync_account(&b, &mut MemStore(&mut mailbox), &key, "pc-b", b_account, "me@x.com").unwrap();
         assert!(r.broken.is_empty() && !r.asked && r.computers == 1, "{r:?}");
 
-        // asked by hand (`eudora sync repair`): an SOS even when all is well; A answers it
+        // asked by hand (`eudora-cli sync repair`): an SOS even when all is well; A answers it
         let r = sync_account_with(&b, &mut MemStore(&mut mailbox), &key, "pc-b", b_account, "me@x.com", true).unwrap();
         assert!(r.asked);
         let r = sync_account(&a, &mut MemStore(&mut mailbox), &key, "pc-a", a_account, "me@x.com").unwrap();

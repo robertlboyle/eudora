@@ -1815,7 +1815,7 @@ dependencies = [
 
 [[package]]
 name = "eudora-app"
-version = "0.1.8"
+version = "1.0.0"
 dependencies = [
  "base64 0.23.1",
  "block2",
@@ -1840,7 +1840,7 @@ dependencies = [
 
 [[package]]
 name = "eudora-cli"
-version = "0.1.8"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -1852,7 +1852,7 @@ dependencies = [
 
 [[package]]
 name = "eudora-core"
-version = "0.1.8"
+version = "1.0.0"
 dependencies = [
  "aho-corasick",
  "apple-native-keyring-store",
@@ -1907,7 +1907,7 @@ dependencies = [
 
 [[package]]
 name = "eudora-release"
-version = "0.1.8"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
@@ -1919,7 +1919,7 @@ dependencies = [
 
 [[package]]
 name = "eudora-testkit"
-version = "0.1.8"
+version = "1.0.0"
 dependencies = [
  "chrono",
  "rayon",
@@ -1929,7 +1929,7 @@ dependencies = [
 
 [[package]]
 name = "eudora-web"
-version = "0.1.8"
+version = "1.0.0"
 dependencies = [
  "argon2",
  "axum",

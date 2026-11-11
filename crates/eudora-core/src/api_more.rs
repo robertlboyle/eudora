@@ -1,6 +1,6 @@
 //! The rest of what Eudora's window does, as API methods, each behind its permission, scoped,
 //! rate-limited and logged by `api.rs` like the first ones. The command line reaches every one
-//! of them as the owner (`eudora call METHOD JSON`).
+//! of them as the owner (`eudora-cli call METHOD JSON`).
 //!
 //! Left out on purpose (they'd undo the security itself): granting permissions or answering a
 //! program's requests and sends (the user's alone, in the window), reading secrets (the sync

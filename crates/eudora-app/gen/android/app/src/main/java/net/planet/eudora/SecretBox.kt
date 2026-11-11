@@ -1,4 +1,4 @@
-package net.planet.eudora27
+package net.planet.eudora
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties

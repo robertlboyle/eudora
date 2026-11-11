@@ -42,7 +42,7 @@ fn expect(conn: &mut Conn, ok: &[u16], what: &str) -> Result<String> {
 }
 
 fn hello(conn: &mut Conn) -> Result<String> {
-    let me = std::env::var("COMPUTERNAME").unwrap_or_else(|_| "eudora27".into()).to_lowercase();
+    let me = std::env::var("COMPUTERNAME").unwrap_or_else(|_| "eudora".into()).to_lowercase();
     conn.command(&format!("EHLO {me}"))?;
     expect(conn, &[250], "the greeting (EHLO)")
 }

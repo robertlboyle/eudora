@@ -1,4 +1,4 @@
-# Builds Eudora 27's Windows installer: dist\Eudora-27-Setup-<version>.exe (Inno Setup 6, as
+# Builds Eudora's Windows installer: dist\Eudora-Setup-<version>.exe (Inno Setup 6, as
 # PlanetPDF's).
 #
 #   .\scripts\build-installer.ps1            # build the programs, then the installer
@@ -22,7 +22,7 @@ $version = (Select-String -Path (Join-Path $root 'Cargo.toml') -Pattern '^versio
 if (-not $version) { throw 'No version in Cargo.toml' }
 
 $target = if ($Arch -eq 'arm64') { 'aarch64-pc-windows-msvc' } else { $null }
-Write-Output "Step 1 of 3: building Eudora $version for $Arch (eudora27, eudora, eudora-web)"
+Write-Output "Step 1 of 3: building Eudora $version for $Arch (eudora, eudora-cli, eudora-web)"
 if (-not $NoBuild) {
     Push-Location $root
     try {
@@ -42,7 +42,7 @@ $build = if ($target) { Join-Path $root "target\$target\release" } else { Join-P
 $stage = Join-Path $root 'target\installer\stage'
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Force $stage | Out-Null
-foreach ($name in 'eudora27.exe', 'eudora.exe', 'eudora-web.exe') {
+foreach ($name in 'eudora.exe', 'eudora-cli.exe', 'eudora-web.exe') {
     $from = Join-Path $build $name
     if (-not (Test-Path $from)) { throw "$from isn't built (run without -NoBuild)" }
     Copy-Item $from $stage
@@ -62,5 +62,5 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Inno Setup failed.' }
 } finally { Pop-Location }
 $suffix = if ($Arch -eq 'arm64') { '-arm64' } else { '' }
-$setup = Join-Path $output "Eudora-27-Setup-$version$suffix.exe"
+$setup = Join-Path $output "Eudora-Setup-$version$suffix.exe"
 Write-Output ("Installer: $setup ({0:N1} MB)" -f ((Get-Item $setup).Length / 1MB))

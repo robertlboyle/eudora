@@ -104,7 +104,7 @@ fn publish(args: &[String]) -> Result<()> {
     let opt = |name: &str| args.iter().position(|a| a == name).and_then(|i| args.get(i + 1)).cloned();
     let version = opt("--version").map(Ok).unwrap_or_else(workspace_version)?;
     let platform = opt("--platform").unwrap_or_else(|| "windows".into());
-    let file = opt("--file").map(PathBuf::from).unwrap_or_else(|| root().join("dist").join(format!("Eudora-27-Setup-{version}.exe")));
+    let file = opt("--file").map(PathBuf::from).unwrap_or_else(|| root().join("dist").join(format!("Eudora-Setup-{version}.exe")));
     let out = opt("--out").map(PathBuf::from).unwrap_or_else(|| root().join("dist").join("update-site"));
     let notes = opt("--notes").unwrap_or_default();
     if !file.is_file() {

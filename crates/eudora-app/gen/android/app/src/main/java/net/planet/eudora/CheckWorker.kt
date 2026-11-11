@@ -1,4 +1,4 @@
-package net.planet.eudora27
+package net.planet.eudora
 
 import android.content.Context
 import androidx.work.Constraints

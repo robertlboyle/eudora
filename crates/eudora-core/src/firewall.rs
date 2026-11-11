@@ -9,7 +9,10 @@ use serde::Serialize;
 
 /// The Windows Firewall rule that lets phones on this network reach `eudora-web`.
 #[cfg(windows)]
-const FIREWALL_RULE: &str = "Eudora 27 web access";
+const FIREWALL_RULE: &str = "Eudora web access";
+/// The rule's name before 1.0.0 (removed whenever the rule is changed).
+#[cfg(windows)]
+const OLD_FIREWALL_RULE: &str = "Eudora 27 web access";
 
 #[derive(Serialize)]
 pub struct FirewallStatus {
@@ -59,10 +62,10 @@ pub fn set(port: u16, allow: bool) -> Result<FirewallStatus, String> {
     }
     let rule = format!("name=\"{FIREWALL_RULE}\"");
     // (an old rule always goes first, so a changed port replaces it)
-    let mut commands = vec![format!("netsh advfirewall firewall delete rule {rule}")];
+    let mut commands = vec![format!("netsh advfirewall firewall delete rule {rule}"), format!("netsh advfirewall firewall delete rule name=\"{OLD_FIREWALL_RULE}\"")];
     if allow {
         commands.push(format!(
-            "netsh advfirewall firewall add rule {rule} dir=in action=allow protocol=TCP localport={port} profile=private remoteip=localsubnet description=\"Lets phones and computers on this network reach Eudora 27 on the web (eudora-web). Made in Eudora's Settings.\""
+            "netsh advfirewall firewall add rule {rule} dir=in action=allow protocol=TCP localport={port} profile=private remoteip=localsubnet description=\"Lets phones and computers on this network reach Eudora on the web (eudora-web). Made in Eudora's Settings.\""
         ));
     }
     let script = commands.join(" & ");

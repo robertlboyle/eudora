@@ -1,6 +1,6 @@
 name: eudora-app
 options:
-  bundleIdPrefix: net.planet.eudora27
+  bundleIdPrefix: net.planet.eudora
   deploymentTarget:
     iOS: 15.0
 fileGroups: [../../src]
@@ -11,7 +11,7 @@ settingGroups:
   app:
     base:
       PRODUCT_NAME: Eudora
-      PRODUCT_BUNDLE_IDENTIFIER: net.planet.eudora27
+      PRODUCT_BUNDLE_IDENTIFIER: net.planet.eudora
 targetTemplates:
   app:
     type: application
@@ -50,7 +50,7 @@ targets:
         UIFileSharingEnabled: true
         # new mail while closed (src/ios.rs: iOS's background app refresh)
         UIBackgroundModes: [fetch]
-        BGTaskSchedulerPermittedIdentifiers: [net.planet.eudora27.check]
+        BGTaskSchedulerPermittedIdentifiers: [net.planet.eudora.check]
         LSSupportsOpeningDocumentsInPlace: true
         UILaunchStoryboardName: LaunchScreen
         UIRequiredDeviceCapabilities: [arm64, metal]

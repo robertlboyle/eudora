@@ -5,7 +5,7 @@
 //! **On the server** (one folder, made by `cargo run -p eudora-release -- publish`):
 //!
 //! * `latest-<platform>.json`: `{"app": "Eudora", "platform": "windows", "version": "0.2.0",
-//!   "file": "Eudora-27-Setup-0.2.0.exe", "size": …, "sha256": "…", "notes": "…",
+//!   "file": "Eudora-Setup-0.2.0.exe", "size": …, "sha256": "…", "notes": "…",
 //!   "published": "2026-10-27"}`
 //! * `latest-<platform>.json.sig`: an Ed25519 signature of those exact bytes (base64). Only the
 //!   holder of the private key (kept apart from the source, never in the project or on the
@@ -352,7 +352,7 @@ pub fn downloaded(folder: &Path, current: &str) -> Option<(Signed, PathBuf)> {
 const STATE_FILE: &str = "state.json";
 const LOG_FILE: &str = "update.log";
 
-/// `%LOCALAPPDATA%\Eudora 27\updates` (the Mac's and Linux's own place for app data).
+/// `%LOCALAPPDATA%\Eudora\updates` (the Mac's and Linux's own place for app data).
 pub fn folder() -> Option<PathBuf> {
     crate::library::app_data_dir().map(|d| d.join("updates"))
 }
@@ -435,7 +435,7 @@ pub fn installed() -> Installed {
     let Ok(exe) = std::env::current_exe() else { return Installed::Manual { why: "Eudora can't tell where it's running from.".into() } };
     let Some(folder) = exe.parent().map(Path::to_path_buf) else { return Installed::Manual { why: "Eudora can't tell where it's running from.".into() } };
     if cfg!(target_os = "macos") {
-        // …/Eudora.app/Contents/MacOS/eudora27
+        // …/Eudora.app/Contents/MacOS/eudora
         let bundle = folder.parent().and_then(Path::parent).map(Path::to_path_buf);
         return match bundle {
             Some(b) if b.extension().is_some_and(|x| x == "app") => match b.parent() {
@@ -592,7 +592,7 @@ cp {new} {staged} && chmod 755 {staged} && mv -f {staged} {file} && echo "instal
     Ok(signed.release.version)
 }
 
-/// Linux, a .deb / .rpm: once Eudora has quit, `pkexec <program folder>/eudora apply-update
+/// Linux, a .deb / .rpm: once Eudora has quit, `pkexec <program folder>/eudora-cli apply-update
 /// <updates folder>` (the system asks for an administrator's password), which checks the update
 /// again as root ([`apply_update`]) and installs it; with `restart` Eudora starts again.
 fn install_package(folder: &Path, kind: &str, app: &Path, restart: bool) -> Result<String> {
@@ -610,9 +610,9 @@ case $? in 0) ;; 126|127) echo "not installed: the administrator's password wasn
         pid = std::process::id(),
         version = signed.release.version,
         pkexec = quote(&pkexec),
-        cli = quote(&app.join("eudora")),
+        cli = quote(&app.join("eudora-cli")),
         folder = quote(folder),
-        reopen = if restart { format!("setsid {} >/dev/null 2>&1 &", quote(&app.join("eudora27"))) } else { String::new() },
+        reopen = if restart { format!("setsid {} >/dev/null 2>&1 &", quote(&app.join("eudora"))) } else { String::new() },
     );
     log(&format!("installing {} over {} as Eudora quits ({kind}, restart {restart})", signed.release.version, CURRENT));
     spawn_script(&script)?;
@@ -628,7 +628,7 @@ fn spawn_script(script: &str) -> Result<()> {
         .map_err(|source| Error::Io { context: "starting the update".into(), source })
 }
 
-/// `eudora apply-update FOLDER`, run as root by pkexec (Linux, a .deb / .rpm): copies the
+/// `eudora-cli apply-update FOLDER`, run as root by pkexec (Linux, a .deb / .rpm): copies the
 /// downloaded package and its signed manifest out of the user's folder into one only root can
 /// write, checks them there (Eudora's signature, this system and package kind, size, SHA-256,
 /// newer than this copy), and installs that copy with `dpkg -i` or `rpm -U`. Nothing in the
@@ -829,7 +829,7 @@ mod tests {
     #[test]
     fn only_a_good_signature_for_this_system_is_believed() {
         let (pair, public) = keypair();
-        let good = manifest("windows", "Eudora-27-Setup-0.2.0.exe");
+        let good = manifest("windows", "Eudora-Setup-0.2.0.exe");
         let release = verify_with(&good, &sign(&pair, &good), &public, "windows").unwrap();
         assert_eq!(release.version, "0.2.0");
         // a changed manifest, another key, another system, a file name with a path

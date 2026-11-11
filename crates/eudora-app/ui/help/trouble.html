@@ -4,7 +4,18 @@
 <p>The topics below cover the usual problems. If none fits, see <a href="#feedback">Reporting a problem</a>.</p>
 </section>
 
-<section id="trouble-no-mail" data-title="New mail isn't arriving" data-index="no new mail; mail not arriving; download stopped; waiting for the network; not checking; stuck">
+<section id="trouble-folder-move" data-title="Eudora couldn't finish moving its folder" data-index="Eudora 27 folder; folder move; couldn't move; rename; attachment open; file in use; Access is denied; moving the library">
+<h1>Eudora couldn't finish moving its folder</h1>
+<p>Before version 1.0.0 Eudora kept your mail in a folder called <b>Eudora 27</b>. The first time a newer Eudora starts, it moves that folder to <b>Eudora</b> in one step, however much mail is in it. Windows won't move a folder while another program has a file in it open, usually an attachment you opened from Eudora in a PDF viewer, Word, or Excel.</p>
+<p>When that happens Eudora says which programs (and which files) are in the way, and keeps working from the old folder: your mail, settings, and passwords are all there and nothing is lost. To finish the move:</p>
+<ol>
+<li>Close the files it names (or the programs).</li>
+<li>Choose <b>Restart Eudora</b> in its message (or close Eudora and start it again). The folder moves as it starts.</li>
+</ol>
+<p>Choose <b>Later</b> to go on as you are: Eudora tries again every time it starts. From the command line, <code>eudora-cli</code> says the same and names the programs. The Mac and Linux move the folder whatever is open in it.</p>
+</section>
+
+<section id="trouble-no-mail"data-title="New mail isn't arriving" data-index="no new mail; mail not arriving; download stopped; waiting for the network; not checking; stuck">
 <h1>New mail isn't arriving</h1>
 <ol>
 <li>Look at the status bar. "Waiting for the network" means the connection dropped; Eudora carries on by itself once it's back.</li>
@@ -21,7 +32,7 @@
 <h1>Sign-in and password problems</h1>
 <ul>
 <li><b>IMAP or SMTP refuses your password</b>: many providers need an <b>app password</b> made on their website (Gmail, Yahoo, iCloud, Outlook.com). Microsoft and Google accounts should be added with Sign in with Microsoft / Google instead.</li>
-<li><b>Microsoft says an administrator must approve Eudora</b>: your organization allows only approved apps; ask its IT department to approve "Eudora 27".</li>
+<li><b>Microsoft says an administrator must approve Eudora</b>: your organization allows only approved apps; ask its IT department to approve "Eudora".</li>
 <li><b>Changes don't reach Microsoft 365</b> (Activity shows them waiting): choose <span class="ui">Sign in to Microsoft 365 again…</span>; the Accounts settings show what Eudora may do on the server.</li>
 <li><b>Encryption errors</b> with an old mail server: the error names the next level to try; see <a href="#add-imap">Ports and security</a>.</li>
 <li><b>Google sign-in stops after a week</b>: while Eudora's Google connection is in testing, Google asks you to sign in again every 7 days.</li>

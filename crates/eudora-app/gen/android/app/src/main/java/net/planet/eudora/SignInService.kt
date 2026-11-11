@@ -1,4 +1,4 @@
-package net.planet.eudora27
+package net.planet.eudora
 
 import android.app.Notification
 import android.app.NotificationChannel

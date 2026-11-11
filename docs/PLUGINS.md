@@ -1,4 +1,4 @@
-# Writing an Eudora 27 plugin
+# Writing an Eudora plugin
 
 A plugin adds commands to Eudora: in Tools ▸ Plugins, in the right-click menu on messages, and as an action rules can run. It's **one WebAssembly file** (`.wasm`) that Eudora runs sealed off:
 - It can reach nothing but **Eudora's API**, with only the permissions the user granted it in Eudora's grant window. That means no files, no network, no other programs and no clock.
@@ -49,7 +49,7 @@ A WebAssembly module (`wasm32-unknown-unknown`, no WASI) with:
 - **Output**: `{"message": "3 invoices: 1001, 1002, 1007"}` (shown in the status bar), and / or `{"html": "<table>…</table>"}` (shown in a window, without scripts or web pictures), or `{"error": "…"}`.
 
 ### The API
-The same methods as for programs: `eudora api methods` lists them with their permissions and parameters. For example:
+The same methods as for programs: `eudora-cli api methods` lists them with their permissions and parameters. For example:
 - `v1.mail.headers {id}`
 - `v1.mail.body {id}`
 - `v1.mail.search {query}`
@@ -117,4 +117,4 @@ pub extern "C" fn run(ptr: *const u8, len: usize) -> u64 {
 3. Tick what the plugin may do in the grant window that follows.
 4. Then select some messages and run its command (Tools ▸ Plugins, or right-click).
 
-From the command line: `eudora plugin install FILE`, `eudora plugin list`, `eudora plugin run ID COMMAND --ids 12,13`, `eudora plugin remove ID`.
+From the command line: `eudora-cli plugin install FILE`, `eudora-cli plugin list`, `eudora-cli plugin run ID COMMAND --ids 12,13`, `eudora-cli plugin remove ID`.

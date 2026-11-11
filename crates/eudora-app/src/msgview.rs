@@ -1,6 +1,6 @@
 //! The .msg viewer.
 //!
-//! An Outlook .msg or an .eml opened (Explorer, Open with, `eudora27 file.msg`) starts this: a program of its
+//! An Outlook .msg or an .eml opened (Explorer, Open with, `eudora file.msg`) starts this: a program of its
 //! own with one small window (`ui/msgview.html`), never the Eudora window, the library, its
 //! download, or the window's lock. The file is read and converted (`msg_read::to_eml`) on a thread
 //! of its own while the window starts, so the two take as long as the slower of them. What the

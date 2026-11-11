@@ -1,5 +1,5 @@
 //! HTTPS. Until a real certificate is set up (Let's Encrypt later, or `--cert` / `--key`),
-//! Eudora makes its own: a small certificate authority of its own ("Eudora 27 local CA",
+//! Eudora makes its own: a small certificate authority of its own ("Eudora local CA",
 //! 10 years) that signs the server's certificate (397 days, the longest phones accept, made
 //! again when a month is left or this computer's names / addresses change). Install the CA on
 //! a phone once (it's at /ca.crt) and every later server certificate is trusted without warnings.
@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 
 pub type Result<T> = std::result::Result<T, String>;
 
-const CA_NAME: &str = "Eudora 27 local CA";
+const CA_NAME: &str = "Eudora local CA";
 const SERVER_DAYS: i64 = 397;
 const RENEW_DAYS: i64 = 30;
 
@@ -31,7 +31,7 @@ struct ServerInfo {
 fn ca_params() -> CertificateParams {
     let mut p = CertificateParams::default();
     p.distinguished_name.push(DnType::CommonName, CA_NAME);
-    p.distinguished_name.push(DnType::OrganizationName, "Eudora 27 on this computer");
+    p.distinguished_name.push(DnType::OrganizationName, "Eudora on this computer");
     p.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
     p.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign, KeyUsagePurpose::DigitalSignature];
     p
@@ -72,7 +72,10 @@ pub fn ensure_self_signed(library: &Path, names: &[String]) -> Result<PathBuf> {
     let dir = library.join("web").join("tls");
     std::fs::create_dir_all(&dir).map_err(|e| format!("creating {}: {e}", dir.display()))?;
     let (ca_key_path, ca_path) = (dir.join("ca.key.pem"), dir.join("ca.pem"));
-    let new_ca = !ca_key_path.exists() || !ca_path.exists();
+    // (a CA made under another name, "Eudora 27 local CA" before 1.0.0, is made again: what it
+    // signs must name it as it is)
+    let named = std::fs::read_to_string(dir.join("ca-name.txt")).ok();
+    let new_ca = !ca_key_path.exists() || !ca_path.exists() || named.as_deref() != Some(CA_NAME);
     let ca_key = if new_ca {
         let key = KeyPair::generate().map_err(|e| e.to_string())?;
         let mut params = ca_params();
@@ -81,6 +84,7 @@ pub fn ensure_self_signed(library: &Path, names: &[String]) -> Result<PathBuf> {
         let cert = params.self_signed(&key).map_err(|e| e.to_string())?;
         write(&ca_key_path, &key.serialize_pem())?;
         write(&ca_path, &cert.pem())?;
+        write(&dir.join("ca-name.txt"), CA_NAME)?;
         key
     } else {
         KeyPair::from_pem(&read(&ca_key_path)?).map_err(|e| format!("the CA key: {e}"))?

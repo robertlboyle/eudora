@@ -1,4 +1,4 @@
-//! Eudora 27's window. For now a read-only viewer of a library: folders, message lists (pages
+//! Eudora's window. For now a read-only viewer of a library: folders, message lists (pages
 //! by keyset, only the rows on screen), search and messages, to check imported and converted
 //! mail. The front end is `ui/` (plain HTML / CSS / JS); these commands are all it calls.
 //!
@@ -3536,6 +3536,32 @@ async fn update_install(app: tauri::AppHandle, when: String) -> Reply<String> {
     Ok(version)
 }
 
+/// Why Eudora's folder couldn't move from "Eudora 27" this run, and the programs in the way
+/// (the window asks the user to close them, then restarts Eudora).
+#[tauri::command]
+fn folder_move_blocked() -> Option<eudora_core::library::MoveBlocked> {
+    #[cfg(desktop)]
+    return eudora_core::library::folder_move_blocked();
+    #[cfg(mobile)]
+    None
+}
+
+/// Starts Eudora again: a new copy, which waits for this one to close (`EUDORA_RESTARTED`).
+#[tauri::command]
+fn restart_eudora(app: tauri::AppHandle) -> Reply<()> {
+    #[cfg(desktop)]
+    {
+        let me = std::env::current_exe().map_err(text)?;
+        let mut command = std::process::Command::new(me);
+        command.args(std::env::args_os().skip(1)).env("EUDORA_RESTARTED", "1");
+        command.spawn().map_err(text)?;
+        app.exit(0);
+    }
+    #[cfg(mobile)]
+    let _ = app;
+    Ok(())
+}
+
 /// Help ▸ About's speed table: the window's own times and the download's.
 #[tauri::command]
 async fn speed_stats(app: tauri::State<'_, App>) -> Reply<serde_json::Value> {
@@ -3544,7 +3570,7 @@ async fn speed_stats(app: tauri::State<'_, App>) -> Reply<serde_json::Value> {
 }
 
 fn open_library(named: Option<PathBuf>) -> App {
-    // the folder given (eudora27 <folder>, or EUDORA_LIBRARY), remembered for next time; else
+    // the folder given (eudora <folder>, or EUDORA_LIBRARY), remembered for next time; else
     // the one last given (the installer's shortcut names none), else the usual place (made on
     // the first run)
     let named = named.or_else(|| std::env::var_os("EUDORA_LIBRARY").map(PathBuf::from));
@@ -3571,7 +3597,7 @@ fn open_library(named: Option<PathBuf>) -> App {
     if let Some(p) = &path {
         eudora_core::speed::set_file(p, "window");
     }
-    let problem = path.is_none().then(|| "No library given. Start Eudora with the library folder (eudora27 <folder>) or set EUDORA_LIBRARY.".to_string());
+    let problem = path.is_none().then(|| "No library given. Start Eudora with the library folder (eudora <folder>) or set EUDORA_LIBRARY.".to_string());
     App {
         opening: Mutex::new(path.is_some()),
         opened: Condvar::new(),
@@ -3699,8 +3725,8 @@ async fn ui_mode_set(app: tauri::State<'_, App>, handle: tauri::AppHandle, mode:
 /// Tools · Window · Help (docs/CLASSIC-UI.md). **Classic mode** uses classic Eudora 7.1's names,
 /// submenus and shortcuts (Edit ▸ Find ▸ Find Text… Ctrl+Shift+F, Mailbox ▸ In Ctrl+1, Message ▸
 /// Change ▸ Queuing… / Status / Priority / Label, Junk, Compact Mailboxes, Forget Passwords, Task
-/// Status), with every Eudora 27 command placed where classic would have put it; **Modern mode**
-/// Eudora 27's (Ctrl+Shift+F = Sort with the Spam Filter, Ctrl+1 = All Mail, Spam, Optimize
+/// Status), with every Eudora command placed where classic would have put it; **Modern mode**
+/// Eudora's (Ctrl+Shift+F = Sort with the Spam Filter, Ctrl+1 = All Mail, Spam, Optimize
 /// Library, Forget Sign-ins, Activity). A command sends its id to the window in front ("menu"
 /// event), which does it. Commands not built yet are grayed out.
 #[cfg(desktop)]
@@ -4366,8 +4392,33 @@ fn build_menus(app: &tauri::AppHandle, menus: &[(&'static str, Vec<Entry>)]) -> 
 
 /// Eudora: the desktop program's `main` and the phone apps' entry point.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// Moves every secret the library knows of from the credential store's old name ("Eudora 27")
+/// once, after the folders moved (secrets used before then move as they're read).
+#[cfg(desktop)]
+fn move_old_secrets() {
+    let Some(dir) = eudora_core::library::app_data_dir() else { return };
+    let done = dir.join("secrets-moved.txt");
+    if !dir.join("moved-from-eudora-27.txt").exists() || done.exists() {
+        return;
+    }
+    let Some(path) = eudora_core::library::usual_library() else { return };
+    if let Ok(library) = Library::open(&path, Access::Read, &Silent) {
+        eudora_core::graph::move_secrets_from_old_name(library.connection());
+        let _ = std::fs::write(done, "");
+    }
+}
+
 pub fn run() {
     use tauri::{Emitter, Manager};
+    // Eudora's folders under their old names ("Eudora 27", before 1.0.0) moved first, once
+    #[cfg(desktop)]
+    {
+        if std::env::var_os("EUDORA_RESTARTED").is_some() {
+            eudora_core::library::wait_for_previous_window();
+        }
+        eudora_core::library::move_from_eudora_27();
+        std::thread::spawn(move_old_secrets);
+    }
     // files given (an .eml or .ics opened in Explorer): to the Eudora window already open, if
     // there is one (this start then ends), else opened by this one
     let (named, files) = opening::sort_args();
@@ -4540,6 +4591,8 @@ pub fn run() {
         });
     builder
         .invoke_handler(tauri::generate_handler![
+            folder_move_blocked,
+            restart_eudora,
             info,
             folders,
             page,
@@ -5008,6 +5061,8 @@ mod tests {
 
     /// The only window commands with no API method, and why.
     const WINDOW_ONLY: &[(&str, &str)] = &[
+        ("folder_move_blocked", "the window's own start-up (the folder's move from Eudora 27)"),
+        ("restart_eudora", "the window restarting itself"),
         ("pick_paths", "the window's Open dialog (programs pass paths themselves)"),
         ("open_compose", "opens a window"),
         ("attachment_drag", "the system's drag of a file out of the window"),

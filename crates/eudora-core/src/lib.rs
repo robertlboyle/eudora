@@ -1,4 +1,4 @@
-﻿//! Eudora 27's core: the local mail library (packs, database, search index), the import
+﻿//! Eudora's core: the local mail library (packs, database, search index), the import
 //! pipeline and the old-mail cleanup. No user interface code lives here.
 
 pub mod activity;

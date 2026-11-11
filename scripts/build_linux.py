@@ -17,7 +17,7 @@ PlanetPDF's are. Results in dist/linux/:
 * ``eudora-<version>-1.<aarch64|x86_64>.rpm``: Fedora 40 / openSUSE or newer (signed with the
   repositories' key when this computer has it: scripts/linux_repo.py).
 
-The packages install into /opt/eudora (``eudora27`` the window, ``eudora`` the command line, both
+The packages install into /opt/eudora (``eudora`` the window, ``eudora-cli`` the command line, both
 also in /usr/bin), with a menu entry, "Open With" for .eml and .ics files, and ``package-kind``
 saying how they were installed, so Eudora updates each its own way (core/update.rs): the AppImage
 replaces its file; a .deb / .rpm is installed through pkexec with an administrator's password.
@@ -68,7 +68,7 @@ Icon=eudora
 Terminal=false
 Categories=Network;Email;Office;
 MimeType=message/rfc822;application/vnd.ms-outlook;text/calendar;x-scheme-handler/mailto;
-StartupWMClass=eudora27
+StartupWMClass=eudora
 """
 STEPS = 6
 
@@ -166,11 +166,11 @@ def stage_install(window: Path, cli: Path, stage: Path) -> None:
         shutil.copy2(program, app / program.name)
         (app / program.name).chmod(0o755)
     (stage / "usr" / "bin").mkdir(parents=True)
-    for name in ("eudora27", "eudora"):
+    for name in ("eudora", "eudora-cli"):
         (stage / "usr" / "bin" / name).symlink_to(f"{INSTALL_DIR}/{name}")
     apps = stage / "usr" / "share" / "applications"
     apps.mkdir(parents=True)
-    (apps / "eudora.desktop").write_text(DESKTOP.format(exec="eudora27"), encoding="utf-8")
+    (apps / "eudora.desktop").write_text(DESKTOP.format(exec="eudora"), encoding="utf-8")
     for size, source in ((32, "32x32.png"), (128, "128x128.png"), (256, "128x128@2x.png")):
         icons = stage / "usr" / "share" / "icons" / "hicolor" / f"{size}x{size}" / "apps"
         icons.mkdir(parents=True)
@@ -305,8 +305,8 @@ cp -a {root}/. %{{buildroot}}/
 %files
 %defattr(-,root,root,-)
 {INSTALL_DIR}
-/usr/bin/eudora27
 /usr/bin/eudora
+/usr/bin/eudora-cli
 /usr/share/applications/eudora.desktop
 /usr/share/icons/hicolor/32x32/apps/eudora.png
 /usr/share/icons/hicolor/128x128/apps/eudora.png
@@ -330,15 +330,15 @@ def build(out: Path) -> None:
 
     step(1, "Building the command line (release)")
     run("cargo", "build", "--release", "--locked", "-p", "eudora-cli", cwd=ROOT)
-    cli = target_dir / "release" / "eudora"
+    cli = target_dir / "release" / "eudora-cli"
 
     step(2, "Building the window and the AppImage (Tauri)")
     sidecar = work / "sidecar"
     sidecar.mkdir()
-    shutil.copy2(cli, sidecar / f"eudora-{triple}")
+    shutil.copy2(cli, sidecar / f"eudora-cli-{triple}")
     config = work / "linux.conf.json"
     config.write_text(
-        '{"bundle": {"active": true, "targets": ["appimage"], "externalBin": ["' + str(sidecar / "eudora") + '"],'
+        '{"bundle": {"active": true, "targets": ["appimage"], "externalBin": ["' + str(sidecar / "eudora-cli") + '"],'
         ' "category": "Productivity", "shortDescription": "' + SUMMARY + '",'
         ' "linux": {"appimage": {"bundleMediaFramework": false}}}}', encoding="utf-8")
     # Tauri fetches linuxdeploy's AppImage plugin and runs it; under x86-64 emulation (the Mac's
@@ -356,7 +356,7 @@ def build(out: Path) -> None:
         plugin.chmod(0o755)
     run("cargo", "tauri", "build", "--bundles", "appimage", "--config", config, "--", "--locked",
         cwd=ROOT / "crates" / "eudora-app")
-    window = target_dir / "release" / "eudora27"
+    window = target_dir / "release" / "eudora"
     appimage = next((target_dir / "release" / "bundle" / "appimage").glob(f"*_{v}_*.AppImage"))
 
     step(3, "Checking the programs")
@@ -366,7 +366,7 @@ def build(out: Path) -> None:
             sys.exit(f"{program.name} needs libraries the system doesn't have: {missing}")
     said = run(cli, "api", "methods", capture_output=True, text=True).stdout
     if "v1.mail.search" not in said:
-        sys.exit("The command line didn't answer as it should (eudora api methods).")
+        sys.exit("The command line didn't answer as it should (eudora-cli api methods).")
     print(f"Both programs load; the command line answers ({said.count('v1.')} API methods).")
 
     stage = work / "stage"

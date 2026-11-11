@@ -1,6 +1,6 @@
 # Draws the installer's pictures from Eudora's icon (packaging\images\): the tall picture on the
-# Welcome and Finished pages (blue panel, the icon on a white tile, "Eudora 27") and the small one
-# at the top right of the other pages, at every size Inno Setup lists for 100-250 % scaling (Setup
+# Welcome and Finished pages (blue panel, the icon on a white tile, "Eudora") and the small one at
+# the top right of the other pages, at every size Inno Setup lists for 100-250 % scaling (Setup
 # picks the one for the screen). As PlanetPDF's.
 #
 #   .\scripts\make_installer_images.ps1

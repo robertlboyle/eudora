@@ -1836,7 +1836,7 @@ async function periodChosen() {
 // ------------------------------------------------------------------ back up and restore
 
 /** Where the phone's backups are, in words the person sees. */
-const BACKUP_PLACE = /iPhone|iPad/.test(navigator.userAgent) ? "the Files app ▸ On My iPhone ▸ Eudora" : "Eudora’s own folder (with the phone plugged into a computer: Internal storage ▸ Android ▸ data ▸ net.planet.eudora27 ▸ files ▸ Documents)";
+const BACKUP_PLACE = /iPhone|iPad/.test(navigator.userAgent) ? "the Files app ▸ On My iPhone ▸ Eudora" : "Eudora’s own folder (with the phone plugged into a computer: Internal storage ▸ Android ▸ data ▸ net.planet.eudora ▸ files ▸ Documents)";
 
 /** Android: backups are picked with Android's file picker, and copies saved out of Eudora's folder. */
 const ANDROID = /Android/.test(navigator.userAgent);

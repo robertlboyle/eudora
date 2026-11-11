@@ -1,6 +1,6 @@
 # Third-party notices
 
-Eudora 27 is © Planet Networks, licensed MIT OR Apache-2.0 (`LICENSE-MIT`, `LICENSE-APACHE`).
+Eudora is © Planet Networks, licensed MIT OR Apache-2.0 (`LICENSE-MIT`, `LICENSE-APACHE`).
 It includes or uses the following works under their own licenses.
 
 ## Classic Eudora (QUALCOMM)

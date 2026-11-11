@@ -42,7 +42,7 @@ fi
 
 universal="$root/target/universal"
 mkdir -p "$universal"
-for name in eudora27 eudora; do
+for name in eudora eudora-cli; do
     lipo -create "$root/target/release/$name" "$root/target/x86_64-apple-darwin/release/$name" -output "$universal/$name"
 done
 export EUDORA_MAC_BUILD="$universal"

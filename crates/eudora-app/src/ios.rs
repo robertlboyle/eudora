@@ -22,7 +22,7 @@ unsafe extern "C" {}
 unsafe extern "C" {}
 
 /// The refresh task's name (also in Info.plist's BGTaskSchedulerPermittedIdentifiers).
-const TASK: &str = "net.planet.eudora27.check";
+const TASK: &str = "net.planet.eudora.check";
 /// How long a wake-up waits for the download's pass (iOS allows about 30 s).
 const WAIT: Duration = Duration::from_secs(25);
 /// When the last notification's mail had come (unix seconds), beside the library.

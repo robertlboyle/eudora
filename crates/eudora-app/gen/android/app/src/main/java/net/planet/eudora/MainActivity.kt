@@ -1,4 +1,4 @@
-package net.planet.eudora27
+package net.planet.eudora
 
 import android.os.Bundle
 import android.view.View

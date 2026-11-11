@@ -367,7 +367,7 @@ async function start() {
       }
       $("c-body").prepend(document.createElement("br"), block);
     }
-    if (!usable.length) say("No account can send yet: sign in to Microsoft 365 (eudora graph login --archive).", true);
+    if (!usable.length) say("No account can send yet: sign in to Microsoft 365 (eudora-cli graph login --archive).", true);
     (["new", "forward", "redirect"].includes(mode) ? $("c-to") : $("c-body")).focus();
     if (!["new", "forward", "redirect", "again"].includes(mode)) placeCaretAtStart($("c-body"));
   } catch (err) {

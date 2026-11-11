@@ -1,4 +1,4 @@
-# Classic Eudora's UI, and what Eudora 27 does with it
+# Classic Eudora's UI, and what Eudora does with it
 
 An inventory of Eudora 7.1 for Windows (`Eudora_W_source\Eudora71\Eudora\EudoraRes.rc` and
 `resource.h`, from the Computer History Museum's BSD-licensed release), with a decision for
@@ -18,7 +18,7 @@ The look and the keystrokes switch between **Classic**, identical to classic Eud
 
 - **Classic mode**: menus, names, shortcuts and icons identical to classic Eudora 7.1. Icons are
   **redrawn versions of classic Eudora's own icons** (from `Eudora_W_source`, as the program
-  icon was), including the status column's classic marks. **Every new Eudora 27 feature is in
+  icon was), including the status column's classic marks. **Every new Eudora feature is in
   Classic mode too**, placed where classic Eudora would have put it, with
   Classic-mode icons.
 - **Dropped features are removed entirely in both modes**: no grayed-out
@@ -26,7 +26,7 @@ The look and the keystrokes switch between **Classic**, identical to classic Eud
   Kerberos, plug-ins, MoodWatch…) finds why it was removed or deprecated and what replaces it,
   if anything. The help's "Removed features" page is built from this file's Drop rows.
 - **Modern mode**: the Keep / Modernize decisions in this file, Font Awesome icons, and
-  Eudora 27's own shortcuts where they differ (e.g. Ctrl+Shift+F = Sort with the Spam Filter;
+  Eudora's own shortcuts where they differ (e.g. Ctrl+Shift+F = Sort with the Spam Filter;
   in Classic mode Ctrl+Shift+F stays Find Text).
 - Independent of the look (Eudora, Thunderbird-style, Lookout, Gmail-style, Yahoo-style): the
   mode decides Eudora's own menus, keys and icons.
@@ -39,7 +39,7 @@ mapping comes later and doesn't depend on this file.
 ## Main menu bar
 
 Classic order: **File · Edit · Mailbox · Message · Transfer · Special · Tools · Window · Help**.
-Eudora 27 keeps it.
+Eudora keeps it.
 - **Mailbox** (open a mailbox) and **Transfer** (move the selected messages to a mailbox) are
   built from your folders at run time, as before, with a type-to-find field at the top for
   thousands of folders.
@@ -78,7 +78,7 @@ Eudora 27 keeps it.
 | Finish Address Book Entry | Ctrl+, | Keep (complete the name being typed) |
 | Insert Recipient ▸ | | Keep (your quick-recipient list) |
 | Find ▸ Find Text · Find Text Again | Ctrl+Shift+F · F3 / Ctrl+G | Keep (in the open message) |
-| Find ▸ Find Messages | Ctrl+F | Keep: **the boolean search over everything**, the heart of Eudora 27 |
+| Find ▸ Find Messages | Ctrl+F | Keep: **the boolean search over everything**, the heart of Eudora |
 | Find ▸ Search Web / Eudora / Mailbox / Mailfolder (for the selection) | | Keep |
 | Sort ▸ Status, Priority, Attachment, Label, Sender, Date, Size, Subject · Group by Subject | | Keep. Group by Subject becomes **Group by Conversation** (real threads) |
 | Sort ▸ Server Status | | Keep for POP accounts (left on server / to delete) |
@@ -232,12 +232,12 @@ From the `IDR_MAINFRAME` accelerator table:
 | 31 | BossWatch | Warn when sending to more than N, on Reply All, outside / inside domain, color-code addresses | **Keep**: still very useful (external-recipient and reply-all warnings) |
 | 32 | Find Messages | Fast indexed search, index now, re-index, index progress, include deleted IMAP | Keep: our Tantivy index (always on), Rebuild Index…, progress in Activity |
 
-Eudora 27 adds options classic didn't have: accounts (Microsoft 365, Gmail, IMAP), settings
+Eudora adds options classic didn't have: accounts (Microsoft 365, Gmail, IMAP), settings
 sync, the skin (Eudora / Thunderbird-style), the library location, the page and index memory
 limits, attachments download days, the appearance (light / dark), remote images, and the
 importance flagging.
 
-## Filters (Tools ▸ Filters): classic model → Eudora 27 rules
+## Filters (Tools ▸ Filters): classic model → Eudora rules
 
 Classic filter:
 - **When to apply:** Incoming / Outgoing / Manual.
@@ -245,7 +245,7 @@ Classic filter:
 - **Up to five actions:** Make Status, Make Priority (incl. raise / lower), Make Label, Make Personality, Make Subject, Play Sound, Speak, Open, Print, Notify User, Notify Application, Forward To, Redirect To, Reply With, Server Options, Copy To, Transfer To, Junk, Skip Rest.
 - Filters run top to bottom; Skip Rest stops.
 
-Eudora 27 keeps that model and its names, and lifts the limits:
+Eudora keeps that model and its names, and lifts the limits:
 - any number of conditions, nested AND / OR / NOT;
 - a condition can be **any boolean search** (the same language as Find Messages);
 - any number of actions;
