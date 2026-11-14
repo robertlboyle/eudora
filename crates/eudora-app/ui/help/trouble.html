@@ -39,6 +39,18 @@
 </ul>
 </section>
 
+<section id="trouble-pop3" data-title="POP3 mail isn't coming in" data-index="POP3 not working; POP3 error; mailbox in use; mailbox locked; IN-USE; refused the user name or password; UIDL; AUTH PLAIN; pop server">
+<h1>POP3 mail isn't coming in</h1>
+<p>When a POP3 account has trouble, the error in Activity (and from <span class="ui">Test</span> in its account window) now says what the server itself answered.</p>
+<ul>
+<li><b>“The mailbox is in use by another program”</b>: most POP3 servers let only one program read a mailbox at a time. Another computer's Eudora, a phone, or another mail program set up for the same account by POP3 has it open, or a check is still finishing. Eudora waits and tries again by itself. If it keeps happening, give the computers different check times (Settings ▸ Accounts ▸ Check every), or use IMAP on all but one of them.</li>
+<li><b>“Refused the user name or password”</b>, with the server's words: check the password (many providers want an <b>app password</b> made on their website: Gmail, Yahoo, AOL), the user name (some servers want the whole address, others only the part before the @), and that POP3 is turned on for the account (Gmail: Settings ▸ Forwarding and POP/IMAP ▸ Enable POP). Eudora also tries the other common way to sign in (AUTH PLAIN) before giving up.</li>
+<li><b>The server can't be reached</b>: the POP3 server Eudora guessed (pop.<i>your domain</i>) may be wrong. Your provider's help page names it; it's often <code>mail.</code><i>your domain</i>. Port 995 with SSL/TLS, or 110 with STARTTLS.</li>
+<li><b>Old servers</b> without the UIDL command are read too: Eudora tells their messages apart by their headers.</li>
+<li><b>Mail on two computers</b>: POP3 keeps nothing on the server about what you've read or filed. To read the same account on several computers or a phone, IMAP is better.</li>
+</ul>
+</section>
+
 <section id="trouble-sending" data-title="A message won't send" data-index="can't send; stuck in Out; sending failed; SMTP error; send as refused">
 <h1>A message won't send</h1>
 <p>Messages that can't go wait in <span class="ui">Mailbox ▸ Out</span> and are tried again after 1, 2, 4… up to 60 minutes. The main window's status bar says why each failed.</p>

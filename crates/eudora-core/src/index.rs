@@ -84,6 +84,20 @@ pub enum SortOrder {
     Relevance,
 }
 
+/// What a search keeps besides its words: only messages in `only` (when given) and none in
+/// `not` (status, labels, priority, and account: search_marks.rs).
+#[derive(Clone, Debug, Default)]
+pub struct Narrow {
+    pub only: Option<IdSet>,
+    pub not: Option<IdSet>,
+}
+
+impl Narrow {
+    pub fn keeps(&self, id: u64) -> bool {
+        self.only.as_ref().is_none_or(|s| s.contains(id)) && self.not.as_ref().is_none_or(|s| !s.contains(id))
+    }
+}
+
 /// A set of message ids as a bitmap (the messages a search leaves out).
 #[derive(Clone, Debug, Default)]
 pub struct IdSet {
@@ -237,6 +251,46 @@ fn split_prefixes(query: &str) -> (String, Vec<Prefix>) {
         }
     }
     (kept.join(" "), prefixes)
+}
+
+/// A search's top-level pieces, separated by spaces (outside quotes, parentheses, and ranges).
+fn top_pieces(query: &str) -> Vec<String> {
+    let (mut pieces, mut current, mut quoted, mut depth) = (Vec::new(), String::new(), false, 0i32);
+    for c in query.chars() {
+        match c {
+            '"' => quoted = !quoted,
+            '(' | '[' | '{' if !quoted => depth += 1,
+            ')' | ']' | '}' if !quoted => depth -= 1,
+            c if c.is_whitespace() && !quoted && depth <= 0 => {
+                if !current.is_empty() {
+                    pieces.push(std::mem::take(&mut current));
+                }
+                continue;
+            }
+            _ => {}
+        }
+        current.push(c);
+    }
+    if !current.is_empty() {
+        pieces.push(current);
+    }
+    pieces
+}
+
+/// `word*`, `-word*`, `field:word*` (a text field, a word of two letters or more): (left out,
+/// the field, the word in lowercase).
+fn star_word(token: &str) -> Option<(bool, Option<String>, String)> {
+    let (not, rest) = match token.strip_prefix('-') {
+        Some(r) => (true, r),
+        None => (false, token),
+    };
+    let rest = rest.strip_suffix('*')?;
+    let (field, word) = match rest.split_once(':') {
+        Some((f, w)) if PREFIX_FIELDS.contains(&f.to_ascii_lowercase().as_str()) => (Some(f.to_ascii_lowercase()), w),
+        Some(_) => return None,
+        None => (None, rest),
+    };
+    (word.chars().count() >= 2 && word.chars().all(char::is_alphanumeric)).then(|| (not, field, word.to_lowercase()))
 }
 
 /// Reads a search, the prefix words included (see `split_prefixes`).
@@ -440,23 +494,27 @@ impl SearchIndex {
     /// Runs a query: AND between words by default, `OR`, `NOT`/`-`, "phrases", `field:word`,
     /// `date:[2001-01-01T00:00:00Z TO 2002-01-01T00:00:00Z]`.
     pub fn search(&self, query: &str, limit: usize, order: SortOrder) -> Result<SearchResult> {
-        self.search_filtered(query, limit, order, None, None)
+        self.search_filtered(query, limit, order, None, None, None)
     }
 
     /// `search`, keeping only messages among `ids` (what a header search found).
     pub fn search_within(&self, query: &str, limit: usize, order: SortOrder, ids: &[u64]) -> Result<SearchResult> {
-        self.search_filtered(query, limit, order, Some(ids), None)
+        self.search_filtered(query, limit, order, Some(ids), None, None)
     }
 
     /// `search`, keeping only messages among `within` (when given) and leaving out those in
     /// `without` (the ones only in mailboxes left out of search: search_scope.rs); `hidden` then
     /// says how many matches were left out. `without` is checked per match against the id column
-    /// (a bitmap: a million messages left out cost nothing extra).
-    pub fn search_filtered(&self, query: &str, limit: usize, order: SortOrder, within: Option<&[u64]>, without: Option<std::sync::Arc<IdSet>>) -> Result<SearchResult> {
+    /// (a bitmap: a million messages left out cost nothing extra), as is `narrow` (matches it
+    /// doesn't keep aren't matches at all, so they aren't counted as left out).
+    pub fn search_filtered(&self, query: &str, limit: usize, order: SortOrder, within: Option<&[u64]>, without: Option<std::sync::Arc<IdSet>>, narrow: Option<std::sync::Arc<Narrow>>) -> Result<SearchResult> {
         use tantivy::collector::FilterCollector;
         use tantivy::query::{BooleanQuery, Occur, Query, TermSetQuery};
         let started = Instant::now();
         let f = &self.fields;
+        // `word*` inside parentheses or beside OR (the advanced search's "starts with" under
+        // Match any): the words the index has that start so
+        let query = &self.expand_grouped_stars(query)?;
         let (words, note) = read_query(&parser(&self.index, f), f, query)?;
         let query: Box<dyn Query> = match within {
             Some(ids) => Box::new(BooleanQuery::new(vec![
@@ -469,15 +527,16 @@ impl SearchIndex {
         let limit = limit.max(1);
         // (every match, then those kept: the difference was left out)
         let keep = move |id: u64| without.as_ref().is_none_or(|set| !set.contains(id));
+        let narrowed = move |id: u64| narrow.as_ref().is_none_or(|n| n.keeps(id));
         let (total, all, addresses) = match order {
             SortOrder::Relevance => {
-                let (all, (total, top)) = searcher.search(&query, &(Count, FilterCollector::new("id".to_string(), keep.clone(), (Count, TopDocs::with_limit(limit).order_by_score()))))?;
+                let (all, (total, top)) = searcher.search(&query, &FilterCollector::new("id".to_string(), narrowed.clone(), (Count, FilterCollector::new("id".to_string(), keep.clone(), (Count, TopDocs::with_limit(limit).order_by_score())))))?;
                 (total, all, top.into_iter().map(|(_, a)| a).collect::<Vec<_>>())
             }
             SortOrder::Newest | SortOrder::Oldest => {
                 let direction = if order == SortOrder::Newest { Order::Desc } else { Order::Asc };
                 let collector = TopDocs::with_limit(limit).order_by_fast_field::<DateTime>("date", direction);
-                let (all, (total, top)) = searcher.search(&query, &(Count, FilterCollector::new("id".to_string(), keep.clone(), (Count, collector))))?;
+                let (all, (total, top)) = searcher.search(&query, &FilterCollector::new("id".to_string(), narrowed.clone(), (Count, FilterCollector::new("id".to_string(), keep.clone(), (Count, collector)))))?;
                 (total, all, top.into_iter().map(|(_, a)| a).collect::<Vec<_>>())
             }
         };
@@ -489,6 +548,80 @@ impl SearchIndex {
             }
         }
         Ok(SearchResult { total, ids, took: started.elapsed(), notes: note.into_iter().collect(), suggestions: Vec::new(), hidden: all.saturating_sub(total) })
+    }
+
+    /// Rewrites each `word*` / `field:word*` that `split_prefixes` leaves in the query (inside
+    /// parentheses, or in a search using OR) as `(field:word1 OR field:word2 …)`: the index's
+    /// words starting so, at most `STAR_WORDS` of them a field (Tantivy reads only phrases of two
+    /// words or more with a `*`).
+    fn expand_grouped_stars(&self, query: &str) -> Result<String> {
+        const STAR_WORDS: usize = 200;
+        if !query.contains('*') {
+            return Ok(query.to_string());
+        }
+        let top_or = top_pieces(query).iter().any(|p| p == "OR" || p == "||");
+        let f = &self.fields;
+        let searcher = self.reader.searcher();
+        let mut out = String::with_capacity(query.len());
+        let (mut quoted, mut depth, mut token) = (false, 0i32, String::new());
+        let flush = |token: &mut String, out: &mut String, depth: i32| -> Result<()> {
+            let t = std::mem::take(token);
+            match (depth > 0 || top_or).then(|| star_word(&t)).flatten() {
+                Some((not, field, word)) => {
+                    let fields: Vec<(&str, Field)> = match field.as_deref() {
+                        Some("from") => vec![("from", f.from)],
+                        Some("to") => vec![("to", f.to)],
+                        Some("cc") => vec![("cc", f.cc)],
+                        Some("bcc") => vec![("bcc", f.bcc)],
+                        Some("subject") => vec![("subject", f.subject)],
+                        Some("body") => vec![("body", f.body)],
+                        Some("attachment") => vec![("attachment", f.attachment)],
+                        _ => vec![("subject", f.subject), ("body", f.body), ("from", f.from), ("to", f.to), ("cc", f.cc), ("attachment", f.attachment)],
+                    };
+                    let mut either = Vec::new();
+                    for (name, field) in fields {
+                        let mut found = std::collections::BTreeSet::new();
+                        for segment in searcher.segment_readers() {
+                            let inverted = segment.inverted_index(field)?;
+                            let mut stream = inverted.terms().range().ge(word.as_bytes()).into_stream().map_err(|e| Error::Other(format!("reading the search index: {e}")))?;
+                            while found.len() < STAR_WORDS && stream.advance() {
+                                if !stream.key().starts_with(word.as_bytes()) {
+                                    break;
+                                }
+                                if let Ok(w) = std::str::from_utf8(stream.key()) {
+                                    found.insert(w.to_string());
+                                }
+                            }
+                        }
+                        either.extend(found.into_iter().filter(|w| w.chars().all(char::is_alphanumeric)).map(|w| format!("{name}:{w}")));
+                    }
+                    let group = if either.is_empty() { format!("({})", crate::search_marks::nothing()) } else { format!("({})", either.join(" OR ")) };
+                    out.push_str(if not { "-" } else { "" });
+                    out.push_str(&group);
+                }
+                None => out.push_str(&t),
+            }
+            Ok(())
+        };
+        for c in query.chars() {
+            let boundary = !quoted && (c.is_whitespace() || matches!(c, '(' | ')' | '[' | ']' | '{' | '}'));
+            if boundary {
+                flush(&mut token, &mut out, depth)?;
+                match c {
+                    '(' | '[' | '{' => depth += 1,
+                    ')' | ']' | '}' => depth -= 1,
+                    _ => {}
+                }
+                out.push(c);
+            } else {
+                if c == '"' {
+                    quoted = !quoted;
+                }
+                token.push(c);
+            }
+        }
+        flush(&mut token, &mut out, depth)?;
+        Ok(out)
     }
 
     pub fn disk_size(dir: &Path) -> u64 {

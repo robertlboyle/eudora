@@ -8,7 +8,9 @@ It includes or uses the following works under their own licenses.
 Classic Eudora 7.1 for Windows is used as a reference, and parts of it are ported to Rust: its
 filters (rules) and their file format, its menus, shortcuts, and options, and its mailbox and
 table-of-contents formats. The program icon is redrawn from Eudora 6.2.1's, and Classic mode's
-icons and the tray icon from Eudora 7.1's. The source was released by the Computer History
+icons and the tray icon from Eudora 7.1's. The new-mail sounds `ui/sounds/eudora.wav` (Eudora 7.1's
+`res/newmail.wav`) and `ui/sounds/eudora-older.wav` (the older one in the released source's
+`Sandbox`) are classic Eudora's own, unchanged. The source was released by the Computer History
 Museum under this license:
 
 ```
@@ -52,9 +54,17 @@ Where the system has no OCR of its own, Eudora reads pictures with ocrs
 HierText dataset (CC BY-SA 4.0). They aren't shipped with Eudora: they're downloaded, unchanged,
 from https://ocrs-models.s3-accelerate.amazonaws.com/ the first time they're needed.
 
+## Natural voices (a separate download)
+
+The natural voices are not part of Eudora's installer: `eudora-voice` and the Kokoro model are downloaded
+only when asked for (Settings ▸ General ▸ Speech). Their notices are in `crates/eudora-voice/NOTICES.txt`
+(also `eudora-voice --notices`): Kokoro-82M (Apache-2.0), misaki-rs (MIT), rten (MIT / Apache-2.0), the CMU
+Pronouncing Dictionary (BSD-2-Clause, Carnegie Mellon University), and the NRL letter-to-sound rules
+(public domain).
+
 ## Rust libraries
 
 Eudora is built from Rust libraries (listed in `Cargo.lock`), each under a permissive license
 (MIT, Apache-2.0, Apache-2.0 WITH LLVM-exception, BSD, ISC, Zlib, Unlicense or MPL-2.0); `cargo metadata` lists each one's license. Among
 them: Tantivy, SQLite (public domain, through rusqlite), Tauri, rustls and ring, lopdf, ocrs, rten,
-image, wasmtime and Cranelift (the Bytecode Alliance; Apache-2.0 WITH LLVM-exception: the plugins' sandbox), and Microsoft's `windows` crate.
+image, wasmtime and Cranelift (the Bytecode Alliance; Apache-2.0 WITH LLVM-exception: the plugins' sandbox), Microsoft's `windows` crate, and tts (MIT; speech, over each system's own voices; on Linux through speech-dispatcher's client library, used under its MIT / Apache-2.0 choice and linked to the system's libspeechd).

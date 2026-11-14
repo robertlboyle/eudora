@@ -18,6 +18,7 @@ const CHAPTERS = [
   ["background.html", "Downloading and background work"],
   ["keeping.html", "Backups, sync, and upkeep"],
   ["phone.html", "Eudora on your phone"],
+  ["access.html", "Accessibility"],
   ["power.html", "Command line, API, and plugins"],
   ["reference.html", "Reference"],
   ["trouble.html", "Troubleshooting"],
@@ -99,10 +100,26 @@ function route() {
     (prev ? `<a href="#${prev.id}">← ${escape(prev.title)}</a>` : "<span></span>") +
     (next ? `<a href="#${next.id}">${escape(next.title)} →</a>` : "<span></span>");
   page.append(pager);
-  for (const a of toc.querySelectorAll("a")) a.classList.toggle("here", a.dataset.id === s.id);
+  for (const a of toc.querySelectorAll("a")) {
+    a.classList.toggle("here", a.dataset.id === s.id);
+    if (a.dataset.id === s.id) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+  }
+  pager.setAttribute("role", "navigation");
+  pager.setAttribute("aria-label", "Previous and next page");
   toc.querySelector("a.here")?.scrollIntoView({ block: "nearest" });
   page.scrollTop = 0;
   document.title = `${s.title} – Eudora Help`;
+  arrived(s.title);
+}
+
+/** A page or results shown: said to a screen reader, and (after the first) the keyboard moved to
+ *  the top of what's shown, so reading starts there. */
+let firstShown = true;
+function arrived(what) {
+  const said = document.getElementById("said");
+  if (said) { said.textContent = ""; setTimeout(() => { said.textContent = what; }, 50); }
+  if (firstShown) { firstShown = false; return; }
+  if (document.activeElement !== q) page.focus({ preventScroll: true });
 }
 
 function escape(text) {
@@ -172,6 +189,7 @@ function showResults(text) {
     }
   }
   page.replaceChildren(out);
+  arrived(!want.length ? "Type a word or two to search the manual." : found.length ? `${found.length} ${found.length === 1 ? "page" : "pages"} found` : "No results");
   for (const a of toc.querySelectorAll("a")) a.classList.remove("here");
   page.scrollTop = 0;
   document.title = "Search – Eudora Help";

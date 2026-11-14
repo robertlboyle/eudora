@@ -1279,6 +1279,54 @@ mod tests {
         assert_eq!(found("recipient:other"), 3);
         assert_eq!(found("from:bob to:other@x.com"), 1);
         assert_eq!(found("recipient:nobody"), 0);
+        // status, priority, labels, and accounts (search_marks.rs), plainly and inside OR / groups
+        let note = |n: &str| library.search(&format!("subject:\"note {n}\""), 1, crate::SortOrder::Newest).unwrap().1[0].id;
+        let (one, two) = (note("1"), note("2"));
+        library.set_status(&[one], crate::marks::Status::parse("unread").unwrap()).unwrap();
+        library.set_label(&[one], "Personal", true).unwrap();
+        library.set_priority(&[two], Some(2)).unwrap();
+        assert_eq!(found("is:unread"), 1);
+        assert_eq!(found("is:read"), 2);
+        assert_eq!(found("isread:no note"), 1);
+        assert_eq!(found("-is:unread"), 2, "only an exclusion");
+        assert_eq!(found("note -is:unread"), 2);
+        assert_eq!(found("label:personal"), 1);
+        assert_eq!(found("label:none"), 2);
+        assert_eq!(found("label:any is:unread"), 1);
+        assert_eq!(found("priority:high"), 1);
+        assert_eq!(found("priority:high is:unread"), 0, "both must hold");
+        assert_eq!(found("priority:high OR is:unread"), 2, "either one");
+        assert_eq!(found("(from:carol OR label:Personal) hello"), 2);
+        assert_eq!(found("from:carol OR -is:unread"), 2);
+        assert_eq!(found("is:unread x-mailer:outlook"), 1, "with a header search");
+        assert_eq!(found("is:unread x-mailer:thunderbird"), 0);
+        assert_eq!(found("x-mailer:outlook OR x-mailer:thunderbird"), 2, "headers beside OR");
+        assert_eq!(found("from:carol OR -x-mailer:eudora"), 2);
+        assert_eq!(found("(x-mailer:outlook OR is:unread) hello"), 1);
+        let account = library.search("subject:\"note 1\"", 1, crate::SortOrder::Newest).unwrap().1[0].id;
+        let address: String = library.conn.query_row(
+            "SELECT a.name FROM accounts a JOIN folders f ON f.account = a.id JOIN locations l ON l.folder = f.id WHERE l.message = ?1",
+            [account],
+            |r| r.get(0),
+        ).unwrap();
+        assert!(found(&format!("account:\"{address}\"")) >= 1);
+        assert_eq!(found("account:nobody@nowhere"), 0);
+        assert!(library.search("is:unrad", 10, crate::SortOrder::Newest).is_ok(), "an unknown status is just a header word");
+        // a word's start inside OR and groups (the advanced search's "starts with" under Match any)
+        assert_eq!(found("from:bo* OR from:car*"), 2);
+        assert_eq!(found("(from:bo* OR subject:zzz) hello"), 1);
+        assert_eq!(found("from:zq* OR from:car*"), 1, "a start no word has finds nothing");
+        assert_eq!(found("(car* OR is:unread)"), 2);
+        // what the window's Advanced Search makes (advsearch.js), as it writes it
+        assert_eq!(found("from:bo* OR ( received:>=1970-01-01 -subject:note ) OR is:unread"), 1);
+        assert_eq!(found("from:bo* OR ( received:>=1970-01-01 -subject:zzz ) OR is:unread"), 3);
+        assert_eq!(found("received:1999-12-01..1999-12-02 ( account:nobody OR account:other )"), 0);
+        assert_eq!(found("hello ( from:zq* OR label:nothing )"), 0, "two empty sets in one group find nothing");
+        assert_eq!(found("( received:\"last week\" OR size:>5MB ) hello"), 0);
+        assert_eq!(found("List-Id:* OR -X-Mailer:outlook"), 2);
+        assert_eq!(found("-label:\"Personal\" priority:high hasattachment:no"), 1);
+        assert_eq!(found("\"note 1\"* recipient:\"x.com\""), 1);
+        assert_eq!(found("folder:\"Inbox\" -is:unread"), 1);
         // a search still being typed: repaired as far as it can be, with notes, never an error
         for q in ["from:", "subject:", "\"unclosed", "(note", "note \"hello", "note AND", "date:[2024 TO", "a ) b"] {
             let (r, _) = library.search(q, 10, crate::SortOrder::Newest).unwrap_or_else(|e| panic!("{q}: {e}"));
@@ -1450,6 +1498,14 @@ mod tests {
         assert_eq!(names("an", true, false), vec!["ann@a.com", "bob@c.com"], "only people I wrote to");
         assert_eq!(names("an", false, true), vec!["andy@b.com"], "only people who wrote to me");
         assert!(names("me", true, true).is_empty());
+        // a name corrected while writing is offered from then on, and outlasts a rebuild
+        let address = "ann@a.com";
+        assert_eq!(library.remember_names(&[&format!("Mike Jones <{address}>, bare@x.com"), ""]).unwrap(), 1);
+        assert_eq!(library.remember_names(&[&format!("Mike Jones <{address}>")]).unwrap(), 0);
+        let named = |l: &Library| l.complete_address(&address, true, true, 5).unwrap().into_iter().find(|(_, a)| a.eq_ignore_ascii_case(&address)).map(|(n, _)| n);
+        assert_eq!(named(&library).as_deref(), Some("Mike Jones"));
+        library.rebuild_contacts(&["me@x.com".to_string()]).unwrap();
+        assert_eq!(named(&library).as_deref(), Some("Mike Jones"));
     }
 
     #[test]

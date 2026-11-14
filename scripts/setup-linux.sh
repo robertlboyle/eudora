@@ -20,13 +20,13 @@ confirm() {
 
 echo "Step 1 of 2: the system's packages"
 if command -v apt-get >/dev/null 2>&1; then
-    packages="build-essential curl file git pkg-config libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev libdbus-1-dev"
+    packages="build-essential curl file git pkg-config libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev libxdo-dev libdbus-1-dev libspeechd-dev libclang-dev"
     if confirm "$packages (apt)"; then sudo apt-get update && sudo apt-get install -y $packages; fi
 elif command -v dnf >/dev/null 2>&1; then
-    packages="gcc gcc-c++ make curl file git pkgconf-pkg-config webkit2gtk4.1-devel gtk3-devel libappindicator-gtk3-devel librsvg2-devel openssl-devel libxdo-devel dbus-devel"
+    packages="gcc gcc-c++ make curl file git pkgconf-pkg-config webkit2gtk4.1-devel gtk3-devel libappindicator-gtk3-devel librsvg2-devel openssl-devel libxdo-devel dbus-devel speech-dispatcher-devel clang-devel"
     if confirm "$packages (dnf)"; then sudo dnf install -y $packages; fi
 elif command -v pacman >/dev/null 2>&1; then
-    packages="base-devel curl file git pkgconf webkit2gtk-4.1 gtk3 libayatana-appindicator librsvg openssl xdotool dbus"
+    packages="base-devel curl file git pkgconf webkit2gtk-4.1 gtk3 libayatana-appindicator librsvg openssl xdotool dbus speech-dispatcher clang"
     if confirm "$packages (pacman)"; then sudo pacman -S --needed --noconfirm $packages; fi
 else
     echo "  This system's package manager isn't one this script knows: install a C compiler, pkg-config,"

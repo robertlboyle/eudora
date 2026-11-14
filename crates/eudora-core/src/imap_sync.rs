@@ -50,7 +50,9 @@ pub struct ImapConfig {
     /// size). They're listed in the download's report.
     pub pop_skip_over_mb: Option<u32>,
     /// IMAP: Eudora's changes (moves, read, labels, deletes, new folders) are made on the
-    /// server too. Off: they stay in this library, as before.
+    /// server too. Off: they stay in this library, as before. Since 2026-11-13 this is the
+    /// local-only choice's mail switch (`local_only`): saving an account moves it there, and
+    /// reading the accounts fills it in from there.
     pub server_writes: Option<bool>,
 }
 
@@ -108,7 +110,7 @@ pub fn remember_password(address: &str, password: &str) -> Result<()> {
 fn password(address: &str) -> Result<String> {
     crate::graph::load_secret(&secret_name(address))
         .and_then(|b| String::from_utf8(b).ok())
-        .ok_or_else(|| Error::Other(format!("the password for {address} isn't on this computer: enter it in Tools ▸ Personalities ▸ Change…")))
+        .ok_or_else(|| Error::Other(format!("the password for {address} isn't on this computer: enter it in Settings ▸ Accounts ▸ Change… (Classic: Tools ▸ Personalities)")))
 }
 
 /// The password for sending: its own if one was given, else the account's.
@@ -248,6 +250,22 @@ impl Connection {
                 Ok(pop.uidl()?.into_iter().map(|(n, uidl)| Item { id: format!("pop:{uidl}"), key: n, size: sizes.get(&n).copied() }).collect())
             }
         }
+    }
+
+    /// The messages of the folder listed last that were answered (`\Answered`) or forwarded
+    /// (`$Forwarded`) on the server, by any program: (id, marks::REPLIED or FORWARDED). POP3
+    /// has no such marks.
+    pub fn answered(&mut self, folder: &str) -> Vec<(String, i64)> {
+        let Connection::Imap(session, _) = self else { return Vec::new() };
+        let Some(validity) = session.examine(folder).ok().and_then(|m| m.uid_validity) else { return Vec::new() };
+        let mut out = Vec::new();
+        for (query, bit) in [("ANSWERED", crate::marks::REPLIED), ("KEYWORD $Forwarded", crate::marks::FORWARDED)] {
+            // (a server that knows no $Forwarded just finds none)
+            if let Ok(found) = session.uid_search(query) {
+                out.extend(found.into_iter().map(|uid| (format!("{validity}:{uid}"), bit)));
+            }
+        }
+        out
     }
 
     /// Reads these messages of the folder listed last: (id, bytes, the server's date for it).
@@ -493,7 +511,7 @@ pub enum SentCopy {
 /// keeps a copy in its Sent folder (IMAP: APPEND on the server; POP3: `spool_sent`).
 pub fn send(config: &ImapConfig, library_root: &std::path::Path, account: i64, recipients: &[String], message: &[u8]) -> Result<SentCopy> {
     if !config.can_send() {
-        return Err(Error::Other(format!("{} has no outgoing (SMTP) server: add it in Tools ▸ Personalities ▸ Change…", config.address)));
+        return Err(Error::Other(format!("{} has no outgoing (SMTP) server: add it in Settings ▸ Accounts ▸ Change… (Classic: Tools ▸ Personalities)", config.address)));
     }
     let password = smtp_password(&config.address)?;
     crate::smtp::send(&smtp_settings(config, &password), &config.address, recipients, message)?;
@@ -618,7 +636,19 @@ impl crate::Library {
             }
             None => crate::db::import_account(&self.conn, config.kind(), Some(&config.address), &config.name, &format!("{}:{}", config.server, config.port()), false, crate::library::now())?,
         };
-        self.set_setting(&format!("{SETTINGS_PREFIX}{}", config.address.to_lowercase()), &serde_json::to_string(config)?)?;
+        // the old "Make Eudora's changes on the server too" switch is the local-only choice's
+        // mail switch now (`local_only`): kept there, not in the account's settings
+        let mut stored = config.clone();
+        if let Some(writes) = stored.server_writes.take() {
+            if !config.is_pop3() {
+                let mut choice = self.local_only(&config.address)?;
+                if choice.mail == writes {
+                    choice.mail = !writes;
+                    self.set_local_only(&config.address, choice)?;
+                }
+            }
+        }
+        self.set_setting(&format!("{SETTINGS_PREFIX}{}", config.address.to_lowercase()), &serde_json::to_string(&stored)?)?;
         Ok(id)
     }
 
@@ -626,10 +656,16 @@ impl crate::Library {
     pub fn imap_accounts(&self) -> Result<Vec<ImapConfig>> {
         let mut stmt = self.conn.prepare("SELECT value FROM settings_items WHERE key LIKE ?1 || '%' ORDER BY key")?;
         let rows: Vec<String> = stmt.query_map([SETTINGS_PREFIX], |r| r.get(0))?.collect::<rusqlite::Result<_>>()?;
-        Ok(rows.iter().filter_map(|j| serde_json::from_str(j).ok()).collect())
+        let mut out: Vec<ImapConfig> = rows.iter().filter_map(|j| serde_json::from_str(j).ok()).collect();
+        // (`server_writes` as the window shows it: the local-only choice's mail switch)
+        for c in out.iter_mut().filter(|c| !c.is_pop3()) {
+            c.server_writes = Some(!self.local_only(&c.address)?.mail);
+        }
+        Ok(out)
     }
 
-    /// The IMAP accounts whose servers Eudora changes (moves, marks, deletes): their ids.
+    /// The IMAP accounts whose servers Eudora changes (moves, marks, deletes): their ids. An
+    /// account whose mail is kept local (`local_only`) isn't one.
     pub fn imap_writable(&self) -> Result<std::collections::HashSet<i64>> {
         let mut out = std::collections::HashSet::new();
         for config in self.imap_accounts()?.into_iter().filter(ImapConfig::writes) {
@@ -690,7 +726,8 @@ mod tests {
         };
         // (no password: the test never touches the credential store)
         let id = library.save_imap_account(&config, None, None).unwrap();
-        assert_eq!(library.imap_accounts().unwrap(), vec![config.clone()]);
+        // (read back with the local-only choice's mail switch filled in: changes go to the server)
+        assert_eq!(library.imap_accounts().unwrap(), vec![ImapConfig { server_writes: Some(true), ..config.clone() }]);
         assert_eq!(library.save_imap_account(&config, None, None).unwrap(), id, "saving again updates it");
         assert_eq!(library.imap_account_id("ME@example.com").unwrap(), Some(id));
         let a = library.accounts().unwrap().into_iter().find(|a| a.id == id).unwrap();

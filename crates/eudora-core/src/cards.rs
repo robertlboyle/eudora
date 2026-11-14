@@ -17,12 +17,14 @@ use crate::library::{Library, now};
 
 /// A value with its kind ("work", "home", "mobile", "other"…).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Labeled {
     pub kind: String,
     pub value: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Postal {
     pub kind: String,
     pub street: String,
@@ -442,8 +444,19 @@ pub struct ContactsJob {
 pub struct ContactsFetched {
     pub account: i64,
     pub books: std::result::Result<Vec<(Option<String>, String, Vec<Value>)>, String>,
-    /// Google's People API contacts (one book), not Microsoft's.
-    pub google: bool,
+    /// Whose contacts they are (Microsoft's Graph, Google's People API, a CardDAV server).
+    pub source: Source,
+}
+
+/// Where an account's contacts come from, and so how they read.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Source {
+    /// Microsoft Graph: each contact's `id` and `changeKey`.
+    Graph,
+    /// Google's People API: `resourceName`, `etag` (one book, "Google Contacts").
+    Google,
+    /// A CardDAV server: {id: its href, etag, vcard} (`dav::contacts`).
+    Dav,
 }
 
 /// What recording an account's address books did.
@@ -452,6 +465,138 @@ pub struct CardsRecorded {
     pub added: u64,
     pub changed: u64,
     pub removed: u64,
+}
+
+// ------------------------------------------------------------------ duplicates
+
+/// A phone number as digits only, the last ten (country code and punctuation don't matter);
+/// None when too short to tell people apart.
+fn phone_key(value: &str) -> Option<String> {
+    let digits: String = value.chars().filter(|c| c.is_ascii_digit()).collect();
+    if digits.len() < 7 {
+        return None;
+    }
+    Some(digits[digits.len().saturating_sub(10)..].to_string())
+}
+
+/// A name as compared: lowercase words, punctuation left out; None for one word alone or an
+/// address (too many people share "John").
+fn name_key(card: &Card) -> Option<String> {
+    let shown = card.shown();
+    if shown.contains('@') {
+        return None;
+    }
+    let words: Vec<String> = shown
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .map(|w| w.to_lowercase())
+        .collect();
+    (words.len() >= 2).then(|| words.join(" "))
+}
+
+/// How much of a card is filled in (the fullest one leads a merge).
+fn filled(card: &Card) -> usize {
+    let scalars = [&card.name, &card.given, &card.middle, &card.family, &card.prefix, &card.suffix, &card.nickname, &card.company, &card.department, &card.title, &card.birthday, &card.notes];
+    scalars.iter().filter(|s| !s.trim().is_empty()).count()
+        + card.emails.len()
+        + card.phones.len()
+        + card.addresses.len()
+        + card.websites.len()
+        + card.categories.len()
+}
+
+/// The single-value fields (and notes) where the cards hold different values, by the card's
+/// field name ("name", "company", "notes"…). The same text in other capitals or spacing, or a
+/// value only some of them have, isn't a difference: it merges by itself. Lists (addresses,
+/// numbers, websites, categories) never differ: every value is kept.
+pub fn card_differences(cards: &[&Card]) -> Vec<String> {
+    let same = |s: &str| s.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
+    let fields: [(&str, fn(&Card) -> &str); 12] = [
+        ("name", |c| &c.name),
+        ("prefix", |c| &c.prefix),
+        ("given", |c| &c.given),
+        ("middle", |c| &c.middle),
+        ("family", |c| &c.family),
+        ("suffix", |c| &c.suffix),
+        ("nickname", |c| &c.nickname),
+        ("company", |c| &c.company),
+        ("department", |c| &c.department),
+        ("title", |c| &c.title),
+        ("birthday", |c| &c.birthday),
+        ("notes", |c| &c.notes),
+    ];
+    let mut out = Vec::new();
+    for (field, get) in fields.iter() {
+        let values: HashSet<String> = cards.iter().map(|c| same(get(c))).filter(|v| !v.is_empty()).collect();
+        if values.len() > 1 {
+            out.push(field.to_string());
+        }
+    }
+    out
+}
+
+/// The cards as one: `first`'s values first; a field it lacks taken from the others; every
+/// email, phone, address, website, and category any of them has, each once; their different
+/// notes one after another. Nothing any of them holds is lost.
+pub fn merge_of(first: &Card, others: &[&Card]) -> Card {
+    let mut out = first.clone();
+    for other in others {
+        for (mine, theirs) in [
+            (&mut out.name, &other.name),
+            (&mut out.given, &other.given),
+            (&mut out.middle, &other.middle),
+            (&mut out.family, &other.family),
+            (&mut out.prefix, &other.prefix),
+            (&mut out.suffix, &other.suffix),
+            (&mut out.nickname, &other.nickname),
+            (&mut out.company, &other.company),
+            (&mut out.department, &other.department),
+            (&mut out.title, &other.title),
+            (&mut out.birthday, &other.birthday),
+        ] {
+            if mine.trim().is_empty() && !theirs.trim().is_empty() {
+                *mine = theirs.clone();
+            }
+        }
+        for e in &other.emails {
+            if !e.value.trim().is_empty() && !out.emails.iter().any(|m| m.value.trim().eq_ignore_ascii_case(e.value.trim())) {
+                out.emails.push(e.clone());
+            }
+        }
+        for p in &other.phones {
+            let key = phone_key(&p.value).unwrap_or_else(|| p.value.trim().to_string());
+            if !p.value.trim().is_empty() && !out.phones.iter().any(|m| phone_key(&m.value).unwrap_or_else(|| m.value.trim().to_string()) == key) {
+                out.phones.push(p.clone());
+            }
+        }
+        let place = |a: &Postal| {
+            [&a.street, &a.city, &a.region, &a.postal_code, &a.country]
+                .iter()
+                .map(|s| s.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase())
+                .collect::<Vec<_>>()
+        };
+        for a in &other.addresses {
+            if !a.is_empty() && !out.addresses.iter().any(|m| place(m) == place(a)) {
+                out.addresses.push(a.clone());
+            }
+        }
+        let site = |w: &str| w.trim().trim_end_matches('/').to_lowercase();
+        for w in &other.websites {
+            if !w.trim().is_empty() && !out.websites.iter().any(|m| site(m) == site(w)) {
+                out.websites.push(w.clone());
+            }
+        }
+        for c in &other.categories {
+            if !c.trim().is_empty() && !out.categories.iter().any(|m| m.trim().eq_ignore_ascii_case(c.trim())) {
+                out.categories.push(c.clone());
+            }
+        }
+        let note = other.notes.trim();
+        if !note.is_empty() && !out.notes.contains(note) {
+            out.notes = if out.notes.trim().is_empty() { note.to_string() } else { format!("{}\n\n{note}", out.notes.trim_end()) };
+        }
+    }
+    out
 }
 
 /// One card in a list, with where it lives.
@@ -463,6 +608,75 @@ pub struct CardRow {
     pub book: String,
     pub card: Card,
     pub shown: String,
+}
+
+/// The setting naming the account a new contact went into last (`new_contact_account`).
+const NEW_CONTACT_SETTING: &str = "contacts-new-in";
+
+/// An account a contact can be added to (`contact_targets`).
+#[derive(Clone, Debug, Serialize)]
+pub struct ContactTarget {
+    pub account: i64,
+    pub address: String,
+    /// "Microsoft 365", "Google", or "CardDAV".
+    pub service: String,
+    /// The address book a contact goes into (its server id; "" = the account's default).
+    pub book: String,
+    pub book_name: String,
+    /// How many contacts the account holds.
+    pub count: u64,
+}
+
+/// What `copy_cards` did.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct CardsCopied {
+    pub copied: u64,
+    pub moved: u64,
+    /// Already in that account (or in it to begin with).
+    pub skipped: u64,
+    /// (card, why)
+    pub failed: Vec<(i64, String)>,
+}
+
+/// Contacts that look like one person (`contact_duplicates`): the cards, why they're taken as
+/// one, and what merging them makes.
+#[derive(Clone, Debug, Serialize)]
+pub struct DuplicateGroup {
+    pub cards: Vec<CardRow>,
+    /// "the same email address ann@example.com", "the same phone number 813 555 0100", "the same
+    /// name Ann Smith"
+    pub why: Vec<String>,
+    /// The card most filled in, whose name and fields come first in the merged one.
+    pub keep: i64,
+    pub merged: Card,
+    /// Only the same name: maybe the same person, maybe not (never merged by Merge All).
+    pub possible: bool,
+    /// The fields holding different values (`card_differences`): the user chooses those.
+    pub differences: Vec<String>,
+}
+
+/// What `merge_cards` did.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct CardsMerged {
+    /// The merge's mark, for `undo_merge`.
+    pub merge: String,
+    /// Cards changed into the merged contact (one per account).
+    pub updated: u64,
+    /// Extra copies deleted (kept in the history).
+    pub deleted: u64,
+    /// (card, why): left as they were.
+    pub failed: Vec<(i64, String)>,
+}
+
+/// A merge made lately, which `undo_merge` can take back.
+#[derive(Clone, Debug, Serialize)]
+pub struct MergeDone {
+    pub merge: String,
+    pub at: i64,
+    /// The contact's name as merged.
+    pub name: String,
+    /// How many contacts went into it.
+    pub cards: u64,
 }
 
 /// Where a card came from: its account and service, its address book, and how it stands with
@@ -479,7 +693,7 @@ pub struct CardOrigin {
     /// A change of the user's still on its way to the server.
     pub waiting: Option<String>,
     pub last_error: Option<String>,
-    /// Changes go back to its server (Microsoft 365, Outlook.com, Google).
+    /// Changes go back to its server (Microsoft 365, Outlook.com, Google, a CardDAV server).
     pub editable: bool,
 }
 
@@ -518,16 +732,16 @@ impl Library {
     /// Stores an account's address books as fetched: new cards added, changed ones (by Graph's
     /// changeKey) read again, those gone from the server removed. The server's own form is kept.
     pub fn record_contacts(&self, account: i64, books: &[(Option<String>, String, Vec<Value>)]) -> Result<CardsRecorded> {
-        self.record_books(account, books, false)
+        self.record_cards_from(account, books, Source::Graph)
     }
 
     /// A Google account's contacts (People API), recorded the same way: one address book,
     /// "Google Contacts"; each person's `resourceName` its id, its `etag` its version.
     pub fn record_google_contacts(&self, account: i64, people: &[Value]) -> Result<CardsRecorded> {
-        self.record_books(account, &[(None, "Google Contacts".to_string(), people.to_vec())], true)
+        self.record_cards_from(account, &[(None, "Google Contacts".to_string(), people.to_vec())], Source::Google)
     }
 
-    fn record_books(&self, account: i64, books: &[(Option<String>, String, Vec<Value>)], google: bool) -> Result<CardsRecorded> {
+    pub(crate) fn record_cards_from(&self, account: i64, books: &[(Option<String>, String, Vec<Value>)], source: Source) -> Result<CardsRecorded> {
         let mut done = CardsRecorded::default();
         let known: HashMap<String, (i64, Option<String>)> = {
             let mut stmt = self.conn.prepare("SELECT server_id, id, version FROM cards WHERE account = ?1 AND server_id IS NOT NULL")?;
@@ -543,19 +757,23 @@ impl Library {
             )?;
             stmt.query_map(params![account], |r| r.get::<_, Option<String>>(0))?.filter_map(|r| r.ok().flatten()).collect()
         };
+        // contacts kept local (`local_only`): only contacts new here come in (never one deleted
+        // here); those here keep their own version, and nothing the server removed leaves
+        let local = self.local_only_account(account, crate::local_only::Service::Contacts)?;
+        let deleted_here = if local { self.local_deleted(account, "cards")? } else { HashSet::new() };
         let mut seen = HashSet::new();
         self.conn.execute_batch("BEGIN IMMEDIATE")?;
         let outcome = (|| -> Result<()> {
             for (book, book_name, contacts) in books {
                 for v in contacts {
-                    let (id, version, card) = if google {
-                        (v["resourceName"].as_str(), v["etag"].as_str(), crate::google::card_from_person(v))
-                    } else {
-                        (v["id"].as_str(), v["changeKey"].as_str(), from_graph(v))
+                    let (id, version, card) = match source {
+                        Source::Google => (v["resourceName"].as_str(), v["etag"].as_str(), crate::google::card_from_person(v)),
+                        Source::Dav => (v["id"].as_str(), v["etag"].as_str(), from_vcard(v["vcard"].as_str().unwrap_or("")).into_iter().next().unwrap_or_default()),
+                        Source::Graph => (v["id"].as_str(), v["changeKey"].as_str(), from_graph(v)),
                     };
                     let Some(id) = id else { continue };
                     seen.insert(id.to_string());
-                    if waiting.contains(id) {
+                    if waiting.contains(id) || (local && (known.contains_key(id) || deleted_here.contains(id))) {
                         continue;
                     }
                     let version = version.map(str::to_string);
@@ -580,7 +798,7 @@ impl Library {
                 }
             }
             for (server_id, (row, _)) in &known {
-                if !seen.contains(server_id) && !waiting.contains(server_id) {
+                if !local && !seen.contains(server_id) && !waiting.contains(server_id) {
                     self.conn.execute("DELETE FROM cards WHERE id = ?1", params![row])?;
                     done.removed += 1;
                 }
@@ -643,41 +861,53 @@ impl Library {
                 |r| Ok((r.get(0)?, r.get(1)?)),
             )
             .optional()?;
+        let dav = self.dav_config_of(account)?.is_some();
         Ok(CardOrigin {
             account,
             address,
-            service: crate::db::kind_name(&kind).to_string(),
+            service: if dav { "CardDAV".to_string() } else { crate::db::kind_name(&kind).to_string() },
             book,
             on_server: server_id.is_some(),
             updated,
             waiting: waiting.as_ref().map(|(k, _)| if k == "card-create" { "new, waiting to be made on the server" } else { "changed here, waiting to go to the server" }.to_string()),
             last_error: waiting.and_then(|(_, e)| e),
-            editable: kind.starts_with("graph") || kind == "gmail",
+            editable: kind.starts_with("graph") || kind == "gmail" || dav,
         })
     }
 
-    /// A card whose changes can go back to its server (Microsoft's or Google's), else why not.
+    /// A card whose changes can go back to its server (Microsoft's, Google's, or a CardDAV
+    /// server), else why not.
+    /// Whether a card's account keeps its contacts local (`local_only`).
+    fn card_local_only(&self, id: i64) -> Result<bool> {
+        let account: i64 = self.conn.query_row("SELECT account FROM cards WHERE id = ?1", params![id], |r| r.get(0))?;
+        self.local_only_account(account, crate::local_only::Service::Contacts)
+    }
+
     fn card_editable(&self, id: i64) -> Result<()> {
-        let kind: String = self.conn.query_row("SELECT a.kind FROM cards c JOIN accounts a ON a.id = c.account WHERE c.id = ?1", params![id], |r| r.get(0))?;
-        if kind.starts_with("graph") || kind == "gmail" {
+        let (kind, account): (String, i64) = self.conn.query_row("SELECT a.kind, a.id FROM cards c JOIN accounts a ON a.id = c.account WHERE c.id = ?1", params![id], |r| Ok((r.get(0)?, r.get(1)?)))?;
+        if kind.starts_with("graph") || kind == "gmail" || self.dav_config_of(account)?.is_some() {
             Ok(())
         } else {
-            Err(Error::Other("this contact comes from Google: change it in Google Contacts (changing Google contacts in Eudora comes later)".into()))
+            Err(Error::Other("this contact's address book can't be changed from Eudora".into()))
         }
     }
 
     /// Changes a card: at once here, and on its server through the queue (kept as it was in
     /// `card_history` first).
     pub fn update_card(&self, id: i64, card: &Card) -> Result<()> {
+        self.update_card_as(id, card, "edited")
+    }
+
+    fn update_card_as(&self, id: i64, card: &Card, reason: &str) -> Result<()> {
         self.card_editable(id)?;
-        self.keep_card_history(id, "edited")?;
+        self.keep_card_history(id, reason)?;
         self.conn.execute("UPDATE cards SET card = ?2, updated = ?3 WHERE id = ?1", params![id, serde_json::to_string(card)?, now()])?;
         let already: bool = self.conn.query_row(
             "SELECT EXISTS (SELECT 1 FROM pending_ops WHERE kind IN ('card-update', 'card-create') AND json_extract(payload, '$.card') = ?1)",
             params![id],
             |r| r.get(0),
         )?;
-        if !already {
+        if !already && !self.card_local_only(id)? {
             self.conn.execute("INSERT INTO pending_ops (created, kind, payload) VALUES (?1, 'card-update', ?2)", params![now(), json!({ "card": id }).to_string()])?;
         }
         Ok(())
@@ -696,25 +926,387 @@ impl Library {
             params![account, book, book_name, serde_json::to_string(card)?, now()],
         )?;
         let id = self.conn.last_insert_rowid();
-        self.conn.execute("INSERT INTO pending_ops (created, kind, payload) VALUES (?1, 'card-create', ?2)", params![now(), json!({ "card": id }).to_string()])?;
+        if !self.local_only_account(account, crate::local_only::Service::Contacts)? {
+            self.conn.execute("INSERT INTO pending_ops (created, kind, payload) VALUES (?1, 'card-create', ?2)", params![now(), json!({ "card": id }).to_string()])?;
+        }
         Ok(id)
     }
 
     /// Deletes a card: here at once, on its server through the queue (Exchange keeps it in
     /// Deleted Items); kept as it was in `card_history`, so it can be brought back.
     pub fn delete_card(&self, id: i64) -> Result<()> {
+        self.delete_card_as(id, "deleted")
+    }
+
+    fn delete_card_as(&self, id: i64, reason: &str) -> Result<()> {
         self.card_editable(id)?;
-        self.keep_card_history(id, "deleted")?;
+        self.keep_card_history(id, reason)?;
         let (account, server_id): (i64, Option<String>) = self.conn.query_row("SELECT account, server_id FROM cards WHERE id = ?1", params![id], |r| Ok((r.get(0)?, r.get(1)?)))?;
         self.conn.execute("DELETE FROM pending_ops WHERE kind IN ('card-update', 'card-create') AND json_extract(payload, '$.card') = ?1", params![id])?;
         self.conn.execute("DELETE FROM cards WHERE id = ?1", params![id])?;
-        if let Some(server_id) = server_id {
+        let local = self.local_only_account(account, crate::local_only::Service::Contacts)?;
+        if let Some(server_id) = server_id.as_deref().filter(|_| local) {
+            // contacts kept local (`local_only`): remembered, so the server's copy isn't brought back
+            self.remember_local_delete(account, "cards", server_id)?;
+        } else if let Some(server_id) = server_id {
             self.conn.execute(
                 "INSERT INTO pending_ops (created, kind, payload) VALUES (?1, 'card-delete', ?2)",
                 params![now(), json!({ "account": account, "server_id": server_id }).to_string()],
             )?;
         }
         Ok(())
+    }
+
+    /// Every account a contact can be added to (its own address book on a server Eudora writes
+    /// to: Microsoft 365 / Outlook.com, Gmail, CardDAV), empty ones included, with the address
+    /// book a new contact goes into (the one holding most of its contacts) and how many it holds.
+    pub fn contact_targets(&self) -> Result<Vec<ContactTarget>> {
+        let mut out = Vec::new();
+        let accounts: Vec<(i64, String, String)> = {
+            let mut stmt = self.conn.prepare("SELECT id, COALESCE(address, ''), kind FROM accounts ORDER BY id")?;
+            let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?;
+            rows.collect::<rusqlite::Result<_>>()?
+        };
+        let dav: Vec<crate::dav::DavConfig> = self.dav_accounts()?.into_iter().filter(|c| c.contacts.is_some()).collect();
+        for (account, address, kind) in accounts {
+            let is_dav = dav.iter().any(|c| c.address.eq_ignore_ascii_case(&address));
+            let service = if kind == "graph" {
+                "Microsoft 365"
+            } else if kind == "gmail" {
+                "Google"
+            } else if is_dav {
+                "CardDAV"
+            } else {
+                continue;
+            };
+            let (book, book_name, count): (String, String, i64) = self
+                .conn
+                .query_row(
+                    "SELECT book, book_name, (SELECT COUNT(*) FROM cards WHERE account = ?1) FROM cards WHERE account = ?1 GROUP BY book ORDER BY COUNT(*) DESC LIMIT 1",
+                    params![account],
+                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                )
+                .optional()?
+                .unwrap_or_else(|| (String::new(), "Contacts".into(), 0));
+            out.push(ContactTarget { account, address, service: service.into(), book, book_name, count: count as u64 });
+        }
+        Ok(out)
+    }
+
+    /// The account a new contact starts in: the one chosen last time (setting `contacts-new-in`),
+    /// else the first Microsoft 365 account (the main one), else the first that can take one.
+    pub fn new_contact_account(&self) -> Result<Option<i64>> {
+        let targets = self.contact_targets()?;
+        let last: Option<i64> = self.setting(NEW_CONTACT_SETTING)?.and_then(|s| s.trim().parse().ok());
+        Ok(last
+            .filter(|a| targets.iter().any(|t| t.account == *a))
+            .or_else(|| targets.iter().find(|t| t.service == "Microsoft 365").map(|t| t.account))
+            .or_else(|| targets.first().map(|t| t.account)))
+    }
+
+    /// Remembers the account a new contact went into, for the next one.
+    pub fn set_new_contact_account(&self, account: i64) -> Result<()> {
+        self.set_setting(NEW_CONTACT_SETTING, &account.to_string())
+    }
+
+    /// Copies contacts into another account's address book (each made there through the queue),
+    /// or moves them (copied, then deleted from where they were: kept in the history, so nothing
+    /// is lost). `skip_existing`: a contact already in that account (an email address in common,
+    /// else the same name with no address) is left out. One save for all of them.
+    pub fn copy_cards(&self, ids: &[i64], account: i64, move_them: bool, skip_existing: bool) -> Result<CardsCopied> {
+        let target = self
+            .contact_targets()?
+            .into_iter()
+            .find(|t| t.account == account)
+            .ok_or_else(|| Error::Other("that account has no address book Eudora can add contacts to".into()))?;
+        let mut done = CardsCopied::default();
+        let tx = self.conn.unchecked_transaction()?;
+        // what the target holds already: its email addresses, and the names of cards with none
+        let mut emails: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let mut names: std::collections::HashSet<String> = std::collections::HashSet::new();
+        for row in self.cards("", Some(account))? {
+            if row.card.emails.is_empty() {
+                names.insert(row.shown.trim().to_lowercase());
+            }
+            emails.extend(row.card.emails.iter().map(|e| e.value.trim().to_lowercase()));
+        }
+        for &id in ids {
+            let row = match self.card(id) {
+                Ok(r) => r,
+                Err(e) => {
+                    done.failed.push((id, e.to_string()));
+                    continue;
+                }
+            };
+            if row.account == account {
+                done.skipped += 1;
+                continue;
+            }
+            let theirs: Vec<String> = row.card.emails.iter().map(|e| e.value.trim().to_lowercase()).filter(|e| !e.is_empty()).collect();
+            let there = if theirs.is_empty() { names.contains(&row.shown.trim().to_lowercase()) } else { theirs.iter().any(|e| emails.contains(e)) };
+            if skip_existing && there {
+                done.skipped += 1;
+                continue;
+            }
+            if move_them {
+                if let Err(e) = self.card_editable(id) {
+                    done.failed.push((id, format!("{}: {e}", row.shown)));
+                    continue;
+                }
+            }
+            self.create_card(account, &target.book, &row.card)?;
+            emails.extend(theirs);
+            if row.card.emails.is_empty() {
+                names.insert(row.shown.trim().to_lowercase());
+            }
+            if move_them {
+                self.delete_card(id)?;
+                done.moved += 1;
+            } else {
+                done.copied += 1;
+            }
+        }
+        tx.commit()?;
+        Ok(done)
+    }
+
+    /// Contacts that are the same person, in one account or across accounts: the same email address
+    /// or the same phone number (its last ten digits). The same name alone doesn't make one person:
+    /// those sets come after, marked `possible`. Biggest groups first. `account`: only groups with
+    /// a contact in it.
+    pub fn contact_duplicates(&self, account: Option<i64>) -> Result<Vec<DuplicateGroup>> {
+        let rows = self.cards("", None)?;
+        let mut parent: Vec<usize> = (0..rows.len()).collect();
+        fn root(parent: &mut [usize], mut i: usize) -> usize {
+            while parent[i] != i {
+                parent[i] = parent[parent[i]];
+                i = parent[i];
+            }
+            i
+        }
+        // each key → the first card holding it; later cards holding it join that one's group
+        let mut first: HashMap<String, usize> = HashMap::new();
+        let mut why: HashMap<String, String> = HashMap::new();
+        for (i, row) in rows.iter().enumerate() {
+            let c = &row.card;
+            let mut keys: Vec<(String, String)> = Vec::new();
+            for e in &c.emails {
+                let v = e.value.trim().to_lowercase();
+                if !v.is_empty() {
+                    keys.push((format!("e:{v}"), format!("the same email address {}", e.value.trim())));
+                }
+            }
+            for p in &c.phones {
+                if let Some(k) = phone_key(&p.value) {
+                    keys.push((format!("p:{k}"), format!("the same phone number {}", p.value.trim())));
+                }
+            }
+            for (key, said) in keys {
+                match first.get(&key) {
+                    Some(&j) => {
+                        let (a, b) = (root(&mut parent, i), root(&mut parent, j));
+                        if a != b {
+                            parent[a] = b;
+                        }
+                        why.entry(key).or_insert(said);
+                    }
+                    None => {
+                        first.insert(key, i);
+                    }
+                }
+            }
+        }
+        let roots: Vec<usize> = (0..rows.len()).map(|i| root(&mut parent, i)).collect();
+        let mut groups: HashMap<usize, Vec<usize>> = HashMap::new();
+        for (i, r) in roots.iter().enumerate() {
+            groups.entry(*r).or_default().push(i);
+        }
+        // the same name, not already one person by address or number: maybe the same
+        let mut by_name: HashMap<String, Vec<usize>> = HashMap::new();
+        for (i, row) in rows.iter().enumerate() {
+            if let Some(k) = name_key(&row.card) {
+                by_name.entry(k).or_default().push(i);
+            }
+        }
+        let mut sets: Vec<(Vec<usize>, bool)> = groups.into_values().filter(|m| m.len() > 1).map(|m| (m, false)).collect();
+        sets.extend(by_name.into_values().filter(|m| m.iter().map(|&i| roots[i]).collect::<HashSet<_>>().len() > 1).map(|m| (m, true)));
+        let mut out = Vec::new();
+        for (members, possible) in sets {
+            let cards: Vec<CardRow> = members.iter().map(|&i| rows[i].clone()).collect();
+            if account.is_some_and(|a| !cards.iter().any(|c| c.account == a)) {
+                continue;
+            }
+            // the same contact kept alike in several accounts (a merge leaves one in each) is
+            // nothing left to merge
+            let accounts: HashSet<i64> = cards.iter().map(|c| c.account).collect();
+            if accounts.len() == cards.len() && cards.iter().all(|c| c.card == cards[0].card) {
+                continue;
+            }
+            let mut reasons: Vec<String> = Vec::new();
+            if possible {
+                reasons.push(format!("only the same name, {}: no email address or phone number in common, so it may be someone else", cards[0].shown));
+            } else {
+                // the reasons that hold inside this group (a key two of its cards share)
+                for (key, said) in &why {
+                    let holders = cards
+                        .iter()
+                        .filter(|r| match key.split_once(':') {
+                            Some(("e", v)) => r.card.emails.iter().any(|e| e.value.trim().to_lowercase() == v),
+                            Some(("p", v)) => r.card.phones.iter().any(|p| phone_key(&p.value).as_deref() == Some(v)),
+                            _ => false,
+                        })
+                        .count();
+                    if holders > 1 {
+                        reasons.push(said.clone());
+                    }
+                }
+                reasons.sort();
+            }
+            let (merged, keep) = Self::merged_group(&cards, None);
+            let differences = card_differences(&cards.iter().map(|c| &c.card).collect::<Vec<_>>());
+            out.push(DuplicateGroup { cards, why: reasons, keep, merged, possible, differences });
+        }
+        out.sort_by(|a, b| {
+            a.possible
+                .cmp(&b.possible)
+                .then(b.cards.len().cmp(&a.cards.len()))
+                .then(a.merged.shown().to_lowercase().cmp(&b.merged.shown().to_lowercase()))
+        });
+        Ok(out)
+    }
+
+    /// The merged card of a group, led by `keep` (else the card most filled in), and its id.
+    fn merged_group(cards: &[CardRow], keep: Option<i64>) -> (Card, i64) {
+        let lead = keep
+            .and_then(|k| cards.iter().find(|c| c.id == k))
+            .or_else(|| cards.iter().max_by(|a, b| filled(&a.card).cmp(&filled(&b.card)).then(b.id.cmp(&a.id))))
+            .expect("a group has cards");
+        let others: Vec<&Card> = cards.iter().filter(|c| c.id != lead.id).map(|c| &c.card).collect();
+        (merge_of(&lead.card, &others), lead.id)
+    }
+
+    /// What merging these contacts would make (`keep` leads), without changing anything.
+    pub fn merge_preview(&self, ids: &[i64], keep: Option<i64>) -> Result<Card> {
+        let cards = ids.iter().map(|&id| self.card(id)).collect::<Result<Vec<_>>>()?;
+        if cards.is_empty() {
+            return Err(Error::Other("no contacts to merge".into()));
+        }
+        Ok(Self::merged_group(&cards, keep).0)
+    }
+
+    /// Merges contacts into one, on their servers too (decided 2026-10-18: always on the
+    /// servers): in each account one of them (`keep` where it's there, else the fullest) becomes
+    /// the merged contact (`card` as the user edited it, else `merge_preview`'s), and the account's
+    /// other copies are deleted. Every card changed or deleted is kept as it was first, so
+    /// `undo_merge` can bring it all back. One save for all of it.
+    pub fn merge_cards(&self, ids: &[i64], keep: Option<i64>, card: Option<&Card>) -> Result<CardsMerged> {
+        let mut done = CardsMerged::default();
+        let mut cards = Vec::new();
+        for &id in ids {
+            match self.card(id).and_then(|row| self.card_editable(id).map(|_| row)) {
+                Ok(row) => cards.push(row),
+                Err(e) => done.failed.push((id, e.to_string())),
+            }
+        }
+        if cards.len() < 2 {
+            return Err(Error::Other(match done.failed.first() {
+                Some((_, why)) => format!("there's nothing to merge: {why}"),
+                None => "choose two contacts or more to merge".into(),
+            }));
+        }
+        let (computed, lead) = Self::merged_group(&cards, keep);
+        let merged = card.cloned().unwrap_or(computed);
+        done.merge = format!("{}-{}", now(), lead);
+        let tx = self.conn.unchecked_transaction()?;
+        let mut accounts: Vec<i64> = cards.iter().map(|c| c.account).collect();
+        accounts.dedup();
+        accounts.sort();
+        accounts.dedup();
+        for account in accounts {
+            let here: Vec<&CardRow> = cards.iter().filter(|c| c.account == account).collect();
+            let keeper = here
+                .iter()
+                .find(|c| c.id == lead)
+                .or_else(|| here.iter().max_by(|a, b| filled(&a.card).cmp(&filled(&b.card)).then(b.id.cmp(&a.id))))
+                .map(|c| c.id)
+                .expect("an account here has cards");
+            for c in &here {
+                if c.id == keeper {
+                    if c.card != merged {
+                        self.update_card_as(c.id, &merged, &format!("merge {} edited", done.merge))?;
+                    } else {
+                        self.keep_card_history(c.id, &format!("merge {} kept", done.merge))?;
+                    }
+                    done.updated += 1;
+                } else {
+                    self.delete_card_as(c.id, &format!("merge {} deleted", done.merge))?;
+                    done.deleted += 1;
+                }
+            }
+        }
+        tx.commit()?;
+        Ok(done)
+    }
+
+    /// The merges of the last 30 days, newest first.
+    pub fn recent_merges(&self) -> Result<Vec<MergeDone>> {
+        // ("merge <mark> edited|kept|deleted"; a card kept names it, as it is now: merged)
+        let mut stmt = self.conn.prepare("SELECT h.reason, h.at, COALESCE(c.card, h.card_json) FROM card_history h LEFT JOIN cards c ON c.id = h.card WHERE h.reason LIKE 'merge %' AND h.at > ?1 ORDER BY h.id")?;
+        let rows = stmt.query_map(params![now() - 30 * 86_400], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?, r.get::<_, String>(2)?)))?;
+        let mut out: Vec<MergeDone> = Vec::new();
+        for row in rows {
+            let (reason, at, json) = row?;
+            let mut words = reason.split(' ');
+            let (Some("merge"), Some(merge), Some(what)) = (words.next(), words.next(), words.next()) else { continue };
+            let i = match out.iter().position(|m| m.merge == merge) {
+                Some(i) => i,
+                None => {
+                    out.push(MergeDone { merge: merge.to_string(), at, name: String::new(), cards: 0 });
+                    out.len() - 1
+                }
+            };
+            out[i].cards += 1;
+            if what != "deleted" && out[i].name.is_empty() {
+                out[i].name = serde_json::from_str::<Card>(&json).map(|c| c.shown()).unwrap_or_default();
+            }
+        }
+        out.reverse();
+        Ok(out)
+    }
+
+    /// Takes a merge back: each contact changed into the merged one is changed back, each copy
+    /// deleted is made again (in its account and address book, on its server through the queue).
+    /// Returns how many contacts were brought back.
+    pub fn undo_merge(&self, merge: &str) -> Result<u64> {
+        let rows: Vec<(i64, Option<i64>, i64, String, String, String)> = {
+            let mut stmt = self.conn.prepare("SELECT id, card, account, book, card_json, reason FROM card_history WHERE reason IN (?1, ?2, ?3) ORDER BY id")?;
+            let r = stmt.query_map(params![format!("merge {merge} edited"), format!("merge {merge} deleted"), format!("merge {merge} kept")], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?)))?;
+            r.collect::<rusqlite::Result<_>>()?
+        };
+        if rows.is_empty() {
+            return Err(Error::Other("that merge isn't in the history any more (or was already undone)".into()));
+        }
+        let tx = self.conn.unchecked_transaction()?;
+        let mut back = 0;
+        for (history, card, account, book, json, reason) in &rows {
+            let old: Card = serde_json::from_str(json)?;
+            let exists = match card {
+                Some(id) => self.conn.query_row("SELECT EXISTS (SELECT 1 FROM cards WHERE id = ?1)", params![id], |r| r.get::<_, bool>(0))?,
+                None => false,
+            };
+            if reason.ends_with(" kept") {
+                // (unchanged by the merge: nothing to put back)
+            } else if exists && reason.ends_with(" edited") {
+                self.update_card_as(card.expect("exists"), &old, "undoing a merge")?;
+                back += 1;
+            } else {
+                self.create_card(*account, book, &old)?;
+                back += 1;
+            }
+            self.conn.execute("UPDATE card_history SET reason = 'undone ' || reason WHERE id = ?1", params![history])?;
+        }
+        tx.commit()?;
+        Ok(back)
     }
 
     /// Share: a draft with the contact attached as a vCard (`Name.vcf`, read by Outlook, Apple,
@@ -816,7 +1408,7 @@ mod tests {
             company: "Acme; Inc".into(),
             emails: vec![Labeled { kind: "work".into(), value: "ann@acme.example".into() }],
             phones: vec![Labeled { kind: "mobile".into(), value: "+1 555 0100".into() }, Labeled { kind: "work".into(), value: "+1 555 0101".into() }],
-            addresses: vec![Postal { kind: "work".into(), street: "1 Main St".into(), city: "Rockaway".into(), region: "NJ".into(), postal_code: "07866".into(), country: "USA".into() }],
+            addresses: vec![Postal { kind: "work".into(), street: "1 Main St".into(), city: "Springfield".into(), region: "IL".into(), postal_code: "62701".into(), country: "USA".into() }],
             birthday: "1970-05-04".into(),
             notes: "Met at the fair\nlikes tea".into(),
             ..Default::default()
@@ -839,7 +1431,7 @@ mod tests {
         assert_eq!((g.given.as_str(), g.company.as_str()), ("Ann", "Acme; Inc"));
         assert_eq!(g.emails[0].value, "ann@acme.example");
         assert_eq!(g.phones.iter().map(|p| p.kind.as_str()).collect::<Vec<_>>(), vec!["mobile", "work"]);
-        assert_eq!(g.addresses[0].city, "Rockaway");
+        assert_eq!(g.addresses[0].city, "Springfield");
         assert_eq!(g.birthday, "1970-05-04");
     }
 
@@ -862,6 +1454,110 @@ mod tests {
         let line = csv.lines().nth(1).unwrap();
         assert!(line.starts_with("Ann,,\"Smith, Jr\",\"Ann Smith, Jr\",,Acme; Inc,"), "{line}");
         assert!(csv.contains("\"Met at the fair\nlikes tea\""));
+    }
+
+    #[test]
+    fn contacts_are_copied_or_moved_to_another_account_and_the_choice_is_remembered() {
+        let dir = tempfile::tempdir().unwrap();
+        let library = Library::open(&dir.path().join("lib"), crate::library::Access::Write, &crate::progress::Silent).unwrap();
+        // an IMAP account (no address book), a Gmail one, an empty Microsoft 365 one
+        library.conn.execute("INSERT INTO accounts (id, kind, name, address, created) VALUES (3, 'imap', 'm', 'me@imap.example', 0)", []).unwrap();
+        library.conn.execute("INSERT INTO accounts (id, kind, name, address, created) VALUES (5, 'gmail', 'g', 'me@gmail.example', 0)", []).unwrap();
+        library.conn.execute("INSERT INTO accounts (id, kind, name, address, created) VALUES (7, 'graph', 'w', 'me@work.example', 0)", []).unwrap();
+        let person = |name: &str, email: &str| Card { name: name.into(), emails: vec![Labeled { kind: "work".into(), value: email.into() }], ..Default::default() };
+        let books = vec![(Some("people".to_string()), "My Contacts".to_string(), vec![
+            json!({ "resourceName": "people/1", "etag": "1", "names": [{ "displayName": "Ann" }], "emailAddresses": [{ "value": "ann@x.example" }] }),
+        ])];
+        library.record_cards_from(5, &books, Source::Google).unwrap();
+        // every account that takes contacts, empty ones too; the main (Microsoft) one first chosen
+        let targets = library.contact_targets().unwrap();
+        assert_eq!(targets.iter().map(|t| (t.account, t.service.as_str(), t.count)).collect::<Vec<_>>(), vec![(5, "Google", 1), (7, "Microsoft 365", 0)]);
+        assert_eq!(targets[0].book, "people");
+        assert_eq!(library.new_contact_account().unwrap(), Some(7));
+        library.set_new_contact_account(5).unwrap();
+        assert_eq!(library.new_contact_account().unwrap(), Some(5), "the last choice is kept");
+        // Bob and Ann in Gmail; Ann is already in the work account
+        let bob = library.create_card(5, "", &person("Bob", "bob@x.example")).unwrap();
+        let ann = library.cards("ann", Some(5)).unwrap()[0].id;
+        library.create_card(7, "", &person("Ann Smith", "ANN@x.example")).unwrap();
+        library.conn.execute("DELETE FROM pending_ops", []).unwrap();
+        let copied = library.copy_cards(&[ann, bob], 7, false, true).unwrap();
+        assert_eq!((copied.copied, copied.moved, copied.skipped), (1, 0, 1), "Ann is there already");
+        assert_eq!(library.cards("", Some(5)).unwrap().len(), 2, "a copy leaves them where they were");
+        let creates: i64 = library.conn.query_row("SELECT COUNT(*) FROM pending_ops WHERE kind = 'card-create'", [], |r| r.get(0)).unwrap();
+        assert_eq!(creates, 1);
+        // a move: made there, deleted here (kept in the history); Ann copied too when asked
+        let moved = library.copy_cards(&[ann, bob], 7, true, false).unwrap();
+        assert_eq!((moved.copied, moved.moved, moved.skipped), (0, 2, 0));
+        assert!(library.cards("", Some(5)).unwrap().is_empty());
+        assert_eq!(library.cards("", Some(7)).unwrap().len(), 4);
+        let history: i64 = library.conn.query_row("SELECT COUNT(*) FROM card_history WHERE reason = 'deleted'", [], |r| r.get(0)).unwrap();
+        assert_eq!(history, 2);
+        // not to an account without an address book
+        assert!(library.copy_cards(&[bob], 3, false, false).is_err());
+    }
+
+    #[test]
+    fn duplicates_are_found_merged_on_every_account_and_the_merge_undone() {
+        let dir = tempfile::tempdir().unwrap();
+        let library = Library::open(&dir.path().join("lib"), crate::library::Access::Write, &crate::progress::Silent).unwrap();
+        library.conn.execute("INSERT INTO accounts (id, kind, name, address, created) VALUES (5, 'gmail', 'g', 'me@gmail.example', 0)", []).unwrap();
+        library.conn.execute("INSERT INTO accounts (id, kind, name, address, created) VALUES (7, 'graph', 'w', 'me@work.example', 0)", []).unwrap();
+        let labeled = |v: &str| Labeled { kind: "work".into(), value: v.into() };
+        // Ann twice at work (once by address, once by phone), once in Gmail by name; Bob alone;
+        // two Johns (one word: not the same person for that alone)
+        let ann_work = library.create_card(7, "", &Card { name: "Ann Smith".into(), emails: vec![labeled("ann@x.example")], company: "X Corp".into(), ..Default::default() }).unwrap();
+        let ann_phone = library.create_card(7, "", &Card { name: "A. Smith".into(), emails: vec![labeled("ANN@x.example")], phones: vec![labeled("+1 (813) 555-0100")], notes: "Met at the fair".into(), ..Default::default() }).unwrap();
+        let ann_gmail = library.create_card(5, "", &Card { name: "ann smith".into(), phones: vec![labeled("813.555.0100")], emails: vec![labeled("ann@home.example")], ..Default::default() }).unwrap();
+        library.create_card(5, "", &Card { name: "Bob Jones".into(), emails: vec![labeled("bob@x.example")], ..Default::default() }).unwrap();
+        library.create_card(7, "", &Card { name: "Bob Jones".into(), emails: vec![labeled("bob@elsewhere.example")], ..Default::default() }).unwrap();
+        library.create_card(5, "", &Card { name: "John".into(), ..Default::default() }).unwrap();
+        library.create_card(7, "", &Card { name: "John".into(), ..Default::default() }).unwrap();
+        library.conn.execute("DELETE FROM pending_ops", []).unwrap();
+        library.conn.execute("UPDATE cards SET server_id = 'srv' || id", []).unwrap();
+
+        let groups = library.contact_duplicates(None).unwrap();
+        assert_eq!(groups.len(), 2, "{groups:?}");
+        let g = &groups[0];
+        assert!(!g.possible);
+        // two Bob Joneses with nothing else in common: maybe, maybe not, listed after
+        assert!(groups[1].possible && groups[1].cards.len() == 2 && groups[1].why[0].contains("only the same name"));
+        assert_eq!(g.differences, vec!["name"], "the rest merges by itself");
+        let mut ids: Vec<i64> = g.cards.iter().map(|c| c.id).collect();
+        ids.sort();
+        assert_eq!(ids, vec![ann_work, ann_phone, ann_gmail]);
+        assert!(g.why.iter().any(|w| w.contains("email address")) && g.why.iter().any(|w| w.contains("phone number")), "{:?}", g.why);
+        // nothing lost: every address once, the phone once, the notes and company kept
+        let m = &g.merged;
+        assert_eq!(m.emails.len(), 2);
+        assert_eq!(m.phones.len(), 1);
+        assert_eq!((m.company.as_str(), m.notes.as_str()), ("X Corp", "Met at the fair"));
+        assert_eq!(library.contact_duplicates(Some(5)).unwrap().len(), 2);
+
+        // merged with Ann Smith (work) leading: one card per account, the extra one deleted
+        let done = library.merge_cards(&ids, Some(ann_work), None).unwrap();
+        assert_eq!((done.updated, done.deleted), (2, 1));
+        let work = library.cards("", Some(7)).unwrap();
+        assert!(work.iter().any(|r| r.id == ann_work && r.card.name == "Ann Smith" && r.card.phones.len() == 1));
+        assert!(!work.iter().any(|r| r.id == ann_phone));
+        assert_eq!(library.card(ann_gmail).unwrap().card.name, "Ann Smith", "the Gmail copy is the merged contact too");
+        let ops: Vec<String> = {
+            let mut s = library.conn.prepare("SELECT kind FROM pending_ops ORDER BY kind").unwrap();
+            s.query_map([], |r| r.get(0)).unwrap().map(|r| r.unwrap()).collect()
+        };
+        assert_eq!(ops, vec!["card-delete", "card-update", "card-update"], "the servers get it");
+        assert!(library.contact_duplicates(None).unwrap().iter().all(|g| g.possible), "Ann is done");
+        let merges = library.recent_merges().unwrap();
+        assert_eq!((merges.len(), merges[0].cards, merges[0].name.as_str()), (1, 3, "Ann Smith"));
+
+        // undone: each as it was, the deleted one made again
+        assert_eq!(library.undo_merge(&done.merge).unwrap(), 3);
+        assert_eq!(library.card(ann_gmail).unwrap().card.name, "ann smith");
+        assert_eq!(library.card(ann_work).unwrap().card.phones.len(), 0);
+        assert!(library.cards("", Some(7)).unwrap().iter().any(|r| r.card.name == "A. Smith" && r.card.notes == "Met at the fair"));
+        assert!(library.recent_merges().unwrap().is_empty());
+        assert!(library.undo_merge(&done.merge).is_err(), "only once");
+        assert!(library.merge_cards(&[ann_work], None, None).is_err(), "one contact isn't a merge");
     }
 
     #[test]

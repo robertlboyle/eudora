@@ -4,7 +4,8 @@
 ; Installs for the user who runs it (no administrator; %LOCALAPPDATA%\Programs\Eudora, where
 ; scripts\install-dev.ps1 puts development builds too), or for everyone when chosen. The mail
 ; library is never part of the install: it stays where it is (the one last opened is remembered,
-; else %LOCALAPPDATA%\Eudora\Library), and uninstalling never removes it.
+; else %LOCALAPPDATA%\Eudora\Library), and uninstalling keeps it unless the user asks, typing
+; DELETE, at the end of uninstalling (see "Deleting the user's data" in [Code]).
 ; Silent install for IT: /VERYSILENT /SUPPRESSMSGBOXES (/ALLUSERS for every user).
 
 #ifndef AppVersion
@@ -24,8 +25,9 @@ VersionInfoVersion={#AppVersion}
 VersionInfoCompany={#Publisher}
 VersionInfoDescription={#AppName} Setup
 ; The folder was "Eudora 27" before 1.0.0 (the program eudora27.exe, the command line eudora.exe):
-; an update installs into "Eudora" (not the folder used before) and removes the old one (below).
-DefaultDirName={autopf}\Eudora
+; an update installs into "Eudora" (not that folder) and removes the old one; 1.0.0 and later are
+; upgraded in their own folder (DefaultDir, Upgrading below).
+DefaultDirName={code:DefaultDir}
 UsePreviousAppDir=no
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
@@ -129,7 +131,9 @@ Type: files; Name: "{app}\*.old"
 Type: filesandordirs; Name: "{autopf}\Eudora 27"
 
 [Run]
-Filename: "{app}\eudora.exe"; Description: "Start Eudora"; Flags: nowait postinstall skipifsilent
+; (as the user who ran Setup, never with the administrator rights an install for everyone has: 2026-11-11, the
+; Eudora that 1.0.0's Setup started this way ran elevated on the library)
+Filename: "{app}\eudora.exe"; Description: "Start Eudora"; Flags: nowait postinstall skipifsilent runasoriginaluser
 ; an update Eudora started (Restart Now: /SILENT … /relaunch=1; eudora-core/src/update.rs) starts
 ; Eudora again, as the user who ran it
 Filename: "{app}\eudora.exe"; Flags: nowait runasoriginaluser; Check: Relaunch
@@ -185,12 +189,6 @@ begin
   RegWriteExpandStringValue(EnvRoot, EnvKey, 'Path', Path);
 end;
 
-procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
-begin
-  if CurUninstallStep = usPostUninstall then
-    RemoveFromPath(ExpandConstant('{app}'));
-end;
-
 { Whether Folder is in the PATH. }
 function InPath(Folder: String): Boolean;
 var
@@ -211,10 +209,15 @@ var
   Code, Tries: Integer;
 begin
   Result := '';
-  if not FileExists(ExpandConstant('{autopf}\Eudora 27\eudora27.exe')) then
-    exit;
-  ReplacedOld := True;
   OldOnPath := InPath(ExpandConstant('{autopf}\Eudora 27'));
+  if not FileExists(ExpandConstant('{autopf}\Eudora 27\eudora27.exe')) then
+  begin
+    { (a PATH entry left by an old install whose folder is already gone goes too) }
+    if OldOnPath then
+      RemoveFromPath(ExpandConstant('{autopf}\Eudora 27'));
+    exit;
+  end;
+  ReplacedOld := True;
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/IM eudora27.exe', '', SW_HIDE, ewWaitUntilTerminated, Code);
   Tries := 0;
   while (Tries < 20) and (Exec(ExpandConstant('{sys}\cmd.exe'), '/c tasklist /FI "IMAGENAME eq eudora27.exe" | find /I "eudora27.exe" >nul', '', SW_HIDE, ewWaitUntilTerminated, Code)) and (Code = 0) do
@@ -224,6 +227,206 @@ begin
   end;
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM eudora27.exe', '', SW_HIDE, ewWaitUntilTerminated, Code);
   RemoveFromPath(ExpandConstant('{autopf}\Eudora 27'));
+end;
+
+{ Upgrading. Every Eudora 1.0.0 or later installed
+  here is found, for everyone (HKLM) and for this user (HKCU), whichever install mode this Setup
+  runs in; the copy in use (a running eudora.exe, else the one installed last) is marked and
+  chosen on an Upgrade page. Upgrading a copy installed in the other mode starts this Setup again
+  in that mode (/ALLUSERS asks Windows for permission; /CURRENTUSER runs as the user) with
+  /UPGRADE="folder", which picks it and skips the page. An upgrade skips the folder and task pages
+  (its shortcuts and PATH entry stay as they are), and the Ready page says Upgrade. A silent
+  update (the updater passes /ALLUSERS or /CURRENTUSER) upgrades the copy of its own mode. An
+  install from before 1.0.0 ("Eudora 27") is not one: it goes to the new folder and the old one is
+  removed, as above. }
+var
+  CopyDir, CopyVersion: array of String;
+  CopyAdmin: array of Boolean;
+  CopiesFound, Upgrade, Relaunching, Requested: Boolean;
+  Chosen, InUse: Integer;
+  UpgradePage: TInputOptionWizardPage;
+
+function UninstallKey: String;
+begin
+  Result := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\' + ExpandConstant('{#SetupSetting("AppId")}') + '_is1';
+end;
+
+procedure AddCopy(Root: Integer; Admin: Boolean);
+var
+  Dir, Version: String;
+  N: Integer;
+begin
+  if not RegQueryStringValue(Root, UninstallKey, 'Inno Setup: App Path', Dir) then exit;
+  { (from before 1.0.0, or a folder that's gone: nothing to upgrade there) }
+  if (CompareText(ExtractFileName(RemoveBackslashUnlessRoot(Dir)), 'Eudora 27') = 0) or not FileExists(AddBackslash(Dir) + 'eudora.exe') then exit;
+  RegQueryStringValue(Root, UninstallKey, 'DisplayVersion', Version);
+  N := GetArrayLength(CopyDir);
+  SetArrayLength(CopyDir, N + 1);
+  SetArrayLength(CopyVersion, N + 1);
+  SetArrayLength(CopyAdmin, N + 1);
+  CopyDir[N] := RemoveBackslashUnlessRoot(Dir);
+  CopyVersion[N] := Version;
+  CopyAdmin[N] := Admin;
+end;
+
+{ The folder of a running eudora.exe, or ''. }
+function RunningFolder: String;
+var
+  OutFile: String;
+  Code: Integer;
+  Text: AnsiString;
+begin
+  Result := '';
+  OutFile := ExpandConstant('{tmp}\eudora-running.txt');
+  if Exec('powershell.exe', '-NoProfile -NonInteractive -Command "(Get-Process eudora -ErrorAction SilentlyContinue | Where-Object Path | Select-Object -First 1).Path | Out-File -Encoding ascii ''' + OutFile + '''"', '', SW_HIDE, ewWaitUntilTerminated, Code)
+    and LoadStringFromFile(OutFile, Text) and (Trim(String(Text)) <> '') then
+    Result := RemoveBackslashUnlessRoot(ExtractFileDir(Trim(String(Text))));
+end;
+
+procedure FindCopies;
+var
+  I: Integer;
+  Running, Asked: String;
+  Newest, Stamp: Int64;
+  Found: TFindRec;
+begin
+  if CopiesFound then exit;
+  CopiesFound := True;
+  AddCopy(HKLM, True);
+  AddCopy(HKCU, False);
+  InUse := -1;
+  Chosen := -1;
+  if GetArrayLength(CopyDir) = 0 then exit;
+  Asked := RemoveBackslashUnlessRoot(ExpandConstant('{param:UPGRADE|}'));
+  Running := RunningFolder;
+  Newest := 0;
+  for I := 0 to GetArrayLength(CopyDir) - 1 do
+  begin
+    if (Running <> '') and (CompareText(Running, CopyDir[I]) = 0) then
+      InUse := I;
+    if (Asked <> '') and (CompareText(Asked, CopyDir[I]) = 0) then
+      Chosen := I;
+  end;
+  Requested := Chosen >= 0;
+  if InUse < 0 then
+    for I := 0 to GetArrayLength(CopyDir) - 1 do
+      if FindFirst(AddBackslash(CopyDir[I]) + 'eudora.exe', Found) then
+      begin
+        Stamp := Int64(Found.LastWriteTime.dwHighDateTime) * 4294967296 + Int64(Found.LastWriteTime.dwLowDateTime);
+        FindClose(Found);
+        if Stamp > Newest then
+        begin
+          Newest := Stamp;
+          InUse := I;
+        end;
+      end;
+  if InUse < 0 then InUse := 0;
+  { silent (the updater): the copy of this install mode }
+  if (Chosen < 0) and WizardSilent then
+    for I := 0 to GetArrayLength(CopyDir) - 1 do
+      if CopyAdmin[I] = IsAdminInstallMode then
+        Chosen := I;
+  Upgrade := Chosen >= 0;
+end;
+
+function CopyCaption(I: Integer): String;
+begin
+  Result := 'Upgrade Eudora ' + CopyVersion[I] + ' in ' + CopyDir[I];
+  if CopyAdmin[I] then Result := Result + ' (for everyone' else Result := Result + ' (for you only';
+  if (I = InUse) and (GetArrayLength(CopyDir) > 1) then Result := Result + '; the copy you use)' else Result := Result + ')';
+end;
+
+function DefaultDir(Param: String): String;
+var
+  I: Integer;
+begin
+  FindCopies;
+  if Chosen >= 0 then
+    Result := CopyDir[Chosen]
+  else
+  begin
+    Result := ExpandConstant('{autopf}\Eudora');
+    for I := 0 to GetArrayLength(CopyDir) - 1 do
+      if CopyAdmin[I] = IsAdminInstallMode then Result := CopyDir[I];
+  end;
+end;
+
+procedure MakeUpgradePage;
+var
+  I: Integer;
+  Sub: String;
+begin
+  FindCopies;
+  if GetArrayLength(CopyDir) = 0 then exit;
+  if GetArrayLength(CopyDir) > 1 then
+    Sub := 'Eudora is installed twice on this computer. The copy you use is marked and chosen. Your mail, accounts, and settings are kept either way.'
+  else
+    Sub := 'Setup will upgrade it where it is. Your mail, accounts, and settings are kept.';
+  UpgradePage := CreateInputOptionPage(wpWelcome, 'Upgrade Eudora', 'Eudora is already installed on this computer.', Sub, True, False);
+  for I := 0 to GetArrayLength(CopyDir) - 1 do
+    UpgradePage.Add(CopyCaption(I));
+  UpgradePage.Add('Choose another folder instead');
+  if Chosen >= 0 then UpgradePage.SelectedValueIndex := Chosen else UpgradePage.SelectedValueIndex := InUse;
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := False;
+  if (UpgradePage <> nil) and (PageID = UpgradePage.ID) then
+    { (started again for a chosen copy: already chosen) }
+    Result := Requested
+  else if (PageID = wpSelectDir) or (PageID = wpSelectTasks) then
+    Result := Upgrade;
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+var
+  I, Code: Integer;
+  Params: String;
+begin
+  Result := True;
+  if (UpgradePage = nil) or (CurPageID <> UpgradePage.ID) then exit;
+  I := UpgradePage.SelectedValueIndex;
+  if I >= GetArrayLength(CopyDir) then
+  begin
+    Upgrade := False;
+    Chosen := -1;
+    exit;
+  end;
+  if CopyAdmin[I] <> IsAdminInstallMode then
+  begin
+    { that copy was installed in the other mode: Setup again, in that mode }
+    Result := False;
+    Params := '/UPGRADE="' + CopyDir[I] + '"';
+    if CopyAdmin[I] then
+      Relaunching := ShellExec('runas', ExpandConstant('{srcexe}'), '/ALLUSERS ' + Params, '', SW_SHOWNORMAL, ewNoWait, Code)
+    else
+      Relaunching := ExecAsOriginalUser(ExpandConstant('{srcexe}'), '/CURRENTUSER ' + Params, '', SW_SHOWNORMAL, ewNoWait, Code);
+    if Relaunching then
+      WizardForm.Close
+    else
+      MsgBox('Setup couldn''t start again to upgrade the copy in ' + CopyDir[I] + ': ' + SysErrorMessage(Code), mbError, MB_OK);
+    exit;
+  end;
+  Chosen := I;
+  Upgrade := True;
+  WizardForm.DirEdit.Text := CopyDir[I];
+end;
+
+procedure CancelButtonClick(CurPageID: Integer; var Cancel, Confirm: Boolean);
+begin
+  if Relaunching then Confirm := False;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if (CurPageID = wpReady) and Upgrade then
+  begin
+    WizardForm.PageNameLabel.Caption := 'Ready to Upgrade';
+    WizardForm.PageDescriptionLabel.Caption := Format('Eudora %s in %s will be upgraded to %s.', [CopyVersion[Chosen], CopyDir[Chosen], '{#AppVersion}']);
+    WizardForm.ReadyLabel.Caption := 'Your mail, accounts, and settings are kept. Click Upgrade to continue.';
+    WizardForm.NextButton.Caption := 'Upgrade';
+  end;
 end;
 
 { Eudora's window is drawn by Microsoft Edge WebView2, part of Windows 11 and of current
@@ -341,6 +544,7 @@ begin
   TipNext.Left := Gauge.Left + Gauge.Width - TipNext.Width;
 
   ShowTip(0);
+  MakeUpgradePage;
 end;
 
 procedure CurInstallProgressChanged(CurProgress, MaxProgress: Integer);
@@ -358,4 +562,155 @@ begin
   { the old version's desktop shortcut, pointing at eudora27.exe: made to point at Eudora again }
   if (CurStep = ssPostInstall) and ReplacedOld and FileExists(ExpandConstant('{autodesktop}\Eudora.lnk')) and not WizardIsTaskSelected('desktopicon') then
     CreateShellLink(ExpandConstant('{autodesktop}\Eudora.lnk'), 'Mail for decades of messages', ExpandConstant('{app}\eudora.exe'), '', ExpandConstant('{app}'), '', 0, SW_SHOWNORMAL);
+end;
+
+{ Deleting the user's data. At the end of uninstalling, when no other Eudora stays installed
+  (that one would still use them) and the uninstall isn't silent, Eudora asks whether to delete
+  this user's mail library, Eudora's folders, and its saved passwords. Keep is the default; Delete
+  works only once DELETE is typed. Kept, a reinstall finds everything as it was. }
+var
+  DeleteButton: TNewButton;
+  DeleteWord: TNewEdit;
+
+{ The library Eudora remembers (last-library.txt) when it isn't in Eudora's own folder, or ''. }
+function RememberedLibrary: String;
+var
+  Text: AnsiString;
+  Path: String;
+begin
+  Result := '';
+  if not LoadStringFromFile(ExpandConstant('{localappdata}\Eudora\last-library.txt'), Text) then exit;
+  Path := RemoveBackslashUnlessRoot(Trim(String(Text)));
+  { (only a real library, and never a drive's root) }
+  if (Length(Path) > 3) and FileExists(AddBackslash(Path) + 'eudora.db')
+    and (Pos(Uppercase(AddBackslash(ExpandConstant('{localappdata}\Eudora'))), Uppercase(AddBackslash(Path))) <> 1) then
+    Result := Path;
+end;
+
+procedure DeleteWordChanged(Sender: TObject);
+begin
+  DeleteButton.Enabled := Trim(DeleteWord.Text) = 'DELETE';
+end;
+
+{ Asks; True = delete. Folders: one per line. }
+function AskToDelete(Folders: String): Boolean;
+var
+  Form: TSetupForm;
+  Text, Prompt: TNewStaticText;
+  KeepButton: TNewButton;
+  Gap, Y: Integer;
+begin
+  Form := CreateCustomForm(ScaleX(520), ScaleY(100), False, False);
+  try
+    Form.Caption := 'Eudora Uninstall';
+    Gap := ScaleX(12);
+    Text := TNewStaticText.Create(Form);
+    Text.Parent := Form;
+    Text.Left := Gap;
+    Text.Top := Gap;
+    Text.Width := Form.ClientWidth - 2 * Gap;
+    Text.WordWrap := True;
+    Text.Caption := 'Eudora has been removed. Your mail library, accounts, rules, settings, and saved passwords are still on this computer, so installing Eudora again brings everything back as it was.' + #13#10#13#10 +
+      'Do you also want to delete them? This can''t be undone. Mail kept only on this computer (POP3 accounts, imported files, and old Eudora mailboxes) will be gone for good. Mail on Microsoft 365, Gmail, and IMAP servers stays on those servers.' + #13#10#13#10 +
+      'These would be deleted:' + #13#10 + Folders +
+      '   Eudora''s saved passwords and sign-ins in Windows Credential Manager';
+    Text.AdjustHeight;
+    Y := Text.Top + Text.Height + Gap;
+
+    DeleteWord := TNewEdit.Create(Form);
+    Prompt := TNewStaticText.Create(Form);
+    Prompt.Parent := Form;
+    Prompt.Left := Gap;
+    Prompt.Top := Y;
+    Prompt.Caption := '&To delete them, type DELETE here:';
+    Prompt.FocusControl := DeleteWord;
+    Y := Y + Prompt.Height + ScaleY(4);
+
+    DeleteWord.Parent := Form;
+    DeleteWord.Left := Gap;
+    DeleteWord.Top := Y;
+    DeleteWord.Width := ScaleX(200);
+    DeleteWord.OnChange := @DeleteWordChanged;
+    Y := Y + DeleteWord.Height + Gap * 2;
+
+    KeepButton := TNewButton.Create(Form);
+    KeepButton.Parent := Form;
+    KeepButton.Caption := '&Keep My Data';
+    KeepButton.Width := ScaleX(120);
+    KeepButton.Height := ScaleY(25);
+    KeepButton.Left := Form.ClientWidth - Gap - KeepButton.Width;
+    KeepButton.Top := Y;
+    KeepButton.ModalResult := mrCancel;
+    KeepButton.Default := True;
+    KeepButton.Cancel := True;
+
+    DeleteButton := TNewButton.Create(Form);
+    DeleteButton.Parent := Form;
+    DeleteButton.Caption := '&Delete';
+    DeleteButton.Width := ScaleX(120);
+    DeleteButton.Height := ScaleY(25);
+    DeleteButton.Left := KeepButton.Left - ScaleX(8) - DeleteButton.Width;
+    DeleteButton.Top := Y;
+    DeleteButton.ModalResult := mrOk;
+    DeleteButton.Enabled := False;
+
+    Form.ClientHeight := Y + KeepButton.Height + Gap;
+    Form.ActiveControl := KeepButton;
+    Result := (Form.ShowModal = mrOk) and (Trim(DeleteWord.Text) = 'DELETE');
+  finally
+    Form.Free;
+  end;
+end;
+
+procedure DeleteUserData;
+var
+  Dirs: array of String;
+  List, Left: String;
+  I, Code: Integer;
+begin
+  { (another Eudora still installed, for everyone or for this user: it still uses them) }
+  if UninstallSilent or RegKeyExists(HKLM, UninstallKey) or RegKeyExists(HKCU, UninstallKey) then exit;
+  if DirExists(ExpandConstant('{localappdata}\Eudora')) then
+  begin
+    SetArrayLength(Dirs, GetArrayLength(Dirs) + 1);
+    Dirs[GetArrayLength(Dirs) - 1] := RememberedLibrary;
+    if Dirs[GetArrayLength(Dirs) - 1] = '' then SetArrayLength(Dirs, 0);
+    SetArrayLength(Dirs, GetArrayLength(Dirs) + 1);
+    Dirs[GetArrayLength(Dirs) - 1] := ExpandConstant('{localappdata}\Eudora');
+  end;
+  if DirExists(ExpandConstant('{localappdata}\net.planet.eudora')) then
+  begin
+    SetArrayLength(Dirs, GetArrayLength(Dirs) + 1);
+    Dirs[GetArrayLength(Dirs) - 1] := ExpandConstant('{localappdata}\net.planet.eudora');
+  end;
+  if GetArrayLength(Dirs) = 0 then exit;
+  List := '';
+  for I := 0 to GetArrayLength(Dirs) - 1 do
+    List := List + '   ' + Dirs[I] + #13#10;
+  if not AskToDelete(List) then exit;
+
+  { a download Eudora left running would hold the library's files }
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM eudora-cli.exe /IM eudora.exe /FI "USERNAME eq ' + GetUserNameString + '"', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Sleep(1000);
+  { saved passwords and sign-ins: Credential Manager entries named "<name>.Eudora" (and the old "<name>.Eudora 27") }
+  Exec('powershell.exe', '-NoProfile -NonInteractive -Command "cmdkey /list | ForEach-Object { if ($_ -match ''target=(.+\.Eudora( 27)?)\s*$'') { cmdkey /delete:$($matches[1]) | Out-Null } }"', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Left := '';
+  for I := 0 to GetArrayLength(Dirs) - 1 do
+  begin
+    DelTree(Dirs[I], True, True, True);
+    if DirExists(Dirs[I]) then Left := Left + '   ' + Dirs[I] + #13#10;
+  end;
+  if Left <> '' then
+    MsgBox('Some files couldn''t be deleted (another program may be using them). Delete these folders yourself:' + #13#10#13#10 + Left, mbError, MB_OK)
+  else
+    MsgBox('Your Eudora mail library, settings, and saved passwords have been deleted from this computer.', mbInformation, MB_OK);
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usPostUninstall then
+  begin
+    RemoveFromPath(ExpandConstant('{app}'));
+    DeleteUserData;
+  end;
 end;

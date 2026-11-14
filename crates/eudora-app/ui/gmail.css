@@ -30,7 +30,7 @@ body.skin-gmail {
   --button: #ffffff;
   --hover: #f2f6fc;
   --line: #eceff1;
-  --line-strong: #dadce0;
+  --line-strong: #858689;
   --row-line: #f1f3f4;
   --accent: #0b57d0;
   --accent-soft: #0b57d033;
@@ -90,7 +90,7 @@ body.skin-gmail .chip { border-radius: 8px; }
     --button: #303134;
     --hover: #35363a;
     --line: #3c4043;
-    --line-strong: #5f6368;
+    --line-strong: #7a7e82;
     --row-line: #35363a;
     --accent: #a8c7fa;
     --selected: #004a77;
@@ -103,3 +103,9 @@ body.skin-gmail .chip { border-radius: 8px; }
   body.skin-gmail .search:focus-within { background: #303134; }
   body.skin-gmail .row:hover { background: #2d2f31; }
 }
+
+/* Advanced Search: Gmail's search options (rounded, pill buttons) */
+body.skin-gmail dialog.adv-search { border: 0; border-radius: 12px; box-shadow: 0 4px 16px #0000003d; }
+body.skin-gmail .adv-search button { border-radius: 18px; padding: 5px 16px; }
+body.skin-gmail .as-add, body.skin-gmail .as-remove { padding: 0 !important; }
+body.skin-gmail .as-rows { border: 0; background: var(--field); border-radius: 12px; }

@@ -19,6 +19,7 @@ mod msgview;
 mod opening;
 #[cfg(desktop)]
 mod tray;
+mod voice;
 use eudora_core::firewall;
 
 /// Changes when the icon files do (build.rs), so a new icon is compiled into the program.
@@ -784,6 +785,29 @@ async fn imap_accounts(app: tauri::State<'_, App>) -> Reply<Vec<eudora_core::ima
     app.with(|l| l.imap_accounts())
 }
 
+/// The accounts with a contacts and calendars server (CardDAV / CalDAV).
+#[tauri::command]
+async fn dav_accounts(app: tauri::State<'_, App>) -> Reply<Vec<eudora_core::dav::DavConfig>> {
+    app.with_reader(|l| l.dav_accounts())
+}
+
+/// Finds an address's CardDAV / CalDAV server and adds it (the password typed goes to the
+/// credential store; none: the one kept, or the IMAP account's). What was found comes back.
+#[tauri::command]
+async fn dav_save(app: tauri::State<'_, App>, address: String, server: String, user: String, password: Option<String>) -> Reply<eudora_core::dav::Found> {
+    let config = eudora_core::dav::DavConfig { address, user, server, contacts: None, calendars: None };
+    let host = app.with_reader(|l| Ok(l.dav_imap_host(&config.address)))?;
+    let (c, p) = (config.clone(), password.clone());
+    let found = tauri::async_runtime::spawn_blocking(move || eudora_core::dav::find_dav(&c, p.as_deref(), host.as_deref())).await.map_err(|e| e.to_string())?.map_err(text)?;
+    app.with(|l| l.add_dav_account(&config, &found, password.as_deref()))?;
+    Ok(found)
+}
+
+#[tauri::command]
+async fn dav_remove(app: tauri::State<'_, App>, address: String) -> Reply<()> {
+    app.with(|l| l.remove_dav_account(&address))
+}
+
 // ------------------------------------------------------------------ writing mail
 
 #[tauri::command]
@@ -793,10 +817,15 @@ async fn identities(app: tauri::State<'_, App>) -> Reply<Vec<eudora_core::outgoi
 
 /// What a new message, reply, reply to all or forward starts with.
 #[tauri::command]
-async fn compose_seed(handle: tauri::AppHandle, mode: String, id: Option<i64>, ids: Option<Vec<i64>>) -> Reply<eudora_core::outgoing::ComposeStart> {
+async fn compose_seed(handle: tauri::AppHandle, mode: String, id: Option<i64>, ids: Option<Vec<i64>>, quoting: Option<String>) -> Reply<eudora_core::outgoing::ComposeStart> {
     use tauri::Manager;
     // (the reading connection: free nearly always, never behind a refresh, a count or a sort)
-    tauri::async_runtime::spawn_blocking(move || handle.state::<App>().with_reader(|l| l.compose_start(&mode, id, &ids.unwrap_or_default()))).await.map_err(text)?
+    tauri::async_runtime::spawn_blocking(move || {
+        // (Shift or Ctrl on Reply: the other way of quoting than Settings ▸ Mail's)
+        handle.state::<App>().with_reader(|l| l.compose_start_quoting(&mode, id, &ids.unwrap_or_default(), quoting.as_deref().filter(|q| !q.is_empty())))
+    })
+    .await
+    .map_err(text)?
 }
 
 /// Sends a message through the account that owns its From address (`Outgoing::send`); the
@@ -871,8 +900,8 @@ async fn delete_draft(app: tauri::State<'_, App>, id: i64) -> Reply<()> {
 
 /// Opens a message window: `mode` new / reply / replyAll / forward / draft.
 #[tauri::command]
-async fn open_compose(handle: tauri::AppHandle, mode: String, id: Option<i64>, ids: Option<Vec<i64>>, to: Option<String>, subject: Option<String>, body: Option<String>) -> Reply<()> {
-    compose_window(&handle, &mode, id, ids, &[("to", to), ("subject", subject), ("body", body)])
+async fn open_compose(handle: tauri::AppHandle, mode: String, id: Option<i64>, ids: Option<Vec<i64>>, to: Option<String>, subject: Option<String>, body: Option<String>, quoting: Option<String>) -> Reply<()> {
+    compose_window(&handle, &mode, id, ids, &[("to", to), ("subject", subject), ("body", body), ("quoting", quoting)])
 }
 
 /// A `mailto:` link (clicked in a message, or handed to Eudora by the system as the mail
@@ -986,6 +1015,24 @@ fn show_help(handle: &tauri::AppHandle, topic: Option<&str>) -> tauri::Result<()
         .min_inner_size(420.0, 300.0)
         .build()?;
     Ok(())
+}
+
+/// Shows a folder in the system's file manager (Explorer, the Finder, the Linux desktop's): the
+/// classic export's "Open Folder". Only a folder that exists; never a file, so
+/// nothing is ever run.
+#[tauri::command]
+async fn open_folder(path: String) -> Reply<()> {
+    let dir = PathBuf::from(path.trim());
+    if !dir.is_dir() {
+        return Err(format!("{} isn't a folder on this computer.", dir.display()));
+    }
+    #[cfg(windows)]
+    let program = "explorer.exe";
+    #[cfg(target_os = "macos")]
+    let program = "open";
+    #[cfg(not(any(windows, target_os = "macos")))]
+    let program = "xdg-open";
+    std::process::Command::new(program).arg(&dir).spawn().map(|_| ()).map_err(|e| format!("Couldn't open {}: {e}", dir.display()))
 }
 
 /// Opens the manual at a topic (a "?" beside a setting, a message's link to the help).
@@ -2298,7 +2345,226 @@ async fn card_update(app: tauri::State<'_, App>, id: i64, card: eudora_core::car
 /// A new contact in an account's address book; returns its id.
 #[tauri::command]
 async fn card_create(app: tauri::State<'_, App>, account: i64, book: Option<String>, card: eudora_core::cards::Card) -> Reply<i64> {
-    app.with(|l| l.create_card(account, book.as_deref().unwrap_or(""), &card))
+    app.with(|l| {
+        // (a new contact's address book: the one holding most of that account's contacts)
+        let book = match book.filter(|b| !b.is_empty()) {
+            Some(b) => b,
+            None => l.contact_targets()?.into_iter().find(|t| t.account == account).map(|t| t.book).unwrap_or_default(),
+        };
+        let id = l.create_card(account, &book, &card)?;
+        l.set_new_contact_account(account)?;
+        Ok(id)
+    })
+}
+
+/// Every account a contact can be added to, and the one a new contact starts in.
+#[tauri::command]
+async fn card_targets(app: tauri::State<'_, App>) -> Reply<serde_json::Value> {
+    app.with_reader(|l| Ok(serde_json::json!({ "targets": l.contact_targets()?, "new_in": l.new_contact_account()? })))
+}
+
+/// Copies or moves contacts into another account's address book (the choice remembered for
+/// the next new contact).
+#[tauri::command]
+async fn cards_copy(app: tauri::State<'_, App>, ids: Vec<i64>, account: i64, move_them: bool, skip_existing: bool) -> Reply<eudora_core::cards::CardsCopied> {
+    app.with(|l| l.copy_cards(&ids, account, move_them, skip_existing))
+}
+
+/// Plays the system's own new-mail sound (Windows: the "New Mail Notification" sound the user
+/// chose in Sound settings, which Outlook and Thunderbird play too). False where there's none to
+/// ask for (the Mac, Linux, or Windows set to no sound): the window plays a bell of its own then.
+#[tauri::command]
+fn play_system_sound() -> bool {
+    eudora_core::sounds::play_new_mail()
+}
+
+/// Text size: this window drawn at `scale` (1.0 = usual; 0.5 to 3.0), as classic Eudora's font
+/// sizes and "Humongous" did. Everything scales together, so the
+/// lists' rows grow with their text.
+#[tauri::command]
+fn zoom_this(window: tauri::WebviewWindow, scale: f64) -> Reply<()> {
+    window.set_zoom(scale.clamp(0.5, 3.0)).map_err(|e| e.to_string())
+}
+
+/// Text size for every Eudora window at once (Settings, Ctrl+plus / minus / 0).
+#[tauri::command]
+fn zoom_all(handle: tauri::AppHandle, scale: f64) -> Reply<()> {
+    use tauri::Manager;
+    for (_, w) in handle.webview_windows() {
+        let _ = w.set_zoom(scale.clamp(0.5, 3.0));
+    }
+    Ok(())
+}
+
+/// The voices of Eudora's speech library on this computer.
+#[tauri::command]
+async fn speech_voices() -> Reply<Vec<eudora_core::speech::Voice>> {
+    eudora_core::speech::voices()
+}
+
+/// Says something through Eudora's speech library (`interrupt`: stops what's being said first).
+#[tauri::command]
+async fn speech_say(text: String, voice: Option<String>, speed: Option<f32>, volume: Option<f32>, interrupt: Option<bool>) -> Reply<()> {
+    let how = eudora_core::speech::Saying { voice: voice.filter(|v| !v.is_empty()), speed: speed.unwrap_or(1.0), volume: volume.unwrap_or(0.0) };
+    eudora_core::speech::speak(&text, &how, interrupt.unwrap_or(true))
+}
+
+/// Stops Eudora's speech library speaking.
+#[tauri::command]
+async fn speech_stop() -> Reply<()> {
+    eudora_core::speech::stop()
+}
+
+/// The natural voices: downloaded here or not, and how big the download is (asked of the server
+/// only when `ask_server`).
+#[tauri::command]
+async fn voices_status(ask_server: Option<bool>) -> Reply<serde_json::Value> {
+    let here = eudora_core::voices::installed();
+    let mut out = serde_json::json!({ "installed": here.is_some(), "size": here.as_ref().map(|(l, _)| l.total()) });
+    if ask_server.unwrap_or(false) && here.is_none() {
+        match tauri::async_runtime::spawn_blocking(|| eudora_core::voices::available(&eudora_core::update::configured_url())).await {
+            Ok(Ok((list, _, _))) => out["download"] = serde_json::json!(list.total()),
+            Ok(Err(e)) => out["unavailable"] = serde_json::json!(e.to_string()),
+            Err(e) => out["unavailable"] = serde_json::json!(e.to_string()),
+        }
+    }
+    Ok(out)
+}
+
+static VOICES_STOP: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Downloads the natural voices in the background: "voices-progress" {done, total, file} as it
+/// goes, then {finished: true} or {error}.
+#[tauri::command]
+async fn voices_download(handle: tauri::AppHandle) -> Reply<()> {
+    download_voices(handle, false);
+    Ok(())
+}
+
+/// The download itself (`refresh`: an update of voices already here, said as such).
+fn download_voices(handle: tauri::AppHandle, refresh: bool) {
+    use tauri::Emitter;
+    VOICES_STOP.store(false, std::sync::atomic::Ordering::SeqCst);
+    // (the program can't be replaced while it runs: it's started again when next needed)
+    voice::quit();
+    std::thread::spawn(move || {
+        let mut last = std::time::Instant::now() - std::time::Duration::from_secs(1);
+        let result = eudora_core::voices::download(&eudora_core::update::configured_url(), |done, total, file| {
+            if last.elapsed() >= std::time::Duration::from_millis(250) || done == total {
+                last = std::time::Instant::now();
+                let _ = handle.emit("voices-progress", serde_json::json!({ "done": done, "total": total, "file": file, "refresh": refresh }));
+            }
+            !VOICES_STOP.load(std::sync::atomic::Ordering::SeqCst)
+        });
+        let _ = handle.emit(
+            "voices-progress",
+            match result {
+                Ok(_) => serde_json::json!({ "finished": true, "refresh": refresh }),
+                Err(eudora_core::Error::Canceled) => serde_json::json!({ "canceled": true, "refresh": refresh }),
+                Err(e) => serde_json::json!({ "error": e.to_string(), "refresh": refresh }),
+            },
+        );
+    });
+}
+
+/// Brings downloaded natural voices up to date: when the server has a newer list, the files that
+/// changed are fetched in the background (a fixed program, usually a few MB). Asked by the window
+/// a little after it starts. Returns the bytes being fetched (0: up to date, or none here).
+#[tauri::command]
+async fn voices_refresh(handle: tauri::AppHandle) -> Reply<u64> {
+    let newer = tauri::async_runtime::spawn_blocking(|| eudora_core::voices::newer_available(&eudora_core::update::configured_url())).await.map_err(text)?;
+    match newer {
+        Ok(Some(list)) => {
+            let bytes = eudora_core::voices::to_fetch(&list);
+            download_voices(handle, true);
+            Ok(bytes)
+        }
+        Ok(None) => Ok(0),
+        // (offline, or the server unreachable: tried again next start)
+        Err(_) => Ok(0),
+    }
+}
+
+/// Stops the voices' download (what's come in so far is kept: it continues next time).
+#[tauri::command]
+fn voices_download_stop() {
+    VOICES_STOP.store(true, std::sync::atomic::Ordering::SeqCst);
+}
+
+/// Removes the natural voices from this computer.
+#[tauri::command]
+async fn voices_remove() -> Reply<()> {
+    voice::quit();
+    eudora_core::voices::remove().map_err(|e| e.to_string())
+}
+
+/// The natural voices' list of voices ([{id, name}]; starts the program).
+#[tauri::command]
+async fn voice_voices(handle: tauri::AppHandle) -> Reply<serde_json::Value> {
+    tauri::async_runtime::spawn_blocking(move || voice::voices(&handle)).await.map_err(|e| e.to_string())?
+}
+
+/// Says something with the natural voices; the speech comes back as "voice" events.
+#[tauri::command]
+async fn voice_say(handle: tauri::AppHandle, id: u64, text: String, voice: Option<String>, speed: Option<f32>) -> Reply<()> {
+    tauri::async_runtime::spawn_blocking(move || voice::say(&handle, id, &text, voice.as_deref().unwrap_or("af_heart"), speed.unwrap_or(1.0))).await.map_err(|e| e.to_string())?
+}
+
+/// What the window found when a natural voice stayed silent, into the voices' log.
+#[tauri::command]
+fn voice_note(text: String) {
+    voice::note(&text.chars().take(500).collect::<String>());
+}
+
+/// Stops the natural voices speaking.
+#[tauri::command]
+fn voice_stop() {
+    voice::stop();
+}
+
+/// A sound file the user chose for new mail, to play (at most 5 MB; sounds only).
+#[tauri::command]
+fn sound_file(path: String) -> Reply<Vec<u8>> {
+    let path = std::path::PathBuf::from(path);
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_ascii_lowercase();
+    if !["wav", "mp3", "ogg", "m4a", "aac", "flac", "opus"].contains(&ext.as_str()) {
+        return Err("only a sound file (.wav, .mp3, .ogg, .m4a, .aac, .flac, .opus)".to_string().into());
+    }
+    let size = std::fs::metadata(&path).map_err(|e| format!("{}: {e}", path.display()))?.len();
+    if size > 5 * 1024 * 1024 {
+        return Err("that sound file is over 5 MB: choose a short sound".to_string().into());
+    }
+    Ok(std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?)
+}
+
+/// Contacts that look like one person (`account`: sets with one of its contacts).
+#[tauri::command]
+async fn card_duplicates(app: tauri::State<'_, App>, account: Option<i64>) -> Reply<Vec<eudora_core::cards::DuplicateGroup>> {
+    app.with_reader(|l| l.contact_duplicates(account))
+}
+
+/// What merging these contacts would make (`keep` leads), changing nothing.
+#[tauri::command]
+async fn cards_merge_preview(app: tauri::State<'_, App>, ids: Vec<i64>, keep: Option<i64>) -> Reply<eudora_core::cards::Card> {
+    app.with_reader(|l| l.merge_preview(&ids, keep))
+}
+
+/// Merges contacts into one, on their servers too (asked first in the window).
+#[tauri::command]
+async fn cards_merge(app: tauri::State<'_, App>, ids: Vec<i64>, keep: Option<i64>, card: Option<eudora_core::cards::Card>) -> Reply<eudora_core::cards::CardsMerged> {
+    app.with(|l| l.merge_cards(&ids, keep, card.as_ref()))
+}
+
+/// The merges of the last 30 days, which can be undone.
+#[tauri::command]
+async fn card_merges(app: tauri::State<'_, App>) -> Reply<Vec<eudora_core::cards::MergeDone>> {
+    app.with_reader(|l| l.recent_merges())
+}
+
+/// Takes a merge back; returns how many contacts came back.
+#[tauri::command]
+async fn card_merge_undo(app: tauri::State<'_, App>, merge: String) -> Reply<u64> {
+    app.with(|l| l.undo_merge(&merge))
 }
 
 /// Share: a draft with the contact attached as a vCard; returns its id (the window opens it).
@@ -2640,6 +2906,8 @@ async fn pick_paths(window: tauri::Window, what: String, title: String, kind: Op
     let filters: &'static [(&'static str, &'static str)] = match kind.as_deref() {
         Some("mail") => &[("Mail (mailboxes, messages)", "*.mbx;*.mbox;*.eml;*.txt"), ("Every file", "*.*")],
         Some("backup") => &[("Eudora backups", "*.eudora-backup"), ("Every file", "*.*")],
+        Some("sound") => &[("Sounds", "*.wav;*.mp3;*.ogg;*.m4a;*.aac;*.flac;*.opus"), ("Every file", "*.*")],
+        Some("list") => &[("Lists (text, CSV)", "*.txt;*.csv"), ("Every file", "*.*")],
         _ => &[],
     };
     Ok(pick_with(window, what, title, filters).await?.into_iter().map(|p| p.display().to_string()).collect())
@@ -2725,8 +2993,15 @@ async fn import_files(
         held.hold(false);
         let r = result.map_err(text)?;
         let c = &r.counts;
+        // files that aren't mail, said (classic's In / Out backups among them)
+        let backups = r.skipped_files.iter().filter(|(_, why)| why.contains("backup of")).count();
+        let left_out = match (r.skipped_files.len(), backups) {
+            (0, _) => String::new(),
+            (n, 0) => format!(" {n} files weren't mail and were left out."),
+            (n, b) => format!(" {n} files were left out, {b} of them classic Eudora's backups of In and Out from before a Compact (old copies of those mailboxes)."),
+        };
         Ok(format!(
-            "Imported into {}: {} messages read, {} new, {} already here, {} merged with copies from elsewhere; {} read with something fixed, {} unreadable (kept as text, searchable).",
+            "Imported into {}: {} messages read, {} new, {} already here, {} merged with copies from elsewhere; {} read with something fixed, {} unreadable (kept as text, searchable).{left_out}",
             r.destination,
             c.seen,
             c.imported,
@@ -2735,6 +3010,64 @@ async fn import_files(
             c.fixed,
             c.unreadable
         ))
+    })
+}
+
+/// File ▸ Export ▸ Classic Eudora…: a folder classic Eudora 7 opens as its mail folder (a job;
+/// only reads the library, so the download carries on). An earlier export there is brought up
+/// to date; the report goes beside the mail ("Eudora export report.txt").
+#[tauri::command]
+async fn export_classic(app: tauri::State<'_, App>, dest: String, accounts: Vec<i64>, rules: bool, contacts: bool) -> Reply<()> {
+    let root = app.path.clone().ok_or("no library")?;
+    let dest = PathBuf::from(dest.trim());
+    if dest.as_os_str().is_empty() {
+        return Err("Choose a folder for the classic Eudora files.".into());
+    }
+    start_job("export-classic", move || {
+        let library = eudora_core::Library::open(&root, Access::Read, &JobProgress).map_err(text)?;
+        let options = eudora_core::classic_export::ClassicOptions { accounts, folders: Vec::new(), no_rules: !rules, no_contacts: !contacts };
+        let r = eudora_core::classic_export::export(&library, &dest, &options, &JobProgress).map_err(text)?;
+        if let Some(why) = &r.waiting {
+            return Err(format!("Nothing was written: {why}."));
+        }
+        let left_out = if r.rules_left_out.is_empty() { String::new() } else { format!(" {} rules classic Eudora can't do were left out (the report names them).", r.rules_left_out.len()) };
+        Ok(format!(
+            "Exported to classic Eudora in {}: {} messages in {} mailboxes, {} rules, {} address book entries.{left_out} The report is “Eudora export report.txt” in that folder.",
+            dest.display(),
+            eudora_core::progress::thousands(r.total),
+            r.mailboxes,
+            r.rules_written,
+            r.contacts
+        ))
+    })
+}
+
+#[derive(Serialize)]
+struct ClassicMirrorView {
+    settings: eudora_core::classic_export::MirrorSettings,
+    /// A folder to start from: Documents\Classic Eudora.
+    suggested: String,
+}
+
+/// Settings ▸ Library ▸ Keep a classic Eudora copy current: how it's set.
+#[tauri::command]
+async fn classic_mirror(app: tauri::State<'_, App>) -> Reply<ClassicMirrorView> {
+    let settings = app.with(|l| l.classic_mirror_saved())?;
+    let home = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")).map(PathBuf::from).unwrap_or_default();
+    Ok(ClassicMirrorView { settings, suggested: home.join("Documents").join("Classic Eudora").display().to_string() })
+}
+
+/// Keeps a classic Eudora copy current in `folder` (the download writes it), or stops.
+#[tauri::command]
+async fn classic_mirror_set(app: tauri::State<'_, App>, on: bool, folder: String, accounts: Vec<i64>) -> Reply<eudora_core::classic_export::MirrorSettings> {
+    app.with(|l| {
+        if on {
+            let settings = eudora_core::classic_export::MirrorSettings { on: true, folder: folder.trim().to_string(), accounts: accounts.clone(), ..l.classic_mirror_saved()? };
+            l.set_classic_mirror(Some(&settings))?;
+        } else {
+            l.set_classic_mirror(None)?;
+        }
+        l.classic_mirror_saved()
     })
 }
 
@@ -2863,6 +3196,20 @@ async fn optimize_library(app: tauri::State<'_, App>, bg: tauri::State<'_, backg
 #[tauri::command]
 async fn missing_sign_ins(app: tauri::State<'_, App>) -> Reply<Vec<eudora_core::signins::MissingSignIn>> {
     app.with(|l| l.missing_sign_ins())
+}
+
+/// Settings ▸ Mail ▸ Senders whose pictures always show ▸ Import: the addresses and @domains in a
+/// list file added to it. Returns (added, on the list now).
+#[tauri::command]
+async fn picture_senders_import(app: tauri::State<'_, App>, file: String) -> Reply<(usize, usize)> {
+    app.with(|l| l.import_picture_senders(std::path::Path::new(&file)))
+}
+
+/// Settings ▸ Mail ▸ Senders whose pictures always show ▸ Export: the list as a text file in the
+/// folder chosen. Returns the file written.
+#[tauri::command]
+async fn picture_senders_export(app: tauri::State<'_, App>, dir: String) -> Reply<String> {
+    app.with(|l| l.export_picture_senders(std::path::Path::new(&dir))).map(|p| p.display().to_string())
 }
 
 /// Special ▸ Forget Sign-ins: what would be forgotten, then (`forget`) forgets it.
@@ -3447,6 +3794,30 @@ async fn check_every_set(app: tauri::State<'_, App>, address: String, minutes: u
     app.with(|l| eudora_core::graph_sync::set_check_minutes(l, &address, minutes))
 }
 
+/// Which accounts keep their mail, calendar (with To Do), or contacts on this computer only
+/// (`local_only`; Settings ▸ Accounts ▸ Changes on the server).
+#[tauri::command]
+async fn local_only_get(app: tauri::State<'_, App>) -> Reply<Vec<eudora_core::local_only::AccountChoice>> {
+    app.with_free(|l| l.local_only_list())
+}
+
+/// An account's choice (true = kept here only). Returns how many changes waiting for the server
+/// were dropped (a service turned local); the address counts as asked.
+#[tauri::command]
+async fn local_only_set(app: tauri::State<'_, App>, address: String, mail: bool, calendar: bool, contacts: bool) -> Reply<u64> {
+    app.with_free(|l| {
+        let dropped = l.set_local_only(&address, eudora_core::local_only::LocalOnly { mail, calendar, contacts })?;
+        l.local_only_mark_asked(&address)?;
+        Ok(dropped)
+    })
+}
+
+/// The accounts added since the window last asked about changes on the server.
+#[tauri::command]
+async fn local_only_unasked(app: tauri::State<'_, App>) -> Reply<Vec<eudora_core::local_only::AccountChoice>> {
+    app.with_free(|l| l.local_only_unasked())
+}
+
 /// How much mail is downloaded from the servers (graph_sync::PERIOD_SETTING): {chosen, days}.
 #[tauri::command]
 async fn download_period_get(app: tauri::State<'_, App>) -> Reply<serde_json::Value> {
@@ -3765,6 +4136,7 @@ fn menu_bar(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wr
         .separator()
         .item(&item("print", "Print…", Some("CmdOrCtrl+P"))?)
         .item(&item("import", "Import…", None)?)
+        .item(&SubmenuBuilder::new(app, "E&xport").item(&item("export-classic", "Classic Eudora…", None)?).build()?)
         .item(&item("backup", "Back Up Eudora…", None)?)
         .item(&item("restore", "Restore Eudora…", None)?)
         .separator();
@@ -3787,11 +4159,14 @@ fn menu_bar(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wr
             &SubmenuBuilder::new(app, "&Find")
                 .item(&item("find-text", "Find Text…", Some("CmdOrCtrl+Shift+F"))?)
                 .item(&item("find-again", "Find Text Again", Some("F3"))?)
+                // (classic's Find Messages window: the advanced search, ui/advsearch.js)
                 .item(&item("find", "Find Messages…", Some("CmdOrCtrl+F"))?)
                 .build()?,
         )
     } else {
+        // (Modern: Ctrl+F goes to the search box; the advanced search window has its own item)
         edit.item(&item("find", "Find Messages…", Some("CmdOrCtrl+F"))?)
+            .item(&item("advanced-search", "Advanced Search…", None)?)
             .item(&item("find-text", "Find Text…", Some("CmdOrCtrl+Alt+F"))?)
             .item(&item("find-again", "Find Again", Some("F3"))?)
     };
@@ -3878,6 +4253,9 @@ fn menu_bar(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wr
     let message = message
         .item(&item("flag-todo", "Flag as To Do", Some("CmdOrCtrl+Shift+G"))?)
         .item(&item("show-headers", say("Blah Blah Blah (all headers)", "Show All Headers"), Some("F7"))?)
+        // (Outlook's key for it; pressed again while reading, it stops)
+        .item(&item("read-aloud", "Read Aloud", Some("CmdOrCtrl+Alt+Space"))?)
+        .item(&item("stop-reading", "Stop Reading", None)?)
         .separator()
         .item(&item("mark-spam", say("Junk", "Spam"), Some(if junk_by_j { "CmdOrCtrl+J" } else { "CmdOrCtrl+Shift+J" }))?)
         .item(&item("mark-not-spam", say("Not Junk", "Not Spam"), Some("CmdOrCtrl+Alt+J"))?)
@@ -4029,6 +4407,7 @@ fn edit_entries(find: (&'static str, &'static str), spelling: (&'static str, &'s
         Line,
         Do("find-text", find.0, Some(find.1)),
         Do("find-again", "Find Again", Some("F3")),
+        Do("advanced-search", "Advanced Search…", None),
         Do("check-spelling", spelling.0, Some(spelling.1)),
     ]
 }
@@ -4058,8 +4437,9 @@ fn look_menus(look: &str) -> Option<Vec<(&'static str, Vec<Entry>)>> {
                     Sub("Account Settings", vec![Do("add-account", "Add Account…", None), Do("accounts", "Account Settings…", None), Do("forget-sign-ins", "Forget Sign-ins…", None)]),
                     Do("options", "Options", None),
                     Line,
-                    Sub("Open && Export", vec![Do("import", "Import…", None), Do("backup", "Back Up (Export)…", None), Do("restore", "Restore…", None), Do("old-attachments", "Find Old Attachments…", None)]),
+                    Sub("Open && Export", vec![Do("import", "Import…", None), Do("backup", "Back Up (Export)…", None), Do("export-classic", "Export to Classic Eudora…", None), Do("restore", "Restore…", None), Do("old-attachments", "Find Old Attachments…", None)]),
                     Do("print", "Print…", Some("CmdOrCtrl+P")),
+                    Do("read-aloud", "Read Aloud", Some("CmdOrCtrl+Alt+Space")),
                     Line,
                     Do("exit", "Exit", None),
                 ],
@@ -4180,6 +4560,7 @@ fn look_menus(look: &str) -> Option<Vec<(&'static str, Vec<Entry>)>> {
                     Do("optimize", "Compact Folders…", None),
                     Line,
                     Do("print", "Print…", Some("CmdOrCtrl+P")),
+                    Do("read-aloud", "Read Aloud", Some("CmdOrCtrl+Alt+Space")),
                     Line,
                     Do("exit", "Exit", Some("CmdOrCtrl+Q")),
                 ],
@@ -4258,6 +4639,7 @@ fn look_menus(look: &str) -> Option<Vec<(&'static str, Vec<Entry>)>> {
                     Do("plugins", "Add-ons…", None),
                     Do("import", "Import…", None),
                     Do("backup", "Export (Back Up)…", None),
+                    Do("export-classic", "Export to Classic Eudora…", None),
                     Do("restore", "Restore…", None),
                     Line,
                     Do("accounts", "Account Settings", None),
@@ -4288,6 +4670,7 @@ fn look_menus(look: &str) -> Option<Vec<(&'static str, Vec<Entry>)>> {
                         Line,
                         Do("check", "Refresh", Some("CmdOrCtrl+M")),
                         Do("print", "Print", Some("CmdOrCtrl+P")),
+                        Do("read-aloud", "Read Aloud", Some("CmdOrCtrl+Alt+Space")),
                         Do("show-headers", "Show original", None),
                         Line,
                         Do("send", "Send", Some("CmdOrCtrl+Enter")),
@@ -4349,6 +4732,7 @@ fn look_menus(look: &str) -> Option<Vec<(&'static str, Vec<Entry>)>> {
                         Do("activity", "Activity", None),
                         Do("import", "Import mail…", None),
                         Do("backup", "Back up…", None),
+                        Do("export-classic", "Export to classic Eudora…", None),
                         Do("restore", "Restore…", None),
                     ],
                 ),
@@ -4617,6 +5001,9 @@ pub fn run() {
             add_shared_mailboxes,
             imap_test,
             imap_save,
+            dav_accounts,
+            dav_save,
+            dav_remove,
             imap_accounts,
             web_pictures,
             setting,
@@ -4631,6 +5018,9 @@ pub fn run() {
             open_reader,
             open_mailto,
             open_help,
+            open_folder,
+            picture_senders_import,
+            picture_senders_export,
             search_scope_get,
             search_scope_set,
             search_warm,
@@ -4665,6 +5055,29 @@ pub fn run() {
             card_origin,
             card_update,
             card_create,
+            card_targets,
+            cards_copy,
+            card_duplicates,
+            play_system_sound,
+            sound_file,
+            speech_voices,
+            zoom_this,
+            zoom_all,
+            speech_say,
+            speech_stop,
+            voices_status,
+            voices_download,
+            voices_download_stop,
+            voices_refresh,
+            voices_remove,
+            voice_voices,
+            voice_say,
+            voice_stop,
+            voice_note,
+            cards_merge_preview,
+            cards_merge,
+            card_merges,
+            card_merge_undo,
             card_delete,
             card_share,
             card_get,
@@ -4793,6 +5206,9 @@ pub fn run() {
             offline,
             pick_paths,
             import_files,
+            export_classic,
+            classic_mirror,
+            classic_mirror_set,
             activity,
             api_overview,
             api_waiting,
@@ -4827,6 +5243,9 @@ pub fn run() {
             library_switch,
             check_every_get,
             check_every_set,
+            local_only_get,
+            local_only_set,
+            local_only_unasked,
             download_period_get,
             keep_preview,
             keep_counts,
@@ -4844,6 +5263,7 @@ pub fn run() {
             if let tauri::RunEvent::Exit = event {
                 app.state::<background::Background>().shut_down();
                 app.state::<api_host::ApiHost>().stop(app);
+                voice::quit();
                 // When I Close Eudora: the update goes in now
                 eudora_core::update::install_on_close();
             }
@@ -4905,6 +5325,9 @@ mod tests {
         ("add_shared_mailboxes", "v1.accounts.add_shared"),
         ("imap_test", "v1.accounts.imap_test"),
         ("imap_save", "v1.accounts.imap_save"),
+        ("dav_accounts", "v1.accounts.dav_list"),
+        ("dav_save", "v1.accounts.dav_save"),
+        ("dav_remove", "v1.accounts.dav_remove"),
         ("imap_accounts", "v1.accounts.imap_list"),
         ("setting", "v1.settings.get"),
         ("set_setting", "v1.settings.set"),
@@ -4938,6 +5361,13 @@ mod tests {
         ("card_origin", "v1.contacts.origin"),
         ("card_update", "v1.contacts.update"),
         ("card_create", "v1.contacts.create"),
+        ("card_targets", "v1.contacts.targets"),
+        ("cards_copy", "v1.contacts.copy"),
+        ("card_duplicates", "v1.contacts.duplicates"),
+        ("cards_merge_preview", "v1.contacts.merge_preview"),
+        ("cards_merge", "v1.contacts.merge"),
+        ("card_merges", "v1.contacts.merges"),
+        ("card_merge_undo", "v1.contacts.merge_undo"),
         ("card_delete", "v1.contacts.delete"),
         ("card_share", "v1.contacts.share"),
         ("card_get", "v1.contacts.get"),
@@ -5035,6 +5465,9 @@ mod tests {
         ("missing_sign_ins", "v1.accounts.missing_sign_ins"),
         ("offline", "v1.library.offline"),
         ("import_files", "v1.library.import"),
+        ("export_classic", "v1.library.export_classic"),
+        ("classic_mirror", "v1.library.classic_mirror"),
+        ("classic_mirror_set", "v1.library.classic_mirror_set"),
         ("plugins_list", "v1.plugins.list"),
         ("plugin_install", "v1.plugins.install"),
         ("plugin_enable", "v1.plugins.enable"),
@@ -5053,6 +5486,8 @@ mod tests {
         ("update_install", "v1.updates.install"),
         ("check_every_get", "v1.accounts.check_every"),
         ("check_every_set", "v1.accounts.check_every_set"),
+        ("local_only_get", "v1.accounts.local_only"),
+        ("local_only_set", "v1.accounts.local_only_set"),
         ("download_period_get", "v1.accounts.download_period"),
         ("download_period_set", "v1.accounts.download_period_set"),
         ("keep_preview", "v1.accounts.keep_preview"),
@@ -5061,6 +5496,7 @@ mod tests {
 
     /// The only window commands with no API method, and why.
     const WINDOW_ONLY: &[(&str, &str)] = &[
+        ("local_only_unasked", "the window's own question when an account is added (asked once; v1.accounts.local_only lists the choices)"),
         ("folder_move_blocked", "the window's own start-up (the folder's move from Eudora 27)"),
         ("restart_eudora", "the window restarting itself"),
         ("pick_paths", "the window's Open dialog (programs pass paths themselves)"),
@@ -5074,6 +5510,25 @@ mod tests {
         ("open_reader", "opens a window"),
         ("open_mailto", "opens a message window from a mailto: link (v1.mail.send sends one)"),
         ("open_help", "opens a window"),
+        ("open_folder", "opens a window (the system's file manager)"),
+        ("picture_senders_import", "reads a file the user picked (the list itself is v1.settings.set \"pictures\")"),
+        ("picture_senders_export", "writes a file into a folder the user picked (the list itself is v1.settings.get \"pictures\")"),
+        ("play_system_sound", "a sound in this window (new mail)"),
+        ("sound_file", "reads the sound file the user chose for new mail, to play in this window"),
+        ("speech_voices", "speech on this computer, for this window (Read Aloud)"),
+        ("zoom_this", "this window's text size"),
+        ("zoom_all", "the windows' text size"),
+        ("speech_say", "speaks aloud on this computer, for this window (Read Aloud)"),
+        ("speech_stop", "stops this window's speech"),
+        ("voices_status", "the natural voices' download, for this window"),
+        ("voices_download", "downloads the natural voices the user asked for"),
+        ("voices_download_stop", "stops that download"),
+        ("voices_remove", "removes the natural voices the user downloaded"),
+        ("voice_voices", "the natural voices, for this window"),
+        ("voice_say", "speaks aloud on this computer, for this window (Read Aloud)"),
+        ("voice_stop", "stops this window's natural voice"),
+        ("voice_note", "writes the window's note into the natural voices' log"),
+        ("voices_refresh", "brings this computer's downloaded natural voices up to date (as Eudora's own updates, window-only)"),
         ("app_version", "the program's own version (v1.updates.status has it too)"),
         ("search_warm", "gets the window's own search connection ready (v1.mail.search does the same when it runs)"),
         ("library_switch", "starts the window again on another library"),
@@ -5141,6 +5596,59 @@ mod tests {
         }
     }
 
+    /// Every form field in the window's pages has a name a screen reader can say: inside a
+    /// <label>, a <label for=…>, aria-label, aria-labelledby, or a title. Fields made by the
+    /// scripts are named where they're made.
+    #[test]
+    fn every_form_field_has_a_name_for_screen_readers() {
+        let ui = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("ui");
+        let attr = |tag: &str, name: &str| -> Option<String> {
+            let key = format!(" {name}=\"");
+            let at = tag.find(&key)? + key.len();
+            Some(tag[at..].split('"').next().unwrap_or("").to_string())
+        };
+        for page in ["index.html", "compose.html", "msgview.html", "ics.html", "help/index.html"] {
+            let html = std::fs::read_to_string(ui.join(page)).unwrap();
+            // (comments left out: they may quote tags)
+            let mut text = String::new();
+            let mut rest = html.as_str();
+            while let Some(at) = rest.find("<!--") {
+                text.push_str(&rest[..at]);
+                rest = rest[at..].find("-->").map(|e| &rest[at + e + 3..]).unwrap_or("");
+            }
+            text.push_str(rest);
+            let mut label_for = std::collections::HashSet::new();
+            let mut fields = Vec::new();
+            let mut in_label = 0usize;
+            for piece in text.split('<').skip(1) {
+                let tag = piece.split('>').next().unwrap_or("");
+                let name: String = tag.chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '/').collect::<String>().to_ascii_lowercase();
+                match name.as_str() {
+                    "label" => {
+                        in_label += 1;
+                        if let Some(f) = attr(tag, "for") {
+                            label_for.insert(f);
+                        }
+                    }
+                    "/label" => in_label = in_label.saturating_sub(1),
+                    "input" | "select" | "textarea" => {
+                        let kind = attr(tag, "type").unwrap_or_default();
+                        if !["hidden", "submit", "button", "reset", "image"].contains(&kind.as_str()) {
+                            fields.push((tag.to_string(), in_label > 0));
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            for (tag, inside) in fields {
+                let named = inside
+                    || attr(&tag, "id").is_some_and(|id| label_for.contains(&id))
+                    || ["aria-label", "aria-labelledby", "title"].iter().any(|a| attr(&tag, a).is_some_and(|v| !v.is_empty()));
+                assert!(named, "{page}: <{}> has no name a screen reader can say", tag.chars().take(80).collect::<String>());
+            }
+        }
+    }
+
     /// What's New has this version: raising the version without saying what's new fails here, as
     /// does a link in it to a page the manual doesn't have.
     #[test]
@@ -5173,7 +5681,7 @@ mod tests {
         let actions = &actions[..actions.find("\n};").unwrap()];
         // (done by a message being written, or by the program itself)
         let elsewhere = ["exit", "close", "save", "attach", "send"];
-        let keys = ["F1", "F3", "F4", "F7", "F9", "Enter", ",", ".", "Insert"];
+        let keys = ["F1", "F3", "F4", "F7", "F9", "Enter", ",", ".", "Insert", "Space"];
         for look in ["outlook", "thunderbird", "gmail", "yahoo"] {
             let menus = look_menus(look).unwrap();
             let mut seen_ids = std::collections::HashSet::new();

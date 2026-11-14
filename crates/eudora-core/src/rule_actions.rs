@@ -90,6 +90,38 @@ impl Library {
                 let from = facts.headers.iter().find(|(n, _)| n == "from").map(|(_, v)| v.as_str()).unwrap_or("");
                 notify(&self.root, id, rule, from, subject).map_err(|x| x.to_string())?;
             }
+            // spoken or played by the window (a rule may run in the background download)
+            Action::Speak { who, subject } => {
+                let header = |name: &str| facts.headers.iter().find(|(n, _)| n == name).map(|(_, v)| v.clone()).unwrap_or_default();
+                let mut said = Vec::new();
+                if *who {
+                    // the sender's name, else their address ("From: Ann Smith.")
+                    let from = crate::parse::parse(format!("From: {}
+
+", header("from")).as_bytes(), Default::default(), 0).from;
+                    let name = from.first().map(|a| if a.name.trim().is_empty() { a.address.clone() } else { a.name.clone() }).unwrap_or_else(|| header("from"));
+                    said.push(format!("From: {name}."));
+                }
+                if *subject {
+                    // (Re: and Fwd: left out, as classic did)
+                    let s = header("subject");
+                    let mut s = s.trim();
+                    loop {
+                        let lower = s.to_ascii_lowercase();
+                        match ["re:", "fw:", "fwd:"].iter().find(|p| lower.starts_with(**p)) {
+                            Some(p) => s = s[p.len()..].trim_start(),
+                            None => break,
+                        }
+                    }
+                    said.push(if s.is_empty() { "No subject.".to_string() } else { s.to_string() });
+                }
+                if !said.is_empty() {
+                    notice(&self.root, &serde_json::json!({ "at": now(), "message": id, "rule": rule, "speak": said.join(" ") })).map_err(|x| x.to_string())?;
+                }
+            }
+            Action::Sound { file } => {
+                notice(&self.root, &serde_json::json!({ "at": now(), "message": id, "rule": rule, "sound": file })).map_err(|x| x.to_string())?;
+            }
             Action::Transfer { .. } | Action::Copy { .. } | Action::Delete | Action::Sort | Action::Stop => {}
         }
         Ok(())
@@ -199,6 +231,16 @@ pub fn notify(root: &std::path::Path, id: i64, rule: &str, from: &str, subject: 
     let dir = root.join("status");
     std::fs::create_dir_all(&dir)?;
     let line = serde_json::json!({ "at": now(), "message": id, "rule": rule, "from": from, "subject": subject });
+    let mut file = std::fs::OpenOptions::new().create(true).append(true).open(dir.join("notify.jsonl"))?;
+    writeln!(file, "{line}")
+}
+
+/// Something for the window to say or play (a rule's Speak / Play Sound), in the same file as
+/// the notices.
+pub fn notice(root: &std::path::Path, line: &serde_json::Value) -> std::io::Result<()> {
+    use std::io::Write;
+    let dir = root.join("status");
+    std::fs::create_dir_all(&dir)?;
     let mut file = std::fs::OpenOptions::new().create(true).append(true).open(dir.join("notify.jsonl"))?;
     writeln!(file, "{line}")
 }

@@ -15,8 +15,10 @@ eudora-cli backup D:\Backups\Eudora --part-size 4GB</code></pre>
 <tr><td><code>mark</code>, <code>labels</code>, <code>signatures</code></td><td>Status, priority, labels; the label list; signatures.</td></tr>
 <tr><td><code>contacts</code></td><td>The address book, or exported to a file.</td></tr>
 <tr><td><code>backup</code>, <code>restore</code></td><td>Back up and restore (see <a href="#backup">Backing up Eudora</a>).</td></tr>
+<tr><td><code>export-classic</code>, <code>classic-mirror</code></td><td>Write your mail, rules, and address book as classic Eudora files, and keep such a copy current (see <a href="#classic-export">Going back to classic Eudora</a>).</td></tr>
 <tr><td><code>mail-stats</code>, <code>stats</code>, <code>verify</code></td><td>Statistics; sizes; check every stored message against its checksum.</td></tr>
 <tr><td><code>offline</code>, <code>empty-trash</code>, <code>forget-sign-ins</code></td><td>As the menu items of the same names.</td></tr>
+<tr><td><code>local-only [ADDRESS] [--mail local|server] [--calendar local|server] [--contacts local|server] [--json]</code></td><td>Which accounts keep their mail, calendar (with To Do), or contacts on this computer only; with an address and a switch, changes that account's choice (<a href="#local-only">what it means</a>).</td></tr>
 <tr><td><code>call</code></td><td>Any of Eudora's functions by its API method: <code>eudora-cli call v1.mail.search '{"query": "from:ann"}'</code>. <code>eudora-cli api methods</code> lists them all.</td></tr>
 </table>
 <p>Answers meant for scripts are JSON, and the program ends with a real exit code (0 when all went well). <code>eudora COMMAND --help</code> describes each command.</p>

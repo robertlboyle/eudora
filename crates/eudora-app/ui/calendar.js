@@ -229,6 +229,19 @@ function closeCalendar() {
   $("calendar").hidden = true;
 }
 
+/** An event for the keyboard and screen readers: Tab reaches
+ *  it, Enter or Space opens it, Shift+F10 / the Menu key its right-click menu; it's read with its
+ *  day, time, place, and whether it's an invitation waiting for an answer. */
+function calAccessible(e, row, span) {
+  e.tabIndex = 0;
+  e.setAttribute("role", "button");
+  const when = span.allDay
+    ? `${calDayTitle.format(span.start)}, all day`
+    : `${calDayTitle.format(span.start)}, ${calShortTime.format(span.start)} to ${calShortTime.format(span.end)}`;
+  const waiting = row.response === "notResponded" ? "not answered yet" : row.response === "tentativelyAccepted" ? "tentative" : row.cancelled ? "canceled" : "";
+  e.setAttribute("aria-label", [row.subject || "no subject", when, row.location, waiting].filter(Boolean).join(", "));
+}
+
 function calSetMode(mode) {
   calState.mode = mode;
   store.set("calMode", mode);
@@ -267,7 +280,10 @@ function calTitle() {
 async function calRender() {
   if (!calState.on) return;
   $("cal-title").textContent = calState.query ? `Events matching “${calState.query}”` : calTitle();
-  for (const b of document.querySelectorAll("#cal-modes button")) b.classList.toggle("on", b.dataset.mode === calState.mode && !calState.query);
+  for (const b of document.querySelectorAll("#cal-modes button")) {
+    b.classList.toggle("on", b.dataset.mode === calState.mode && !calState.query);
+    b.setAttribute("aria-pressed", String(b.classList.contains("on")));
+  }
   const hb = $("cal-hours");
   // (it keeps its place when it doesn't apply, so the buttons beside it never move)
   hb.style.visibility = !["day", "week"].includes(calState.mode) || calState.query ? "hidden" : "";
@@ -330,6 +346,7 @@ function calChip(row, span, withTime) {
   chip.append(el("span", "cal-subject", row.subject || "(no subject)"));
   calMarks(chip, row);
   chip.title = `${row.subject}${row.location ? ` · ${row.location}` : ""}`;
+  calAccessible(chip, row, span);
   return chip;
 }
 
@@ -424,6 +441,7 @@ function calGrid(days) {
       if (row.location) box.append(el("div", "cal-ev-where", row.location));
       calMarks(box, row);
       box.title = `${row.subject}\n${when}${row.location ? `\n${row.location}` : ""}`;
+      calAccessible(box, row, span);
       col.append(box);
     }
     // what's outside the business day: counted at its edge (a click shows the full day)
@@ -488,6 +506,7 @@ function calMonth() {
     const cell = el("div", "cal-mcell" + (d.getMonth() !== month ? " other" : "") + (calSameDay(d, today) ? " today" : ""));
     const num = el("button", "cal-mnum", String(d.getDate()));
     num.title = "Show this day";
+    num.setAttribute("aria-label", `${calDayTitle.format(d)}: show this day`);
     num.addEventListener("click", () => { calState.day = d; calSetMode("day"); });
     cell.append(num);
     const on = calOnDay(d);
@@ -614,6 +633,13 @@ $("cal-search").addEventListener("input", () => {
 $("cal-body").addEventListener("click", (e) => {
   const item = e.target.closest("[data-id]");
   if (item) calShowEvent(Number(item.dataset.id));
+});
+// an event with the keyboard: Enter or Space opens it, Shift+F10 / the Menu key its menu
+$("cal-body").addEventListener("keydown", (e) => {
+  const item = e.target.closest?.("[data-id][role=button]");
+  if (!item) return;
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); calShowEvent(Number(item.dataset.id)); }
+  else if ((e.key === "F10" && e.shiftKey) || e.key === "ContextMenu") { e.preventDefault(); e.stopPropagation(); window.openContextMenu?.(item); }
 });
 // a day's heading in Week opens that day
 $("cal-body").addEventListener("dblclick", (e) => {
@@ -796,6 +822,8 @@ function calPrint(v) {
   $("print-frame")?.remove();
   const frame = document.createElement("iframe");
   frame.id = "print-frame";
+  frame.setAttribute("aria-hidden", "true");
+  frame.tabIndex = -1;
   frame.setAttribute("sandbox", "allow-same-origin allow-modals");
   frame.style.cssText = "position: fixed; width: 0; height: 0; border: 0; left: -9999px";
   const [title, ...rest] = calDetailsText(v).split("\n");

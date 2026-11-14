@@ -136,13 +136,63 @@ fn publish(args: &[String]) -> Result<()> {
     Ok(())
 }
 
+/// The natural voices for one system (core `voices.rs`): the `eudora-voice` program built for it
+/// and the Kokoro model, copied into `<out>/voices/` with a list signed by Eudora's key.
+fn voices(args: &[String]) -> Result<()> {
+    let opt = |name: &str| args.iter().position(|a| a == name).and_then(|i| args.get(i + 1)).cloned();
+    let platform = opt("--platform").unwrap_or_else(|| "windows".into());
+    let version = opt("--version").unwrap_or_else(|| workspace_version().unwrap_or_else(|_| "1".into()));
+    let windows = platform.starts_with("windows");
+    let program = opt("--program").map(PathBuf::from).unwrap_or_else(|| root().join("target").join("release").join(if windows { "eudora-voice.exe" } else { "eudora-voice" }));
+    let models = opt("--models").map(PathBuf::from).context("--models DIR: the folder with kokoro-v1.0.onnx and voices-v1.0.bin")?;
+    let out = opt("--out").map(PathBuf::from).unwrap_or_else(|| root().join("dist").join("update-site")).join("voices");
+    let pair = read_key(&key_path()?)?;
+    let public = std::fs::read_to_string(public_key_file())?;
+    if public.trim() != public_b64(&pair) {
+        bail!("This private key doesn't match the public key in Eudora: installed copies would refuse it.");
+    }
+    std::fs::create_dir_all(&out)?;
+    let program_name = if windows { "eudora-voice.exe" } else { "eudora-voice" };
+    let server_program = format!("eudora-voice-{version}-{platform}{}", if windows { ".exe" } else { "" });
+    let mut files = vec![(program_name.to_string(), server_program.clone(), program.clone())];
+    for name in ["kokoro-v1.0.onnx", "voices-v1.0.bin"] {
+        files.push((name.to_string(), name.to_string(), models.join(name)));
+    }
+    let mut listed = Vec::new();
+    for (name, path, from) in &files {
+        if !from.is_file() {
+            bail!("{} isn't there", from.display());
+        }
+        let data = std::fs::read(from)?;
+        let target = out.join(path);
+        if std::fs::read(&target).ok().as_deref() != Some(&data[..]) {
+            std::fs::write(&target, &data)?;
+        }
+        let sha: String = Sha256::digest(&data).iter().map(|b| format!("{b:02x}")).collect();
+        listed.push(serde_json::json!({ "name": name, "path": path, "size": data.len(), "sha256": sha }));
+    }
+    let list = serde_json::to_vec_pretty(&serde_json::json!({ "app": "Eudora", "kind": "voices", "platform": platform, "version": version, "files": listed }))?;
+    let signature = B64.encode(pair.sign(&list).as_ref());
+    ring::signature::UnparsedPublicKey::new(&ring::signature::ED25519, B64.decode(public.trim())?)
+        .verify(&list, &B64.decode(&signature)?)
+        .map_err(|_| anyhow::anyhow!("the signature doesn't check"))?;
+    let list_name = format!("voices-{platform}.json");
+    std::fs::write(out.join(&list_name), &list)?;
+    std::fs::write(out.join(format!("{list_name}.sig")), format!("{signature}\n"))?;
+    let total: u64 = files.iter().map(|(_, _, f)| std::fs::metadata(f).map(|m| m.len()).unwrap_or(0)).sum();
+    println!("Ready to upload from {}: {server_program}, the model files, {list_name} and .sig ({:.0} MB in all; the list and .sig last)", out.display(), total as f64 / 1e6);
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         Some("keygen") => keygen(args.iter().any(|a| a == "--replace")),
         Some("publish") => publish(&args[1..]),
+        Some("voices") => voices(&args[1..]),
         _ => {
-            println!("eudora-release keygen [--replace]\neudora-release publish [--notes TEXT] [--file SETUP.exe] [--version V] [--platform windows] [--out DIR]");
+            println!("eudora-release keygen [--replace]\neudora-release publish [--notes TEXT] [--file SETUP.exe] [--version V] [--platform windows] [--out DIR]
+eudora-release voices --models DIR [--program eudora-voice.exe] [--platform windows] [--version V] [--out DIR]");
             Ok(())
         }
     }

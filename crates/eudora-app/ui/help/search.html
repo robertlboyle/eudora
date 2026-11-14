@@ -4,10 +4,52 @@
 <p>Results come newest first. Click a column heading to sort them another way. You can work with search results as with any list: read, reply, move, delete, or run the spam filter or your rules on them.</p>
 <p>The last word you type also matches longer words starting with it: <code>walkerfi</code> finds walkerfield.example.</p>
 <p>When nothing matches, Eudora says <b>No results.</b> When your search has a mistake, Eudora repairs what it safely can, says what it did, and offers corrected searches under <b>Try:</b>. Click one to run it.</p>
-<p class="see">To find words in the message you're reading or writing, use <a href="#find-text">Find Text</a>.</p>
+<p class="see">To build a search from several conditions without typing search words, use <a href="#advanced-search">Advanced Search</a>, the button beside the search box. To find words in the message you're reading or writing, use <a href="#find-text">Find Text</a>.</p>
 </section>
 
-<section id="search-words" data-title="Search words and operators" data-index="from:; to:; cc:; subject:; body:; attachment:; hasattachment; received:; sent:; date:; size:; folder:; in:; participants:; recipient:; sender:; AND; OR; NOT; quotes; phrase; wildcard; asterisk; exclude; minus; Outlook search keywords; Gmail search">
+<section id="advanced-search" data-title="Advanced Search (Find Messages)" data-index="Advanced Search; Find Messages; advanced find; search builder; build a search; several conditions; criteria; Match all; Match any; More; Fewer; boolean search; search by status; search by label; search by priority; search by account; unread messages; flagged messages; date range; between dates; size between; header search builder">
+<h1>Advanced Search (Find Messages)</h1>
+<p>Advanced Search builds a search from several conditions, so you don't need to know any search words. It's classic Eudora's Find Messages window, brought up to date.</p>
+<h2>Opening it</h2>
+<ul>
+<li>Click the <b>sliders button</b> beside the search box at the top of the window.</li>
+<li>Or choose <span class="ui">Edit ▸ Advanced Search…</span>. In the Outlook, Thunderbird, Gmail, and Yahoo looks it's on the Edit menu too.</li>
+<li>In <b>Eudora Classic</b> it is <span class="ui">Edit ▸ Find ▸ Find Messages…</span> (<kbd>Ctrl</kbd>+<kbd>F</kbd>), where classic Eudora had it. In the other looks <kbd>Ctrl</kbd>+<kbd>F</kbd> goes to the search box.</li>
+</ul>
+<h2>Building a search</h2>
+<ol>
+<li>Each row is one condition: a <b>field</b>, a <b>test</b>, and a <b>value</b>. For example: <i>From</i> · <i>contains</i> · <i>ann@example.com</i>.</li>
+<li>Click <b>+</b> at the end of a row to add a condition after it (it starts like the row before), or <b>−</b> to remove that row. <b>More</b> adds a row at the end and <b>Fewer</b> removes the last one, as in classic Eudora.</li>
+<li>Choose <b>Match all conditions</b> (every row must hold) or <b>Match any condition</b> (one is enough).</li>
+<li>Under <b>Search in</b>, keep <b>Every account</b>, or choose <b>Only these accounts</b> and tick the ones to search.</li>
+<li>Click <b>Search</b> or press <kbd>Enter</kbd>. The results show in the message list, like any search. Open Advanced Search again to change the conditions: it remembers them.</li>
+</ol>
+<h2>Fields and tests</h2>
+<table>
+<tr><th>Field</th><th>Tests</th><th>Value</th></tr>
+<tr><td>Anywhere, Subject, Body, Attachment name</td><td>contains, doesn't contain, is exactly, isn't exactly, starts with</td><td>Words or a phrase</td></tr>
+<tr><td>From, To, Cc, Bcc, Any recipient</td><td>contains, doesn't contain, is, isn't, starts with, ends with (a domain)</td><td>A name or an address; for "ends with", a domain such as <code>example.com</code></td></tr>
+<tr><td>Has attachments</td><td>is</td><td>Yes or No (pictures shown inside a message don't count)</td></tr>
+<tr><td>Date (received or sent)</td><td>is on, isn't on, is after, is before, is between, is within</td><td>A date from the calendar, two dates, or a period: today, yesterday, this or last week, month, or year</td></tr>
+<tr><td>Size</td><td>is greater than, is less than, is between</td><td>A number in KB or MB</td></tr>
+<tr><td>Mailbox (folder)</td><td>is, isn't</td><td>A folder's name (every folder of that name in any account), or its path such as <code>Bulk/Marketing</code>; the box suggests your folders</td></tr>
+<tr><td>Account</td><td>is, isn't</td><td>One of your accounts</td></tr>
+<tr><td>Label</td><td>is, isn't</td><td>One of your labels, Any label, or No label</td></tr>
+<tr><td>Status</td><td>is, isn't</td><td>Unread, Read, Replied, Forwarded, Redirected, or Flagged (To Do)</td></tr>
+<tr><td>Priority</td><td>is, isn't</td><td>Highest to Lowest, or None set (the priority you set, as the Priority column shows it)</td></tr>
+<tr><td>Header named…</td><td>contains, doesn't contain, is present, isn't present</td><td>Any header's name (the box suggests common ones, such as List-Id) and, for contains, its words</td></tr>
+</table>
+<p>Words match whole words, as in the search box: "contains report" finds "report" in the subject or text, not "deportation". "Starts with" matches the start of words. "Ends with" for an address finds that domain anywhere in the address.</p>
+<h2>The search it makes</h2>
+<p>Below the conditions, Eudora shows the search they make, in the same words the search box takes, so you can see how to type it next time. For example, <i>From contains ann</i>, <i>Status is Unread</i>, and <i>Date is within last week</i> with Match all make <code>from:ann is:unread received:"last week"</code>.</p>
+<p>You can change the search there by hand, for instance to add parentheses for a mix of "and" and "or": <code>(from:ann OR from:bob) is:unread</code>. Once you do, the conditions above no longer make it, and Eudora says so: <b>Make It from the Conditions Again</b> puts back what the rows make.</p>
+<p><b>Clear</b> starts again with one empty condition. <b>Help</b> opens this page.</p>
+<h2>With the keyboard and a screen reader</h2>
+<p>Every control has a name a screen reader reads, such as "Condition 2: field". <kbd>Tab</kbd> moves through a row's field, test, value, <b>+</b>, and <b>−</b>; arrow keys choose in a list; <kbd>Enter</kbd> in a value searches; <kbd>Esc</kbd> closes the window. Adding or removing a condition is announced ("Condition 3 added: From contains. 3 conditions."), and the keyboard moves to the new row's value, or to the row before the one removed.</p>
+<p class="see">The words it uses are listed in <a href="#search-words">Search words and operators</a>. Mailboxes you <a href="#search-scope">left out of search</a> are left out here too.</p>
+</section>
+
+<section id="search-words" data-title="Search words and operators" data-index="from:; to:; cc:; subject:; is:; is:unread; isread:; isflagged:; label:; category:; priority:; account:; body:; attachment:; hasattachment; received:; sent:; date:; size:; folder:; in:; participants:; recipient:; sender:; AND; OR; NOT; quotes; phrase; wildcard; asterisk; exclude; minus; Outlook search keywords; Gmail search">
 <h1>Search words and operators</h1>
 <h2>Words and phrases</h2>
 <table>
@@ -18,7 +60,7 @@
 <tr><td><code>budg*</code></td><td>Any word starting with "budg".</td></tr>
 <tr><td><code>(budget OR forecast) -draft</code></td><td>Parentheses group parts of a search.</td></tr>
 </table>
-<p><code>AND</code> is allowed but not needed: every word must match anyway.</p>
+<p><code>AND</code> is allowed but not needed: every word must match anyway. Every search word works inside parentheses and beside <code>OR</code>: <code>(from:ann OR label:Personal) is:unread</code>.</p>
 <h2>Fields</h2>
 <table>
 <tr><th>Word</th><th>Searches</th><th>Example</th></tr>
@@ -33,7 +75,11 @@
 <tr><td><code>folder:</code>, <code>in:</code></td><td>Folders of that name in any account</td><td><code>in:Inbox</code></td></tr>
 <tr><td><code>received:</code>, <code>sent:</code>, <code>date:</code></td><td>When</td><td><code>received:last week</code></td></tr>
 <tr><td><code>size:</code></td><td>How big</td><td><code>size:&gt;5MB</code></td></tr>
-<tr><td>any header</td><td>Any header of the message</td><td><code>importance:high</code>, <code>list-id:*</code></td></tr>
+<tr><td><code>is:</code></td><td>Status: <code>unread</code>, <code>read</code>, <code>replied</code>, <code>forwarded</code>, <code>redirected</code>, <code>flagged</code>, <code>unflagged</code>; Outlook's <code>isread:no</code> and <code>isflagged:yes</code> too</td><td><code>is:unread</code></td></tr>
+<tr><td><code>label:</code>, <code>category:</code></td><td>A label (an Outlook category); <code>label:any</code> or <code>label:none</code></td><td><code>label:"To Do!"</code></td></tr>
+<tr><td><code>priority:</code></td><td>The priority you set: <code>highest</code>, <code>high</code>, <code>normal</code>, <code>low</code>, <code>lowest</code>, or <code>none</code></td><td><code>priority:high</code></td></tr>
+<tr><td><code>account:</code></td><td>One account, by its address or its name</td><td><code>account:ann@example.com</code></td></tr>
+<tr><td>any header</td><td>Any header of the message (a header named Priority is <code>x-priority:</code>)</td><td><code>importance:high</code>, <code>list-id:*</code></td></tr>
 </table>
 <h2>Dates</h2>
 <p><code>today</code>, <code>yesterday</code>, <code>this week</code>, <code>last week</code>, <code>this month</code>, <code>last month</code>, <code>this year</code>, <code>last year</code>, a year (<code>2019</code>), a date (<code>3/15/2024</code> or <code>2024-03-15</code>), a range (<code>2023-01-01..2023-06-30</code>), or before / after (<code>&gt;2024-01-01</code>, <code>&lt;=2010</code>). Weeks start on Sunday.</p>

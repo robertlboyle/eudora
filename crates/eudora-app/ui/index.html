@@ -14,19 +14,22 @@
   <script src="icons/set.js"></script>
 </head>
 <body class="skin-eudora">
+  <div id="sr-polite" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="sr-alert" class="sr-only" role="alert" aria-atomic="true"></div>
   <header id="toolbar">
     <div class="brand"><span class="logo"></span><span class="name">Eudora</span></div>
     <div class="search">
       <span class="search-icon" data-icon="magnifying-glass"></span>
-      <input id="query" type="search" placeholder="Search all mail (from:, subject:, any header: x-mailer:outlook, &quot;phrase&quot;, OR, NOT)" title="Words, &quot;phrases&quot;, OR, NOT / -word; fields: from: to: cc: subject: body: attachment:; and any header by its name: x-mailer:outlook, list-id:announce, return-path:bob@example.com, reply-to:* (has one), -list-id:* (has none)" autocomplete="off" spellcheck="false">
+      <input id="query" type="search" aria-label="Search all mail" placeholder="Search all mail (from:, subject:, any header: x-mailer:outlook, &quot;phrase&quot;, OR, NOT)" title="Words, &quot;phrases&quot;, OR, NOT / -word; fields: from: to: cc: subject: body: attachment:; and any header by its name: x-mailer:outlook, list-id:announce, return-path:bob@example.com, reply-to:* (has one), -list-id:* (has none)" autocomplete="off" spellcheck="false">
       <button id="search-all" class="search-all" type="button" hidden></button>
-      <select id="order" title="Order of the results">
+      <button id="adv-search-btn" class="search-adv" type="button" aria-haspopup="dialog" aria-label="Advanced search" title="Advanced search: build a search from several conditions, no search words needed (classic Eudora's Find Messages)"><span data-icon="sliders" aria-hidden="true"></span></button>
+      <select id="order" title="Order of the results" aria-label="Order of the results">
         <option value="newest">Newest first</option>
         <option value="oldest">Oldest first</option>
         <option value="relevance">Best match</option>
       </select>
     </div>
-    <div class="actions">
+    <div class="actions" role="toolbar" aria-label="Mail commands">
       <button class="tool" data-act="check" title="Check Mail (Ctrl+M): look for new mail in every account now"><span data-icon="arrows-rotate"></span><span class="label">Check Mail</span></button>
       <button class="tool" data-act="new" title="New Message (Ctrl+N)"><span data-icon="pen-to-square"></span><span class="label">New</span></button>
       <button class="tool" data-act="reply" title="Reply (Ctrl+R)"><span data-icon="reply"></span><span class="label">Reply</span></button>
@@ -36,12 +39,12 @@
       <button class="tool" data-act="delete" title="Delete (Ctrl+D)"><span data-icon="trash-can"></span><span class="label">Delete</span></button>
       <button class="tool" data-act="address-book" title="Address Book (Ctrl+L): your contacts from every account"><span data-icon="address-book"></span><span class="label">Contacts</span></button>
     </div>
-    <div class="actions classic-actions" id="classic-actions"></div>
+    <div class="actions classic-actions" id="classic-actions" role="toolbar" aria-label="Mail commands"></div>
     <div class="tools">
       <button id="offline-badge" class="tool offline-badge" hidden title="Working offline: click to go online (File ▸ Work Offline)">Offline</button>
       <label class="tool skin-pick" title="Layout and look (the mail, search and rules are the same in every one)">
         <span data-icon="palette"></span>
-        <select id="skin">
+        <select id="skin" aria-label="Look">
           <option value="eudora-classic">Eudora Classic</option>
           <option value="eudora">Eudora Modern</option>
           <option value="thunderbird">Thunderbird-style</option>
@@ -51,34 +54,34 @@
           <option value="yahoo">Yahoo-style</option>
         </select>
       </label>
-      <button id="theme-toggle" class="tool" title="Dark mode (right-click: follow Windows again)"><span data-icon="moon"></span></button>
-      <button id="prefs-open" class="tool" title="Settings: look, folders or labels, account names"><span data-icon="gear"></span></button>
+      <button id="theme-toggle" class="tool" aria-label="Dark mode" title="Dark mode (right-click: follow Windows again)"><span data-icon="moon"></span></button>
+      <button id="prefs-open" class="tool" aria-label="Settings" title="Settings: look, folders or labels, account names"><span data-icon="gear"></span></button>
     </div>
   </header>
 
   <main id="panes">
-    <nav id="folders-pane">
+    <nav id="folders-pane" aria-label="Mailboxes">
       <div class="pane-title">Mailboxes</div>
-      <div id="folders" tabindex="0"></div>
+      <div id="folders" tabindex="0" aria-label="Mailboxes and folders"></div>
     </nav>
     <div class="splitter vertical" data-split="folders"></div>
     <section id="right">
-      <div id="list-pane">
+      <div id="list-pane" role="region" aria-label="Messages">
         <div id="list-title"><span id="list-name"></span><span id="list-count"></span><button id="list-subs" class="list-subs" hidden title="Every mailing list, notification and marketing sender you get, how often, and unsubscribing">Manage subscriptions…</button></div>
-        <div id="search-help" hidden></div>
+        <div id="search-help" hidden role="status" aria-live="polite"></div>
         <div id="list-head"></div>
-        <div id="list" tabindex="0"><div id="list-space"></div></div>
+        <div id="list" tabindex="0" role="listbox" aria-multiselectable="true" aria-label="Messages"><div id="list-space" role="presentation"></div></div>
       </div>
       <div class="splitter horizontal" data-split="list"></div>
-      <article id="message-pane">
+      <article id="message-pane" aria-label="Message">
         <div id="message-empty">Choose a message to read it.</div>
         <div id="message" hidden>
           <div id="message-head">
             <button id="m-back" title="Back to the list (Esc)"><span data-icon="arrow-left"></span> Back</button>
             <div id="m-tools">
-              <button id="m-hdr" title="Show fewer headers (kept for every message)"><span data-icon="chevron-up"></span></button>
-              <button id="m-max" title="Maximize the message in Eudora's window (Esc to go back)"><span data-icon="expand"></span></button>
-              <button id="m-pop" title="Open the message in a window of its own"><span data-icon="arrow-up-right-from-square"></span></button>
+              <button id="m-hdr" aria-label="Fewer headers" title="Show fewer headers (kept for every message)"><span data-icon="chevron-up"></span></button>
+              <button id="m-max" aria-label="Maximize the message" title="Maximize the message in Eudora's window (Esc to go back)"><span data-icon="expand"></span></button>
+              <button id="m-pop" aria-label="Pop out the message" title="Open the message in a window of its own"><span data-icon="arrow-up-right-from-square"></span></button>
             </div>
             <h1 id="m-subject"></h1>
             <div class="m-line m-from-line"><span class="m-label">From</span><span id="m-from"></span></div>
@@ -105,7 +108,7 @@
               <button data-view="source">Source</button>
             </div>
           </div>
-          <div id="m-find" class="find-bar" hidden><input id="m-find-text" type="search" placeholder="Find in this message" spellcheck="false"><span id="m-find-count"></span><button id="m-find-prev" title="Previous (Shift+Enter, Shift+F3)">↑</button><button id="m-find-next" title="Next (Enter, F3)">↓</button><button id="m-find-close" title="Close (Esc)">✕</button></div>
+          <div id="m-find" class="find-bar" hidden><input id="m-find-text" aria-label="Find in this message" type="search" placeholder="Find in this message" spellcheck="false"><span id="m-find-count"></span><button id="m-find-prev" title="Previous (Shift+Enter, Shift+F3)">↑</button><button id="m-find-next" title="Next (Enter, F3)">↓</button><button id="m-find-close" title="Close (Esc)">✕</button></div>
           <div id="m-body"></div>
         </div>
       </article>
@@ -119,27 +122,29 @@
         <button id="cal-next" type="button" title="Forward (→)">›</button>
         <button id="cal-hours" type="button" title="Day and Week: the business day (Settings ▸ Calendar) or all 24 hours (H)"></button>
         <h2 id="cal-title"></h2>
-        <span id="cal-modes"><button type="button" data-mode="day" title="Day (D)">Day</button><button type="button" data-mode="week" title="Week (W)">Week</button><button type="button" data-mode="month" title="Month (M)">Month</button><button type="button" data-mode="agenda" title="Agenda (A)">Agenda</button><button type="button" data-mode="invites" title="Invites: meeting invitations waiting for your answer, with what they clash with (I)">Invites <span id="cal-invites-count" class="cal-count" hidden></span></button><button type="button" data-mode="trips" title="Trips: flights and hotel stays ahead, from your travel mail (R)">Trips <span id="cal-trips-count" class="cal-count" hidden></span></button></span>
-        <input id="cal-search" type="search" placeholder="Search events" spellcheck="false">
+        <span id="cal-modes" role="group" aria-label="Calendar view"><button type="button" data-mode="day" title="Day (D)">Day</button><button type="button" data-mode="week" title="Week (W)">Week</button><button type="button" data-mode="month" title="Month (M)">Month</button><button type="button" data-mode="agenda" title="Agenda (A)">Agenda</button><button type="button" data-mode="invites" title="Invites: meeting invitations waiting for your answer, with what they clash with (I)">Invites <span id="cal-invites-count" class="cal-count" hidden></span></button><button type="button" data-mode="trips" title="Trips: flights and hotel stays ahead, from your travel mail (R)">Trips <span id="cal-trips-count" class="cal-count" hidden></span></button></span>
+        <input id="cal-search" aria-label="Search events" type="search" placeholder="Search events" spellcheck="false">
       </div>
-      <div id="cal-body"></div>
+      <div id="cal-body" role="region" aria-label="Calendar"></div>
     </section>
     <!-- Contacts (the Address Book): in place of the list and the reader, like the calendar -->
     <section id="contacts" hidden>
     <div class="ab-bar">
       <h2 class="ab-title">Contacts</h2>
-      <input id="ab-find" type="search" placeholder="Find a name, address, number or company" spellcheck="false">
-      <select id="ab-account"><option value="">Every account</option></select>
+      <input id="ab-find" aria-label="Find a contact" type="search" placeholder="Find a name, address, number or company" spellcheck="false">
+      <select id="ab-account" aria-label="Show contacts from"><option value="">Every account</option></select>
       <label class="ab-sort-label">Sort by <select id="ab-sort" title="The order of the contacts"><option value="first">First name</option><option value="last">Last name</option><option value="company">Company</option></select></label>
       <span id="ab-count" class="p-note"></span>
     </div>
     <div class="ab-layout">
-      <div id="ab-list" tabindex="0"></div>
-      <div id="ab-card"><p class="p-note">Choose a contact.</p></div>
+      <div id="ab-list" tabindex="0" role="listbox" aria-multiselectable="true" aria-label="Contacts"></div>
+      <div id="ab-card" role="region" aria-label="Contact"><p class="p-note">Choose a contact.</p></div>
     </div>
-    <p id="ab-empty" class="p-note" hidden>No contacts yet. Microsoft 365 and Outlook.com address books come in with the mail once you've signed in again (Settings ▸ Accounts ▸ Sign in again), where Microsoft asks you to let Eudora read and change your contacts.</p>
+    <p id="ab-empty" class="p-note" hidden>No contacts yet. Address books from Microsoft 365, Outlook.com, Google, and CardDAV servers come in with the mail (Settings ▸ Accounts); New Contact adds one to any of them.</p>
     <div class="ab-buttons">
       <button id="ab-new" title="Add a contact to one of your address books">New Contact</button>
+      <button id="ab-dupes" title="Contacts that look like the same person (the same email address, phone number, or full name), to merge into one">Find Duplicates…</button>
+      <button id="ab-move" title="Move or copy the contacts chosen (Ctrl+click, Shift+click, Ctrl+A), or every contact shown, into one account's address book">Move or Copy…</button>
       <button id="ab-export-vcf" title="Every contact shown, as a vCard file (Outlook, Apple, Google and phones read it)">Export vCard…</button>
       <button id="ab-export-csv" title="Every contact shown, as a spreadsheet file (Outlook's and Google's import columns)">Export CSV…</button>
     </div>
@@ -147,7 +152,7 @@
     <!-- To Do (todo.js): in place of the list and the reader when To Do is chosen -->
     <section id="todo" hidden>
       <div id="todo-bar">
-        <input id="todo-new" type="text" placeholder="Add a task (Enter)" spellcheck="true">
+        <input id="todo-new" aria-label="New task" type="text" placeholder="Add a task (Enter)" spellcheck="true">
         <select id="todo-new-due" title="When it's due"><option value="">No date</option><option value="today">Today</option><option value="tomorrow">Tomorrow</option><option value="week">Next week</option></select>
         <button id="todo-add" type="button">Add</button>
       </div>
@@ -160,7 +165,7 @@
   <dialog id="col-header-box">
     <h2>Add a header column</h2>
     <p class="p-note">Any header in the messages: its value shows in the column (read for the rows on screen).</p>
-    <input id="col-header-name" list="col-header-list" placeholder="X-Mailer" autocomplete="off" spellcheck="false">
+    <input id="col-header-name" aria-label="Header name for the new column" list="col-header-list" placeholder="X-Mailer" autocomplete="off" spellcheck="false">
     <datalist id="col-header-list">
       <option value="X-Mailer"><option value="User-Agent"><option value="Reply-To"><option value="Return-Path"><option value="Sender">
       <option value="Delivered-To"><option value="List-Id"><option value="Message-ID"><option value="In-Reply-To"><option value="X-Priority">
@@ -207,7 +212,7 @@
 
   <dialog id="pick">
     <h2 id="pick-title">Transfer To</h2>
-    <input id="pick-filter" type="search" placeholder="Type part of a mailbox name" autocomplete="off" spellcheck="false">
+    <input id="pick-filter" aria-label="Type a mailbox's name" type="search" placeholder="Type part of a mailbox name" autocomplete="off" spellcheck="false">
     <div id="pick-list"></div>
     <p class="p-note">↑ ↓ to move, → to open a mailbox, ← to close it, Enter or a double-click to choose. Type to find one anywhere.</p>
     <div class="p-buttons"><button id="pick-cancel">Cancel</button><button id="pick-ok" class="primary">OK</button></div>
@@ -239,6 +244,40 @@
     </div>
     <p class="p-note" id="newbox-note">On a mail server it's made there when the first message goes into it.</p>
     <div class="p-buttons"><button id="newbox-cancel">Cancel</button><button id="newbox-ok" class="primary">Make It</button></div>
+  </dialog>
+
+  <dialog id="adv-search" class="adv-search" aria-labelledby="as-title">
+    <h2 id="as-title">Advanced Search</h2>
+    <p class="p-note">Choose what to look for, one condition a row. The search they make is shown below, and you can change it by hand.</p>
+    <div class="as-top">
+      <fieldset class="as-match">
+        <legend>Find messages that</legend>
+        <label><input type="radio" name="as-match" id="as-all" value="all" checked> Match <u>a</u>ll conditions</label>
+        <label><input type="radio" name="as-match" id="as-any" value="any"> Match an<u>y</u> condition</label>
+      </fieldset>
+      <span class="as-more-fewer">
+        <button id="as-more" type="button" title="Add a condition at the end">More</button>
+        <button id="as-fewer" type="button" title="Remove the last condition">Fewer</button>
+      </span>
+    </div>
+    <div id="as-rows" class="as-rows" role="group" aria-label="Conditions"></div>
+    <fieldset class="as-scope">
+      <legend>Search in</legend>
+      <label><input type="radio" name="as-scope" id="as-scope-all" checked> Every account</label>
+      <label><input type="radio" name="as-scope" id="as-scope-some"> Only these accounts:</label>
+      <div id="as-accounts" class="as-accounts" role="group" aria-label="Accounts to search" hidden></div>
+    </fieldset>
+    <label class="as-query-label" for="as-query">The search these conditions make (you can type in it; Enter searches):</label>
+    <textarea id="as-query" class="as-query" rows="2" spellcheck="false" autocomplete="off"></textarea>
+    <p id="as-edited" class="p-note as-edited" hidden>Changed by hand: the conditions above no longer make it. <button id="as-rebuild" type="button">Make It from the Conditions Again</button></p>
+    <datalist id="adv-folders"></datalist>
+    <datalist id="adv-headers"></datalist>
+    <div class="p-buttons">
+      <button id="as-help" type="button" title="The manual's page on Advanced Search">Help</button>
+      <button id="as-clear" type="button" title="Start again with one empty condition">Clear</button>
+      <button id="as-close" type="button">Close</button>
+      <button id="as-go" class="primary" type="button" title="Search (Enter): the results show in the message list">Search</button>
+    </div>
   </dialog>
 
   <dialog id="label-box">
@@ -277,7 +316,7 @@
   <dialog id="api-log-box">
     <h2>What programs did (the API log)</h2>
     <p class="p-note">Every call a program or plugin makes, kept in your library for 90 days: what it read or changed (message numbers, folders, counts; never your mail itself), and what was refused.</p>
-    <div class="bk-row"><select id="al-client"></select></div>
+    <div class="bk-row"><select id="al-client" aria-label="Show the log of"></select></div>
     <div id="al-list" class="al-list"></div>
     <div class="p-buttons"><button id="al-close">Close</button></div>
   </dialog>
@@ -331,8 +370,8 @@
     <h2>Subscriptions</h2>
     <p class="p-note">Every mailing list, notification and marketing sender that wrote in the last 12 months, the busiest first. Only senders that prove who they are: spam and frauds aren't listed (unsubscribing from those only tells them your address is read: mark them Spam).</p>
     <div class="subs-bar">
-      <input id="subs-find" type="search" placeholder="Find a sender">
-      <select id="subs-kind">
+      <input id="subs-find" aria-label="Find a sender" type="search" placeholder="Find a sender">
+      <select id="subs-kind" aria-label="Show these kinds">
         <option value="">Every kind</option>
         <option value="Mailing list">Mailing lists</option>
         <option value="Notifications">Notifications</option>
@@ -371,7 +410,7 @@
           <label><input id="f-manual" type="checkbox"> Filter Messages (by hand)</label>
           <label title="Not built yet"><input id="f-outgoing" type="checkbox" disabled> Mail is sent</label>
         </div>
-        <div class="f-row"><span>Match</span><select id="f-all"><option value="1">all of these</option><option value="0">any of these</option></select></div>
+        <div class="f-row"><span>Match</span><select id="f-all" aria-label="The rule matches when"><option value="1">all of these</option><option value="0">any of these</option></select></div>
         <div id="f-tests"></div>
         <button id="f-add-test" class="f-small">+ Test</button>
         <h3>Then</h3>
@@ -427,7 +466,7 @@
     </div>
     <div class="f-layout">
       <div class="f-left">
-        <input id="sr-filter" type="search" placeholder="Find a rule" autocomplete="off" spellcheck="false">
+        <input id="sr-filter" aria-label="Find a rule" type="search" placeholder="Find a rule" autocomplete="off" spellcheck="false">
         <div id="sr-list"></div>
         <div class="f-buttons">
           <button id="sr-add-block" title="Add a sender or @domain to the blacklist">+ Blacklist</button>
@@ -477,13 +516,13 @@
         <option value="4">Parts of 4 GB (a USB stick formatted FAT32)</option>
         <option value="25">Parts of 25 GB</option>
         <option value="custom">Parts of a size I choose…</option>
-      </select> <input id="bk-split-gb" type="number" min="0.1" step="0.1" value="10" class="a-port" hidden> <span id="bk-split-unit" hidden>GB</span></span>
+      </select> <input id="bk-split-gb" aria-label="Size of each part, in GB" type="number" min="0.1" step="0.1" value="10" class="a-port" hidden> <span id="bk-split-unit" hidden>GB</span></span>
     </div>
     <label class="f-row"><input id="bk-indexes" type="checkbox"> <span id="bk-indexes-label">Include the search indexes (a quicker restore)</span></label>
     <label class="f-row"><input id="bk-passwords" type="checkbox"> Include the passwords (IMAP and SMTP accounts, the sync key)</label>
     <div id="bk-agree-box" class="bk-warning" hidden>
       <p><b>Without a password, anyone who gets this backup can read these passwords.</b> Give the backup a password above, or type <b>I agree</b> to keep them in it unprotected.</p>
-      <input id="bk-agree" type="text" placeholder="I agree" spellcheck="false" autocomplete="off">
+      <input id="bk-agree" aria-label="Type I agree to include passwords" type="text" placeholder="I agree" spellcheck="false" autocomplete="off">
     </div>
     <div id="bk-progress" class="bk-progress" hidden><progress id="bk-bar" max="1" value="0"></progress><div id="bk-line" class="p-note"></div></div>
     <div class="p-buttons"><button id="bk-cancel">Close</button><button id="bk-stop" hidden>Stop</button><button id="bk-go" class="primary">Back Up</button></div>
@@ -494,6 +533,25 @@
     <p class="p-note">The Views at the top (Receipts, Invoices…) show the mailboxes ticked here. Each mailbox's own Views (under it in Accounts) always show just that mailbox.</p>
     <div id="views-accounts-list" class="sr-mailbox-list"></div>
     <div class="p-buttons"><button id="views-accounts-cancel">Cancel</button><button id="views-accounts-save" class="primary">Save</button></div>
+  </dialog>
+
+  <dialog id="local-box" aria-labelledby="local-title" aria-describedby="local-intro">
+    <h2 id="local-title">Changes on the server</h2>
+    <p class="p-note" id="local-intro">Eudora normally makes your changes on the server too, so your phone, the web, and other mail programs see them. You can keep any of these on this computer only: Eudora's copy and the server's then go their own ways.</p>
+    <div class="local-choice" id="local-mail-row">
+      <label><input type="checkbox" id="local-mail" aria-describedby="local-mail-note"> Keep mail on this computer only</label>
+      <p class="p-note" id="local-mail-note">Moves, deletes, read, flagged, and replied marks, labels, Empty Trash, and new or renamed mailboxes stay in Eudora. New mail still comes in. What changes on the server (read on your phone, moved or deleted on the web) doesn't change Eudora's copy, and mail deleted there stays here.</p>
+    </div>
+    <div class="local-choice" id="local-calendar-row">
+      <label><input type="checkbox" id="local-calendar" aria-describedby="local-calendar-note"> Keep the calendar and To Do on this computer only</label>
+      <p class="p-note" id="local-calendar-note">New, changed, and deleted events and your answers to invitations stay in Eudora: no invitations, answers, or cancellations are sent. New events still come in; events already here keep your version, and those deleted on the server stay. To Do goes with the calendar of the first Microsoft account.</p>
+    </div>
+    <div class="local-choice" id="local-contacts-row">
+      <label><input type="checkbox" id="local-contacts" aria-describedby="local-contacts-note"> Keep contacts on this computer only</label>
+      <p class="p-note" id="local-contacts-note">New, changed, merged, and deleted contacts stay in Eudora. New contacts still come in; contacts already here keep your version, and those deleted on the server stay.</p>
+    </div>
+    <p class="p-note" id="local-later">You can change this any time in Settings ▸ Accounts. Turning a switch off again sends only the changes you make from then on: changes made while it was on are never sent to the server, and the server's own read marks, labels, events, and contacts may show again where they differ. Sending mail always sends.</p>
+    <div class="p-buttons"><button id="local-cancel">Cancel</button><button id="local-save" class="primary">Save</button></div>
   </dialog>
 
   <dialog id="about-box">
@@ -546,6 +604,34 @@
     <div class="p-buttons"><button id="im-cancel">Close</button><button id="im-stop" hidden>Stop</button><button id="im-go" class="primary">Import</button></div>
   </dialog>
 
+  <dialog id="export-classic-box" aria-labelledby="ec-title">
+    <h2 id="ec-title">Export to Classic Eudora</h2>
+    <p class="p-note">Writes a folder classic Eudora 7 opens as its mail folder: each mailbox as a .mbx file with its .toc, your folders as .fol folders, your rules (Filters.pce), your address book (NNdbase.txt), and your attachments (in Attach). Choose an empty folder, or one you exported to before to bring it up to date. Nothing in Eudora changes, and downloading carries on. <a href="#" data-help="classic-export">More…</a></p>
+    <div class="a-grid">
+      <label for="ec-dest">Folder</label><span class="bk-row"><input id="ec-dest" type="text" spellcheck="false"><button data-browse="ec-dest" data-what="folder" aria-label="Browse for the export folder">Browse…</button></span>
+    </div>
+    <fieldset class="ec-accounts"><legend>Mailboxes to export</legend><div id="ec-accounts"></div><p id="ec-none" class="p-note">Tick the mailboxes to export.</p></fieldset>
+    <label class="p-row"><input type="checkbox" id="ec-rules" checked> Rules (classic Eudora's filters; those it can't do are listed in the report)</label>
+    <label class="p-row"><input type="checkbox" id="ec-contacts" checked> Address book (as classic Eudora's nicknames)</label>
+    <div id="ec-progress" class="bk-progress" hidden><progress id="ec-bar" max="1" value="0" aria-label="Export progress"></progress><div id="ec-line" class="p-note" role="status" aria-live="polite"></div></div>
+    <div class="p-buttons"><button id="ec-cancel">Close</button><button id="ec-stop" hidden>Stop</button><button id="ec-go" class="primary">Export</button></div>
+  </dialog>
+
+  <dialog id="pic-senders-box" aria-labelledby="ps-title">
+    <h2 id="ps-title">Senders whose pictures always show</h2>
+    <p class="p-note">Pictures from the web load by themselves in mail from these senders. An entry is an address, or <code>@domain</code> for everyone there. Every other message asks first.</p>
+    <div class="ps-tools">
+      <input id="ps-find" type="search" placeholder="Find" aria-label="Find a sender in the list" spellcheck="false">
+      <span id="ps-count" class="p-note" role="status" aria-live="polite"></span>
+    </div>
+    <ul id="ps-list" class="ps-list" aria-label="Senders whose pictures always show"></ul>
+    <div class="ps-tools">
+      <input id="ps-new" type="text" placeholder="name@example.com or @example.com" aria-label="A sender to add: an address or @domain" spellcheck="false">
+      <button id="ps-add">Add</button>
+    </div>
+    <div class="p-buttons"><button id="ps-import">Import…</button><button id="ps-export">Export…</button><button id="ps-close" class="primary">Close</button></div>
+  </dialog>
+
   <dialog id="optimize-box">
     <h2>Optimize Library</h2>
     <p class="p-note">Gives back the disk space of deleted mail (Empty Trash), merges the search index and tidies the database. Every message moved is checked against its checksum first; nothing is lost. Downloading pauses meanwhile. On a big library this takes minutes.</p>
@@ -577,10 +663,10 @@
   <dialog id="prefs">
     <h2>Settings</h2>
     <nav id="p-nav" aria-label="Settings pages"></nav>
-    <div id="p-pages">
+    <div id="p-pages" role="region">
     <section data-page="general">
       <h3>Look</h3>
-      <select id="p-skin">
+      <select id="p-skin" aria-label="Look">
         <option value="eudora-classic">Eudora Classic</option>
           <option value="eudora">Eudora Modern</option>
         <option value="thunderbird">Thunderbird-style</option>
@@ -685,19 +771,91 @@
       <div class="p-buttons"><button id="p-label-add" class="f-small">Add a label</button> <button id="p-labels-save" class="f-small">Keep these labels</button></div>
     </section>
     <section data-page="general">
+      <h3>New mail sound</h3>
+      <p class="p-note">A sound when new mail arrives in an Inbox, as classic Eudora played (this computer only).</p>
+      <label>Sound <select id="p-sound">
+        <option value="look">Follow the look (Eudora's own sound in the Eudora looks)</option>
+        <option value="eudora">Eudora</option>
+        <option value="eudora-older">Eudora (older)</option>
+        <option value="chime">Chime</option>
+        <option value="marimba">Marimba</option>
+        <option value="ding">Bell</option>
+        <option value="system">This computer's new-mail sound</option>
+        <option value="file">A sound file of my own…</option>
+        <option value="none">No sound</option>
+      </select></label>
+      <div class="p-buttons"><button id="p-sound-try" class="f-small">Play it</button> <span id="p-sound-file" class="p-note"></span></div>
+    </section>
+    <section data-page="general">
+      <h3>Text size and buttons</h3>
+      <p class="p-note">Everything in every Eudora window, lists and messages too (this computer only). <kbd>Ctrl</kbd>+<kbd>+</kbd> and <kbd>Ctrl</kbd>+<kbd>−</kbd> change it anywhere, <kbd>Ctrl</kbd>+<kbd>0</kbd> goes back to the usual size.</p>
+      <label>Text size <select id="p-text-size">
+        <option value="0.8">Small (80%)</option>
+        <option value="0.9">Smaller (90%)</option>
+        <option value="1">Usual (100%)</option>
+        <option value="1.1">Larger (110%)</option>
+        <option value="1.25">Large (125%)</option>
+        <option value="1.5">Larger still (150%)</option>
+        <option value="1.75">Very large (175%)</option>
+        <option value="2">Huge (200%)</option>
+        <option value="2.5">Humongous (250%)</option>
+        <option value="3">Largest (300%)</option>
+      </select></label>
+      <label><input type="checkbox" id="p-big-buttons"> Large toolbar buttons, with their names</label>
+      <label><input type="checkbox" id="p-roomy"> Roomier rows in the Eudora look (24 pixels: easier to click and touch)</label>
+    </section>
+    <section data-page="general">
+      <h3>Speech</h3>
+      <p class="p-note">How Eudora speaks, for Read Aloud (Message ▸ Read Aloud, Ctrl+Alt+Space) and spoken alerts (this computer only). Your screen reader keeps its own voice.</p>
+      <label>Speak with <select id="p-speech-engine">
+        <option value="library">Eudora's speech library (the same on every computer)</option>
+        <option value="system">This system's own speech</option>
+        <option value="natural">Natural voices (Kokoro; a download of its own)</option>
+      </select></label>
+      <label>Voice <select id="p-speech-voice"></select></label>
+      <label>Speed <select id="p-speech-speed">
+        <option value="0.5">Slowest</option>
+        <option value="0.75">Slower</option>
+        <option value="1">Usual</option>
+        <option value="1.25">Faster</option>
+        <option value="1.5">Much faster</option>
+        <option value="2">Fastest</option>
+      </select></label>
+      <div class="p-buttons"><button id="p-speech-try" class="f-small">Try it</button> <span id="p-speech-note" class="p-note" role="status"></span></div>
+      <label>Before sending, say who it goes to and ask once more <select id="p-speak-recipients">
+        <option value="off">Never</option>
+        <option value="replyAll">On a Reply to All</option>
+        <option value="many">When it goes to more than…</option>
+        <option value="replyAllOrMany">On a Reply to All, or more than…</option>
+        <option value="always">Always</option>
+      </select></label>
+      <label>… this many people <input id="p-speak-over" type="number" min="1" max="500" value="5" style="width: 5em"></label>
+      <h4 class="p-sub">Natural voices</h4>
+      <p class="p-note">Much more natural speech (the Kokoro voices), made on this computer: nothing you read is sent anywhere. A download of its own (about 360 MB), so Eudora itself stays small.</p>
+      <div class="p-buttons"><button id="p-voices-get" class="f-small">Download Natural Voices…</button> <button id="p-voices-stop" class="f-small" hidden>Stop the Download</button> <button id="p-voices-remove" class="f-small" hidden>Remove Natural Voices…</button> <span id="p-voices-size" class="p-note" role="status"></span></div>
+    </section>
+    <section data-page="general">
       <h3>Address completion</h3>
       <p class="p-note">As you type in To, Cc or Bcc, Eudora suggests people from your mail.</p>
       <label><input type="checkbox" id="p-comp-sent"> People you've written to</label>
       <label><input type="checkbox" id="p-comp-received"> People who've written to you</label>
     </section>
     <section data-page="mail">
+      <h3 id="p-quoting-title">Replies</h3>
+      <div role="radiogroup" aria-labelledby="p-quoting-title">
+        <label><input type="radio" name="p-quoting" value="modern"> Write above the original, which is quoted below with a line down its side</label>
+        <label><input type="radio" name="p-quoting" value="classic"> Classic Eudora: plain text, a “&gt;” before each line of the original, and you write below it</label>
+      </div>
+      <p class="p-note">Hold <kbd>Shift</kbd> or <kbd>Ctrl</kbd> while clicking Reply or Reply to All to reply the other way, just that once.</p>
+    </section>
+    <section data-page="mail">
       <h3>Pictures from the web</h3>
       <p class="p-note">Pictures in a message that load from the web can tell the sender you opened it. Eudora fetches them itself; the message never goes online.</p>
-      <p class="p-note">Eudora always asks first (“Show pictures” in the message). Senders you trust can be marked with “Always show from …”: only their pictures load by themselves.</p>
+      <p class="p-note">Eudora always asks first (“Show pictures” in the message). Senders you trust can be marked with “Always show from …”: only their pictures load by themselves. A fraud's pictures never load.</p>
       <label><input type="radio" name="p-pic-keep" value="fetch"> Fetch them every time</label>
       <label><input type="radio" name="p-pic-keep" value="store"> Keep them on this computer (they still show offline, or after the sender deletes them)</label>
-      <h4 class="p-sub">Senders whose pictures always show</h4>
-      <div id="p-pic-senders"></div>
+      <label><input type="checkbox" id="p-pic-book"> Also show pictures from people in my Address Book</label>
+      <div class="p-buttons"><button id="p-pic-senders-open">Senders whose pictures always show…</button> <span id="p-pic-count" class="p-note"></span></div>
     </section>
     <section data-page="web">
       <h3>Web access (phones)</h3>
@@ -718,7 +876,7 @@
           <span class="p-note">On your first computer: makes a sync key and shows its recovery phrase.</span>
         </div>
         <div class="p-find">
-          <input id="p-sync-phrase-in" type="text" placeholder="Recovery phrase from your other computer" spellcheck="false" autocomplete="off" style="flex: 1">
+          <input id="p-sync-phrase-in" aria-label="Recovery phrase" type="text" placeholder="Recovery phrase from your other computer" spellcheck="false" autocomplete="off" style="flex: 1">
           <button id="p-sync-join">Join</button>
         </div>
       </div>
@@ -748,6 +906,11 @@
         <button id="p-add-account">Add another account…</button>
         <span class="p-note">IMAP or POP3: Gmail, Yahoo, iCloud, your provider's or company's mail server. Its mail comes in with the download.</span>
       </div>
+      <div class="p-find">
+        <button id="p-add-dav">Add contacts and calendars (CardDAV / CalDAV)…</button>
+        <span class="p-note">iCloud, Fastmail, Nextcloud, Yahoo, or your provider's or company's server: your address books and calendars in Eudora, changes going both ways.</span>
+      </div>
+      <div id="p-dav"></div>
       <p class="p-note">Each account is shown by its address unless you give it a name. Its address and type always show when you point at it.</p>
       <div id="p-accounts"></div>
       <div class="p-find">
@@ -783,13 +946,19 @@
       <div class="p-find"><button type="button" data-open="restore">Restore Eudora…</button><span class="p-note">From a backup made on any computer.</span></div>
       <div class="p-find"><button type="button" data-open="import">Import…</button><span class="p-note">Classic Eudora folders, mbox and .mbx files, .eml files.</span></div>
       <div class="p-find"><button type="button" data-open="old-attachments">Find Old Attachments…</button><span class="p-note">Classic Eudora's attachment files, from old backup drives.</span></div>
+      <div class="p-find"><button type="button" data-open="export-classic">Export to Classic Eudora…</button><span class="p-note">A copy of your mail, rules, and address book that classic Eudora 7 opens.</span></div>
+      <h3 id="p-classic-h">Keep a classic Eudora copy current</h3>
+      <p class="p-note">For going back to classic Eudora 7, or using both: Eudora keeps a classic Eudora folder up to date as mail arrives, moves, and is deleted, and writes your rules there again when they change. <b>It works one way only: changes made in classic Eudora don't come back to Eudora.</b> A mailbox classic Eudora changed is kept beside, under a name of its own, so nothing is lost. Nothing is written while classic Eudora has the folder open. Off unless you turn it on. <a href="#" data-help="classic-copy">More…</a></p>
+      <label class="p-row"><input type="checkbox" id="p-classic-on" aria-describedby="p-classic-state"> Keep a classic Eudora copy current in this folder:</label>
+      <span class="bk-row"><input id="p-classic-folder" type="text" spellcheck="false" aria-label="Folder for the classic Eudora copy"><button type="button" data-browse="p-classic-folder" data-what="folder" aria-label="Browse for the classic Eudora copy's folder">Browse…</button></span>
+      <p class="p-note" id="p-classic-state" role="status" aria-live="polite"></p>
       <label class="p-row"><input type="checkbox" id="p-keep-originals"> Keep original messages exactly, for archive and legal purposes (takes more space)</label>
       <p class="p-note">Microsoft gives Online Archive mail to Eudora in its own format, which Eudora turns into ordinary messages. With this on, Eudora also keeps Microsoft's copy of each item, byte for byte, beside the message (about two-thirds of the message's size again). Off: only the messages are kept, and maintenance removes the copies kept so far. Your mail, its attachments, and the archive on Microsoft's server aren't touched. <a href="#" data-help="keep-originals">More…</a></p>
       <h3 id="p-keep-h">Mail kept on this computer</h3>
       <p class="p-note">For a tablet or a laptop with a small drive: keep only recent mail here, and Eudora downloads only that period. <a href="#" data-help="keep-period">More…</a></p>
       <p class="keep-now" id="p-keep-now"></p>
       <div class="keep-slider"><input type="range" id="p-keep-range" min="0" max="10" step="1" aria-labelledby="p-keep-h"><b id="p-keep-label"></b></div>
-      <div class="keep-exact">Or exactly the last <input type="number" id="p-keep-n" min="1" max="99999" step="1"> <select id="p-keep-unit"><option value="1">days</option><option value="7">weeks</option><option value="30.4375">months</option><option value="365.25">years</option></select></div>
+      <div class="keep-exact">Or exactly the last <input type="number" id="p-keep-n" aria-label="Keep mail for this many" min="1" max="99999" step="1"> <select id="p-keep-unit" aria-label="Days, weeks, months, or years"><option value="1">days</option><option value="7">weeks</option><option value="30.4375">months</option><option value="365.25">years</option></select></div>
       <p class="keep-preview" id="p-keep-preview" aria-live="polite"></p>
       <div class="keep-warn">
         <b>This removes mail from this computer only. It never deletes anything from your mail servers.</b>
@@ -834,18 +1003,18 @@
       <label for="a-server" id="a-server-label">IMAP server</label><input id="a-server" autocomplete="off" spellcheck="false" placeholder="imap.example.com">
       <label for="a-security">Security</label>
       <span><select id="a-security"><option value="tls">SSL/TLS</option><option value="starttls">STARTTLS</option><option value="none">None (not encrypted)</option></select>
-        Port <input id="a-port" type="number" min="1" max="65535" value="993" class="a-port"> <span class="a-default" id="a-port-default"></span></span>
+        Port <input id="a-port" aria-label="Incoming server port" type="number" min="1" max="65535" value="993" class="a-port"> <span class="a-default" id="a-port-default"></span></span>
       <label for="a-tls-level">Encryption</label><select id="a-tls-level" title="How strong the encryption must be. High allows only current ciphers; Compatible falls back to older ones only when this server can't do better."><option value="high">High: TLS 1.3 and current TLS 1.2 ciphers (recommended)</option><option value="strict">Strict: TLS 1.3 only</option><option value="compatible">Compatible: allow older ciphers if the server needs them</option></select>
       <label for="a-username">User name</label><input id="a-username" autocomplete="off" spellcheck="false" placeholder="usually the email address">
       <label for="a-password">Password</label><input id="a-password" type="password" autocomplete="new-password">
       <label for="a-pop-days" class="a-pop">Delete from server</label><span class="a-pop" title="POP3 leaves your mail on the server unless you choose: Eudora keeps its copy either way. Empty = never delete."><input id="a-pop-days" type="number" min="0" max="3650" class="a-port" placeholder="never"> days after Eudora has a message</span>
       <label for="a-pop-mb" class="a-pop">Skip big messages</label><span class="a-pop" title="Messages bigger than this stay on the server, not downloaded; the download says how many. Empty = any size."><input id="a-pop-mb" type="number" min="1" max="10000" class="a-port" placeholder="any size"> MB and over stay on the server</span>
-      <span id="a-writes-gap"></span><label id="a-writes-row" title="Moves, read and replied marks, flags, labels (as IMAP keywords), deleting from the Trash and new folders are made on the server too, so other mail programs and your phone see them. Off: they stay in Eudora only."><input type="checkbox" id="a-writes" checked> Make Eudora's changes on the server too</label>
+      <span id="a-writes-gap"></span><label id="a-writes-row" title="Moves, read and replied marks, flags, labels (as IMAP keywords), deleting from the Trash and new folders are made on the server too, so other mail programs and your phone see them. Off: this account's mail is kept on this computer only, apart from the server's (the same switch as Settings ▸ Accounts ▸ Changes on the server, which also has calendar and contacts)."><input type="checkbox" id="a-writes" checked> Make Eudora's changes on the server too</label>
       <span class="a-section">Outgoing mail (SMTP)</span><span class="p-note">Leave the server empty if you won't send from this account.</span>
       <label for="a-smtp-server">SMTP server</label><input id="a-smtp-server" autocomplete="off" spellcheck="false" placeholder="smtp.example.com">
       <label for="a-smtp-security">Security</label>
       <span><select id="a-smtp-security"><option value="starttls">STARTTLS</option><option value="tls">SSL/TLS</option><option value="none">None (not encrypted)</option></select>
-        Port <input id="a-smtp-port" type="number" min="1" max="65535" value="587" class="a-port"> <span class="a-default" id="a-smtp-port-default"></span></span>
+        Port <input id="a-smtp-port" aria-label="Outgoing server port" type="number" min="1" max="65535" value="587" class="a-port"> <span class="a-default" id="a-smtp-port-default"></span></span>
       <label for="a-smtp-tls-level">Encryption</label><select id="a-smtp-tls-level" title="How strong the encryption must be when sending."><option value="high">High: TLS 1.3 and current TLS 1.2 ciphers (recommended)</option><option value="strict">Strict: TLS 1.3 only</option><option value="compatible">Compatible: allow older ciphers if the server needs them</option></select>
       <span></span><label class="a-check"><input type="checkbox" id="a-smtp-auth" checked> Sign in to send</label>
       <label for="a-smtp-username">User name</label><input id="a-smtp-username" autocomplete="off" spellcheck="false" placeholder="the same as for incoming mail">
@@ -861,37 +1030,37 @@
   <!-- one status bar: messages on the left; on the right the download
        and the background work, a click opens Activity; Stop for a job of the window's; Pause -->
   <!-- Activity, docked in the main window above the status bar; its top edge sizes it -->
-  <section id="activity-box" class="ac-dock" hidden>
+  <section id="activity-box" class="ac-dock" hidden aria-label="Activity">
     <div id="ac-grip" class="ac-grip" title="Drag to make Activity taller or shorter"></div>
     <div class="ac-head"><h2>Activity</h2><span class="ac-head-tools"><button id="ac-maintain" class="dl-btn" type="button" title="Checks counts, gives back deleted mail's space, merges the search index, refreshes the database's statistics">Run Maintenance Now</button><button id="ac-close" class="dl-btn" type="button" title="Close Activity (the status bar opens it again)">✕ Close</button></span></div>
     <div class="ac-body">
       <div id="ac-main">
         <div id="ac-summary" class="ac-summary"></div>
         <h3>Working in the background</h3>
-        <table id="ac-jobs" class="ac-jobs"></table>
+        <table id="ac-jobs" class="ac-jobs" aria-label="Background jobs: what each did last, when, and what it can do next"></table>
         <h3>The download's latest</h3>
         <pre id="ac-log" class="ac-log"></pre>
       </div>
       <!-- a job's details: what it did to each message, its latest run first; More pages back -->
       <div id="ac-details" hidden>
         <div class="ac-details-head"><button id="ac-back" class="dl-btn" type="button">← All jobs</button><h3 id="ac-details-title"></h3></div>
-        <table id="ac-details-list" class="ac-jobs ac-details"></table>
+        <table id="ac-details-list" class="ac-jobs ac-details" aria-label="What this job did, message by message"></table>
         <div class="ac-details-more"><button id="ac-more" class="dl-btn" type="button" hidden>More (older runs)</button></div>
       </div>
     </div>
   </section>
 
-  <footer id="status"><span id="status-left"></span><button id="bg-work" class="bg-work" type="button" hidden title="What Eudora is doing: click for every process (Tools ▸ Activity)"><span id="download" hidden><span class="dl-dot"></span><span class="dl-text"></span></span><span id="bg-text"></span></button><button id="job-stop" class="job-stop" type="button" hidden title="Stop the spam filter: nothing has moved yet">Stop</button><button id="pause-dl" class="dl-btn" type="button"></button><button id="stop-dl" class="dl-btn" type="button"></button><span id="status-right"></span></footer>
+  <footer id="status" aria-label="Status"><span id="status-left"></span><button id="bg-work" class="bg-work" type="button" hidden title="What Eudora is doing: click for every process (Tools ▸ Activity)"><span id="download" hidden><span class="dl-dot"></span><span class="dl-text"></span></span><span id="bg-text"></span></button><button id="job-stop" class="job-stop" type="button" hidden title="Stop the spam filter: nothing has moved yet">Stop</button><button id="pause-dl" class="dl-btn" type="button"></button><button id="stop-dl" class="dl-btn" type="button"></button><span id="status-right"></span></footer>
   <!-- New appointment (calendar.js): place suggestions, an online meeting, people -->
   <dialog id="appt" class="appt">
     <h2 id="appt-heading">New Appointment</h2>
     <label class="appt-row"><span>Title</span><input id="appt-title" type="text" placeholder="What is it?"></label>
     <label class="appt-row"><span>Calendar</span><select id="appt-calendar"></select></label>
-    <div class="appt-row"><span>Starts</span><input id="appt-start-day" type="date"><input id="appt-start-time" type="time" step="900"><label class="appt-inline"><input id="appt-allday" type="checkbox"> All day</label></div>
-    <div class="appt-row"><span>Ends</span><input id="appt-end-day" type="date"><input id="appt-end-time" type="time" step="900"></div>
+    <div class="appt-row"><span>Starts</span><input id="appt-start-day" aria-label="Start date" type="date"><input id="appt-start-time" aria-label="Start time" type="time" step="900"><label class="appt-inline"><input id="appt-allday" type="checkbox"> All day</label></div>
+    <div class="appt-row"><span>Ends</span><input id="appt-end-day" aria-label="End date" type="date"><input id="appt-end-time" aria-label="End time" type="time" step="900"></div>
     <div class="appt-row appt-where"><span>Location</span>
       <div class="appt-field">
-        <input id="appt-location" type="text" autocomplete="off" spellcheck="false" placeholder="A place, an address or a business">
+        <input id="appt-location" aria-label="Location" type="text" autocomplete="off" spellcheck="false" placeholder="A place, an address or a business">
         <div id="appt-places" class="appt-suggest" hidden></div>
         <div id="appt-place" class="appt-place" hidden></div>
       </div>
@@ -900,12 +1069,12 @@
     <p id="appt-conference-note" class="p-note appt-note"></p>
     <div class="appt-row"><span>People</span>
       <div class="appt-field">
-        <input id="appt-people" type="text" autocomplete="off" spellcheck="false" placeholder="Invite people: names or addresses, separated by commas">
+        <input id="appt-people" aria-label="People to invite" type="text" autocomplete="off" spellcheck="false" placeholder="Invite people: names or addresses, separated by commas">
         <div id="appt-people-suggest" class="appt-suggest" hidden></div>
       </div>
     </div>
     <div class="appt-row"><span>Show as</span>
-      <select id="appt-showas"><option value="busy">Busy</option><option value="tentative">Tentative</option><option value="free">Free</option><option value="oof">Away</option></select>
+      <select id="appt-showas" aria-label="Show as"><option value="busy">Busy</option><option value="tentative">Tentative</option><option value="free">Free</option><option value="oof">Away</option></select>
       <select id="appt-reminder" title="Reminder"><option value="">No reminder</option><option value="5">5 minutes before</option><option value="15" selected>15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option><option value="1440">1 day before</option></select>
       <label class="appt-inline"><input id="appt-private" type="checkbox"> Private</label>
     </div>
@@ -913,11 +1082,14 @@
     <p id="appt-status" class="p-note"></p>
     <div class="p-buttons"><button id="appt-cancel" type="button">Cancel</button><button id="appt-save" type="button" class="primary">Save</button></div>
   </dialog>
+  <script src="zoom.js"></script>
   <script src="ask.js"></script>
   <script src="find.js"></script>
   <script src="msgframe.js"></script>
   <script src="app.js"></script>
+  <script src="advsearch.js"></script>
   <script src="calendar.js"></script>
   <script src="todo.js"></script>
+  <script src="a11y.js"></script>
 </body>
 </html>

@@ -72,18 +72,18 @@
 <p class="note">You can also add Gmail as an IMAP account with a Google app password. Signing in with Google is better: it brings in contacts and calendars too, and needs no app password.</p>
 </section>
 
-<section id="add-imap" data-title="Adding an IMAP or POP3 account" data-index="IMAP; POP3; SMTP; app password; ports; encryption; TLS; STARTTLS; Yahoo; iCloud; mail server; outgoing mail; server settings">
+<section id="add-imap" data-title="Adding an IMAP or POP3 account" data-index="IMAP; POP3; SMTP; app password; ports; encryption; TLS; STARTTLS; Yahoo; iCloud; mail server; outgoing mail; server settings; server name; POP3 port; custom port">
 <h1>Adding an IMAP or POP3 account</h1>
 <p>Choose <span class="ui">Settings ▸ Accounts ▸ Add another account…</span> (also <span class="ui">Tools ▸ Add Account…</span>).</p>
 <ol>
 <li>Type your email address. Eudora looks up who hosts it. A Microsoft or Google address is sent to <span class="ui">Sign in with Microsoft</span> or <span class="ui">Sign in with Google</span> instead, because those services no longer accept passwords over IMAP.</li>
 <li>Choose <b>IMAP</b> or <b>POP3</b> for incoming mail. IMAP keeps your folders on the server and is almost always the better choice. POP3 is for old mailboxes that only offer it. This choice can't be changed after the account is saved.</li>
-<li>Check the servers Eudora filled in, and type your user name and password. Many providers (Gmail, Yahoo, iCloud) need an <b>app password</b> made on their website rather than your usual password.</li>
+<li>Check the servers Eudora filled in (it guesses <code>imap.</code>, <code>pop.</code>, or <code>smtp.</code> and your domain, or a provider's own names), or type the exact server names and ports your provider gives: <b>what you type is always kept as you typed it</b>; switching between IMAP and POP3, or changing the security, never replaces a server name or port you entered. Then type your user name and password. Many providers (Gmail, Yahoo, iCloud) need an <b>app password</b> made on their website rather than your usual password.</li>
 <li>Choose <span class="ui">Test</span>. Eudora signs in to both servers and lists your folders without saving anything or sending any mail.</li>
 <li>Choose <span class="ui">Save</span>. The account's mail starts coming in at once.</li>
 </ol>
 <h2>Ports and security</h2>
-<p>Each server has a <b>Security</b> choice (SSL/TLS, STARTTLS, or None) and a port. Changing the security moves the port to the standard one for it (IMAP 993, POP3 995, SMTP 465 with SSL/TLS or 587 with STARTTLS) unless you typed a port of your own.</p>
+<p>Each server has a <b>Security</b> choice (SSL/TLS, STARTTLS, or None) and a port. Until you type a port, changing the security moves it to the standard one (IMAP 993 / 143, POP3 995 / 110, SMTP 465 with SSL/TLS or 587 with STARTTLS); a port you typed stays. Beside a port that isn't the standard one, <span class="ui">standard: 995</span> (for example) puts the standard one back.</p>
 <p><b>Encryption level</b>, for each server:</p>
 <ul>
 <li><b>High</b> (the usual): TLS 1.3 and TLS 1.2 with today's strong ciphers only.</li>
@@ -93,14 +93,50 @@
 <p>Server certificates are always checked, whatever the level.</p>
 <h2>Options for each account</h2>
 <ul>
-<li><b>Make Eudora's changes on the server too</b> (IMAP, on by default): moves, read marks, labels, and deletes are made on the server. Turn it off to keep those changes in Eudora only.</li>
+<li><b>Make Eudora's changes on the server too</b> (IMAP, on by default): moves, read marks, labels, and deletes are made on the server. Turn it off to keep this account's mail on this computer only, apart from the server's (<a href="#local-only">what that means</a>).</li>
 <li><b>Delete from server after N days</b> and <b>Skip big messages over N MB</b> (POP3). Eudora never deletes from a POP3 server unless you choose this.</li>
 <li><b>Check every</b> N minutes: how often this account is checked. See <a href="#checking">Checking for new mail</a>.</li>
 </ul>
 <p>Passwords are kept in Windows Credential Manager or the Mac's Keychain, never in the library.</p>
 </section>
 
-<section id="import" data-title="Importing old mail" data-index="import; classic Eudora; mbx; mbox; eml; Open File; personalities; merge accounts; old attachments; Eudora 6; Eudora 7">
+<section id="add-dav" data-title="Adding contacts and calendars (CardDAV / CalDAV)" data-index="CardDAV; CalDAV; WebDAV; iCloud contacts; iCloud calendar; Fastmail; Nextcloud; Yahoo calendar; address book server; calendar server; app password; well-known">
+<h1>Adding contacts and calendars (CardDAV / CalDAV)</h1>
+<p>Microsoft 365, Outlook.com, and Google bring their contacts and calendars with their accounts. Most other services keep them on a <b>CardDAV</b> (contacts) and <b>CalDAV</b> (calendars) server: iCloud, Fastmail, Nextcloud, Yahoo, and many providers' and companies' servers. Eudora reads them and sends your changes back.</p>
+<ol>
+<li>Choose <span class="ui">Settings ▸ Accounts ▸ Add contacts and calendars (CardDAV / CalDAV)…</span>.</li>
+<li>Type your email address and password. iCloud and Fastmail need an <b>app password</b> made on their website. Left empty, the password of your IMAP account with the same address is used, which is right for most providers' own servers.</li>
+<li>Choose <span class="ui">Find and add</span>. Eudora finds the server from your address and says which address books and calendars it found. If it can't find it, type the server your provider's help names in <b>Server</b>, and your <b>User name</b> if it isn't your address. <b>cPanel hosting:</b> Eudora also looks on port 2080 of your mail server, where cPanel keeps contacts and calendars; if your mail server has another name, type it in <b>Server</b> (without a port).</li>
+</ol>
+<p>Some servers keep only calendars, or only contacts; Eudora takes what the server has. The account is listed on the Accounts page with <span class="ui">Remove…</span>, which takes its contacts and calendars out of Eudora on this computer and leaves them on the server.</p>
+<h2>What goes both ways</h2>
+<ul>
+<li><b>Contacts</b>: read every hour; a contact you add, change, or delete in the Address Book is changed on the server. Fields Eudora doesn't edit (photos, other programs' own fields) are kept as they are.</li>
+<li><b>Calendars</b>: the near weeks every 15 minutes, everything once a day; each occurrence of a repeating event is its own event (when a server sends only the repeat rule, as cPanel's does, Eudora works out the occurrences itself, in the event's own time zone). Appointments you make, change, or delete go to the server; deleting one occurrence of a repeating event removes just that one. Answering an invitation sets your answer on the server, which tells the organizer.</li>
+<li>Changing <b>one occurrence</b> of a repeating event isn't done on these servers yet: change the whole series, or that occurrence in the server's own calendar.</li>
+<li>When the server has a newer copy than the one you changed (changed on your phone meanwhile), Eudora doesn't overwrite it: your change waits, says so, and the server's copy comes in at the next check. Eudora asks the server for its copy's version just before writing, so this holds on servers that don't check versions themselves (cPanel's).</li>
+</ul>
+<p>Passwords are kept in Windows Credential Manager or the Mac's Keychain, never in the library. Eudora talks to these servers only over https.</p>
+</section>
+
+<section id="local-only" data-title="Keeping an account's changes on this computer only" data-index="local only; local copy; keep local; don't sync; do not sync back; independent copy; changes on the server; write back; server changes off; offline copy; archive copy">
+<h1>Keeping an account's changes on this computer only</h1>
+<p>Eudora normally makes your changes on the server too: a message you move, read, or delete, an event you change, a contact you edit. Your phone, the web, and other mail programs then see them. Some people want the opposite: a copy in Eudora that's <b>independent of the server's</b>, where what they do in Eudora stays in Eudora. You can choose that for each account, separately for <b>mail</b>, the <b>calendar</b> (with To Do), and <b>contacts</b>.</p>
+<h2>When you're asked</h2>
+<p>When you add an account (Microsoft, Google, IMAP, or contacts and calendars from a CardDAV / CalDAV server), Eudora asks once, in <b>Changes on the server</b>, with a switch for each of the account's services. <span class="ui">Keep everything in step with the server</span> leaves things as they've always been. A POP3 account has no mail switch: POP3 has no folders, flags, or moves to write back.</p>
+<p>To change it later: <span class="ui">Settings ▸ Accounts</span>, then the account's <span class="ui">Changes on the server…</span> button (it reads <b>Kept here only: …</b> while something is kept local). An IMAP account's own window has the mail switch too, as <b>Make Eudora's changes on the server too</b>.</p>
+<h2>What "on this computer only" means</h2>
+<ul>
+<li><b>Mail:</b> moves, deletes, read, flagged, and replied marks, labels, Empty Trash, the spam filter's and your rules' moves, and new, renamed, or deleted mailboxes are made in Eudora only. New mail still comes in. What changes on the server (read on your phone, moved or deleted on the web, a folder renamed in Outlook) doesn't change Eudora's copy, and mail deleted on the server stays in Eudora. Mail you moved or deleted in Eudora isn't downloaded again. Sending mail still sends, and its copy still goes to the server's Sent folder.</li>
+<li><b>Calendar and To Do:</b> new, changed, and deleted events, your answers to invitations, and tickets added to trips stay in Eudora: no invitations, answers, or cancellations are sent. New events still come in; an event already in Eudora keeps your version, an event deleted on the server stays, and one you deleted doesn't come back. Microsoft To Do goes with the calendar switch of your first Microsoft account.</li>
+<li><b>Contacts:</b> new, changed, merged, moved, and deleted contacts stay in Eudora. New contacts still come in; contacts already in Eudora keep your version, those deleted on the server stay, and those you deleted don't come back.</li>
+</ul>
+<h2>Turning it off again</h2>
+<p>Turning a service local drops the changes that were still waiting for the server (they stay in Eudora). Turning it back on sends only the changes you make <b>from then on</b>: nothing you did while it was local is ever sent to the server. Where Eudora's copy and the server's differ, the server's read marks, labels, events, and contacts may show in Eudora again as it reads them, and items you deleted while local can come back from the server.</p>
+<p class="note">The choice belongs to this computer: another computer with the same account keeps its own. Scripts can read and change it too: <code>eudora-cli local-only</code>, and the API's <code>v1.accounts.local_only</code> and <code>v1.accounts.local_only_set</code> (<a href="#api">more</a>).</p>
+</section>
+
+<section id="import" data-title="Importing old mail" data-index="import; classic Eudora; mbx; mbox; eml; Open File; personalities; merge accounts; old attachments; Eudora 6; Eudora 7; import again; new mail since import; classic Eudora still open; compact mailboxes; import only adds; 2 GB; big mailbox; In.mbx.001; In.mbx.002; mailbox backups; InOutBackups">
 <h1>Importing old mail</h1>
 <p>Choose <span class="ui">File ▸ Import…</span> (or <span class="ui">Old mail on this computer</span> in the Welcome window). You can bring in:</p>
 <ul>
@@ -115,6 +151,26 @@
 <li>A message that can't be read properly is still kept whole, searchable as text, and listed in the import report.</li>
 <li>If the same message is already in Eudora (say, old Eudora mail you once copied into Exchange), Eudora recognizes it by its Message-ID and keeps one message with both places recorded. It shows the most original copy: your own files first, then a server's copy.</li>
 </ul>
+<h2>Big mailboxes and backup files</h2>
+<ul>
+<li><b>A mailbox of any size imports whole.</b> Classic Eudora itself couldn't read past 2 GB of a mailbox (it kept each message's place as a 32-bit number), but Eudora reads every message in the file, however big it grew.</li>
+<li><b>Files named like <code>In.mbx.001</code>, <code>In.mbx.002</code>, or <code>Out.toc.001</code> are left out.</b> They aren't more mail: classic Eudora copies In and Out aside before each Compact (two copies, unless its InOutBackups setting says otherwise). Bringing them in would add old copies of those mailboxes, including mail deleted since. The import report lists each one it left out and why; to bring one in anyway, copy it to a name ending in <code>.mbx</code> and import that file.</li>
+</ul>
+<h2>Importing only adds</h2>
+<p>An import <b>copies</b> mail into Eudora's library and never changes the files it reads. Your classic Eudora folder, .mbx files, and .eml files stay exactly as they were, and you can go on using them in classic Eudora.</p>
+<p>The import <b>only ever adds to Eudora's library</b>. It never moves or deletes anything already there. So:</p>
+<ul>
+<li><b>Importing the same folder again brings in only what's new.</b> Messages already in Eudora are recognized and skipped. Use this to pick up mail that arrived in classic Eudora after your first import.</li>
+<li><b>Changes made in classic Eudora after an import aren't carried over.</b> Moving a message to another mailbox there, or deleting it, doesn't move or delete Eudora's copy. Importing again adds the moved message's new place in Eudora too, and the deleted one stays in Eudora. Make those changes in Eudora instead.</li>
+<li>Once imported, the two copies are independent: Eudora keeps its own copy of every message, and nothing it does reaches the old files.</li>
+</ul>
+<h2>Importing while classic Eudora is open</h2>
+<p>You can import from a classic Eudora that's still running: Eudora only reads its files and doesn't stop classic Eudora from using them. While the import runs, though:</p>
+<ul>
+<li><b>Compacting can fail in classic Eudora.</b> Windows doesn't let one program shrink a file another program is reading, so <span class="ui">Compact Mailboxes</span> or deleting a mailbox may fail for the mailbox being imported at that moment. Try again once the import has finished.</li>
+<li><b>A mailbox is read as it was at that moment.</b> Mail that arrives in a mailbox Eudora has already read isn't in this import. Import again later to get it. A mailbox compacted while Eudora is reading it can make Eudora skip or misread messages near the change. Nothing is thrown away (unreadable mail is kept whole and listed in the import report), but a second import afterwards is the way to be sure.</li>
+</ul>
+<p class="note">The safest way is to close classic Eudora while importing, or at least not to compact, move, or delete mail in it until Eudora says the import is done.</p>
 <h2>Old attachments</h2>
 <p>Classic Eudora saved attachments as separate files. After importing, choose <span class="ui">Tools ▸ Find Old Attachments…</span> to have Eudora look for them in the classic folder (and any folders you add, such as an old backup drive). Files found are stored in the library, so they travel with your backups. Ones that can't be found show as "(not found)" with their old path.</p>
 <p class="note">After importing classic Eudora mail, Eudora offers once to switch to <a href="#looks">Eudora Classic</a>, which looks and works like the Eudora you know.</p>

@@ -84,6 +84,9 @@ enum Chunk {
     /// it holds now. What this library had there and the server no longer has was moved or
     /// deleted elsewhere (the computer's rules or spam filter, Outlook): it leaves this folder.
     Present { folder: i64, ids: Vec<String>, since: Option<i64> },
+    /// Messages of a folder answered or forwarded on the server (IMAP's \Answered /
+    /// $Forwarded): (server id, marks::REPLIED or FORWARDED), marked here too.
+    Answered { folder: i64, ids: Vec<(String, i64)> },
 }
 
 /// A fetched item: the message (MIME) and, for an archive item, Exchange's export it was made from.
@@ -464,7 +467,7 @@ pub fn download(library: &mut Library, mut client: Option<&mut GraphClient>, opt
             path.truncate(f.depth);
             path.push(f.display_name.replace('/', "-"));
             let p = path.join("/");
-            if (f.is_hidden && !options.hidden) || f.display_name == crate::graph::SYNC_FOLDER || !wanted(&p) {
+            if (f.is_hidden && !options.hidden) || f.display_name == crate::graph::SYNC_FOLDER || crate::graph::is_system_folder(&p) || !wanted(&p) {
                 continue;
             }
             plan.push(Planned { shared: shared.clone(), path: p, total: f.total_item_count, place: Place::Primary { id: f.id } });
@@ -511,7 +514,7 @@ pub fn download(library: &mut Library, mut client: Option<&mut GraphClient>, opt
             path.push(f.display_name.replace('/', "-"));
             let p = path.join("/");
             // (calendar, contacts, tasks and notes too: the archive is brought in whole)
-            if (f.is_hidden && !options.hidden) || !wanted(&p) {
+            if (f.is_hidden && !options.hidden) || crate::graph::is_system_folder(&p) || !wanted(&p) {
                 continue;
             }
             plan.push(Planned { shared: None, path: p, total: f.total_item_count, place: Place::Archive { owner: GraphClient::folder_owner(&archive, f), id: f.id.clone() } });
@@ -619,6 +622,8 @@ pub fn download(library: &mut Library, mut client: Option<&mut GraphClient>, opt
     }
 
     // 2. The account, its folders, and a row for this run (its counts and problems).
+    // (accounts whose mail is kept local: a folder renamed here keeps its name)
+    let local_mail = library.local_only_accounts(crate::local_only::Service::Mail)?;
     let (import_id, jobs) = {
         let tx = library.conn.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
         // (the Microsoft 365 account row only when its mail is downloaded: an IMAP-only run adds none)
@@ -659,7 +664,7 @@ pub fn download(library: &mut Library, mut client: Option<&mut GraphClient>, opt
                             |r| r.get(0),
                         )?;
                         let taken: bool = tx.query_row("SELECT EXISTS (SELECT 1 FROM folders WHERE account = ?1 AND path = ?2)", params![account, p.path], |r| r.get(0))?;
-                        if !waiting && !taken {
+                        if !waiting && !taken && !local_mail.contains(&account) {
                             let (parent_path, name) = p.path.rsplit_once('/').map(|(a, b)| (Some(a), b)).unwrap_or((None, p.path.as_str()));
                             let parent = match parent_path {
                                 Some(pp) => Some(db::ensure_folder(&tx, account, pp)?),
@@ -924,6 +929,8 @@ pub fn download(library: &mut Library, mut client: Option<&mut GraphClient>, opt
         let mut last_headers = Instant::now();
         let mut last_maintain = Instant::now() - Duration::from_secs(60);
         let mut last_throttle = Instant::now();
+        let mut last_classic = Instant::now() - Duration::from_secs(300);
+        let mut classic_left = 0u64;
         // (long jobs write their steps as they go: the window shows them at once)
         crate::activity::set_root(&library.root);
         crate::speed::set_file(&library.root, "download");
@@ -998,6 +1005,25 @@ pub fn download(library: &mut Library, mut client: Option<&mut GraphClient>, opt
                 match if held.contains("payments") { Ok(0) } else { library.link_payments(200) } {
                     Ok(done) => crate::activity::did("payments", "Linking payments to receipts", done, &n(done, "message read for amounts", "messages read for amounts")),
                     Err(e) => progress.event(&format!("Linking payments to receipts paused ({e}); trying again.")),
+                }
+                // the classic Eudora copy kept current (Settings ▸ Library; off unless chosen): a
+                // batch each round while mail waits to be written, else a look every 5 minutes
+                if !held.contains("classic") && (classic_left > 0 || last_classic.elapsed() >= Duration::from_secs(300)) {
+                    last_classic = Instant::now();
+                    const NAME: &str = "Keeping the classic Eudora copy current";
+                    match crate::classic_export::mirror_round(library, 500) {
+                        Ok(Some(r)) => {
+                            classic_left = r.left;
+                            crate::activity::did("classic", NAME, r.written + r.removed + r.changed, &crate::classic_export::said(&r));
+                            crate::activity::left("classic", NAME, Some(r.left));
+                            crate::activity::next("classic", NAME, Some(crate::library::now() + if r.left > 0 { crate::activity::ROUND_SECS } else { 300 }));
+                        }
+                        Ok(None) => classic_left = 0,
+                        Err(e) => {
+                            classic_left = 0;
+                            progress.event(&format!("Keeping the classic Eudora copy current paused ({e}); trying again in 5 minutes."));
+                        }
+                    }
                 }
                 // duplicates: shown from their most original copy (the user's own files first)
                 if let Err(e) = if held.contains("originals") { Ok(()) } else { library.prefer_originals(&mut writer, 2000).map(|_| ()) } {
@@ -1181,12 +1207,12 @@ pub fn download(library: &mut Library, mut client: Option<&mut GraphClient>, opt
                             made,
                             &format!("{} moved, {} marked, {} deleted, {} calendar and {} contact changes{}", thousands(r.moved), thousands(b.marked), thousands(b.deleted), b.events_sent, b.cards_sent, if b.failed > 0 { format!("; {} waiting ({})", b.failed, b.error.clone().unwrap_or_default()) } else { String::new() }),
                         );
-                        if b.turned_unread + b.turned_read + b.labels_changed + b.events.added + b.events.changed + b.events.removed + b.cards.added + b.cards.changed + b.cards.removed > 0 {
+                        if b.turned_unread + b.turned_read + b.turned_answered + b.labels_changed + b.events.added + b.events.changed + b.events.removed + b.cards.added + b.cards.changed + b.cards.removed > 0 {
                             crate::activity::did(
                                 "from-server",
                                 "Bringing in changes made elsewhere (Outlook, phones)",
-                                b.turned_unread + b.turned_read + b.labels_changed + b.events.added + b.events.changed + b.events.removed + b.cards.added + b.cards.changed + b.cards.removed,
-                                &format!("{} read / unread, {} labels, {} calendar events, {} contacts", thousands(b.turned_unread + b.turned_read), thousands(b.labels_changed), thousands(b.events.added + b.events.changed + b.events.removed), thousands(b.cards.added + b.cards.changed + b.cards.removed)),
+                                b.turned_unread + b.turned_read + b.turned_answered + b.labels_changed + b.events.added + b.events.changed + b.events.removed + b.cards.added + b.cards.changed + b.cards.removed,
+                                &format!("{} read / unread, {} replied / forwarded, {} labels, {} calendar events, {} contacts", thousands(b.turned_unread + b.turned_read), thousands(b.turned_answered), thousands(b.labels_changed), thousands(b.events.added + b.events.changed + b.events.removed), thousands(b.cards.added + b.cards.changed + b.cards.removed)),
                             );
                         }
                         let mut said = Vec::new();
@@ -1347,6 +1373,7 @@ pub fn download(library: &mut Library, mut client: Option<&mut GraphClient>, opt
                     Chunk::Copies(items) => writer.add_copies(library, &items).map(|_| ()),
                     Chunk::Locate(places) => locate(library, &places),
                     Chunk::Present { folder, ids, since } => forget_gone(library, folder, &ids, since).map(|_| ()),
+                    Chunk::Answered { folder, ids } => crate::server_changes::mark_answered_in(library, folder, &ids).map(|_| ()),
                     Chunk::Setting { key, value } => library.set_setting(&key, &value),
                     Chunk::Listed { folder, total } => library
                         .conn
@@ -2361,7 +2388,15 @@ const READ_BACK_DAYS: i64 = 30;
 /// and the library when that was their last place (they come back in the folder they went to,
 /// listed in the same pass). Messages with a change of their own still waiting are left alone.
 /// Returns how many left the folder.
-fn forget_gone(library: &mut Library, folder: i64, ids: &[String], since: Option<i64>) -> Result<u64> {
+pub(crate) fn forget_gone(library: &mut Library, folder: i64, ids: &[String], since: Option<i64>) -> Result<u64> {
+    // an account whose mail is kept local (`local_only`): moves and deletions on the server
+    // leave this library alone (its server items stay, so nothing comes back either)
+    let account: Option<i64> = library.conn.query_row("SELECT account FROM folders WHERE id = ?1", params![folder], |r| r.get(0)).optional()?;
+    if let Some(account) = account {
+        if library.local_only_account(account, crate::local_only::Service::Mail)? {
+            return Ok(0);
+        }
+    }
     let present: HashSet<&str> = ids.iter().map(String::as_str).collect();
     let since = since.map(|t| t + 86_400);
     let had: Vec<(String, i64)> = {
@@ -2409,8 +2444,10 @@ fn forget_gone(library: &mut Library, folder: i64, ids: &[String], since: Option
 /// The writer's side of `Chunk::Locate`: a message already here (found by its server id among
 /// its account's folders) also in another folder (a Gmail label), and its unread mark.
 fn locate(library: &mut Library, places: &[(i64, String, bool)]) -> Result<()> {
+    let local = library.local_only_accounts(crate::local_only::Service::Mail)?;
     let tx = library.conn.transaction()?;
     for (folder, server_id, unread) in places {
+        let account: Option<i64> = tx.query_row("SELECT account FROM folders WHERE id = ?1", params![folder], |r| r.get(0)).optional()?;
         let message: Option<i64> = tx
             .query_row(
                 "SELECT s.message FROM server_items s JOIN folders f ON f.id = s.folder
@@ -2420,6 +2457,22 @@ fn locate(library: &mut Library, places: &[(i64, String, bool)]) -> Result<()> {
             )
             .optional()?;
         let Some(message) = message else { continue };
+        if account.is_some_and(|a| local.contains(&a)) {
+            // mail kept local (`local_only`): only a place not seen before is added (a label
+            // new to the message), never one the user took it out of here; unread only for a
+            // message that has just arrived
+            let fresh = tx.execute("INSERT OR IGNORE INTO server_items (folder, server_id, message) VALUES (?1, ?2, ?3)", params![folder, server_id, message])? > 0;
+            if fresh {
+                let added = tx.execute("INSERT OR IGNORE INTO locations (message, folder, date, server_id) SELECT id, ?2, date, ?3 FROM messages WHERE id = ?1", params![message, folder, server_id])?;
+                if added > 0 {
+                    tx.execute("INSERT OR IGNORE INTO index_pending (message) VALUES (?1)", params![message])?;
+                }
+            }
+            if *unread {
+                tx.execute("UPDATE messages SET flags = flags | 1 WHERE id = ?1 AND added >= ?2", params![message, now() - 3600])?;
+            }
+            continue;
+        }
         let added = tx.execute("INSERT OR IGNORE INTO locations (message, folder, date, server_id) SELECT id, ?2, date, ?3 FROM messages WHERE id = ?1", params![message, folder, server_id])?;
         tx.execute("INSERT OR IGNORE INTO server_items (folder, server_id, message) VALUES (?1, ?2, ?3)", params![folder, server_id, message])?;
         if added > 0 {
@@ -2803,6 +2856,11 @@ fn produce_imap(
             // the download period)
             if !configs.get(&address.to_lowercase()).is_some_and(|c| c.is_pop3()) {
                 let _ = out.send(Chunk::Present { folder: job.folder, ids: listed.iter().map(|i| i.id.clone()).collect(), since: shared.cutoff });
+                // replied / forwarded by any program
+                let answered = session.answered(name);
+                if !answered.is_empty() {
+                    let _ = out.send(Chunk::Answered { folder: job.folder, ids: answered });
+                }
             }
             let mut wanted: Vec<&imap_sync::Item> = listed.iter().filter(|i| !known.contains(&i.id) && !seen.contains(&(job.folder, i.id.clone()))).collect();
             wanted.reverse(); // newest first

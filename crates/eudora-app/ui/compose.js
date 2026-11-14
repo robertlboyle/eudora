@@ -42,6 +42,7 @@ function icon(name) {
 function fillIcons() {
   for (const e of document.querySelectorAll("[data-icon]")) {
     e.classList.add("icon");
+    e.setAttribute("aria-hidden", "true");
     e.style.setProperty("--icon", `url("icons/${window.ICON_SET || "free"}/${e.dataset.icon}.svg")`);
   }
 }
@@ -101,6 +102,10 @@ function typing(field) {
 function hideSuggestions() {
   if (suggest.box) suggest.box.hidden = true;
   suggest.items = [];
+  for (const id of ["c-to", "c-cc", "c-bcc"]) {
+    $(id).setAttribute("aria-expanded", "false");
+    $(id).removeAttribute("aria-activedescendant");
+  }
 }
 
 function showSuggestions(field, items) {
@@ -109,12 +114,24 @@ function showSuggestions(field, items) {
   suggest.items = items;
   suggest.at = 0;
   if (!items.length) { box.hidden = true; return; }
+  // (a combobox for screen readers: the field owns the list, the suggestion with the keyboard
+  // is its active one, and how many there are is said)
+  box.id = "c-suggestions";
+  box.setAttribute("role", "listbox");
+  box.setAttribute("aria-label", "Suggested addresses");
   box.replaceChildren(...items.map((s, i) => {
     const row = el("div", `c-sug${i === 0 ? " on" : ""}`);
     row.dataset.i = i;
+    row.id = `c-sug-${i}`;
+    row.setAttribute("role", "option");
+    row.setAttribute("aria-selected", String(i === 0));
+    row.setAttribute("aria-label", s.name && s.name !== s.address ? `${s.name}, ${s.address}` : s.address);
     row.append(el("span", "c-sug-name", s.name || s.address), el("span", "c-sug-address", s.name ? s.address : ""));
     return row;
   }));
+  field.setAttribute("aria-expanded", "true");
+  field.setAttribute("aria-activedescendant", "c-sug-0");
+  say(`${items.length} ${items.length === 1 ? "suggestion" : "suggestions"}: ↑ ↓ to choose, Enter to take one.`);
   const r = field.getBoundingClientRect();
   box.style.left = `${r.left}px`;
   box.style.top = `${r.bottom + 2}px`;
@@ -138,6 +155,10 @@ function accept(i) {
 
 for (const id of ["c-to", "c-cc", "c-bcc"]) {
   const field = $(id);
+  field.setAttribute("role", "combobox");
+  field.setAttribute("aria-autocomplete", "list");
+  field.setAttribute("aria-controls", "c-suggestions");
+  field.setAttribute("aria-expanded", "false");
   field.addEventListener("input", () => {
     clearTimeout(suggest.timer);
     const typed = typing(field);
@@ -163,7 +184,8 @@ for (const id of ["c-to", "c-cc", "c-bcc"]) {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       suggest.at = Math.max(0, Math.min(rows.length - 1, suggest.at + (e.key === "ArrowDown" ? 1 : -1)));
-      rows.forEach((r, i) => r.classList.toggle("on", i === suggest.at));
+      rows.forEach((r, i) => { r.classList.toggle("on", i === suggest.at); r.setAttribute("aria-selected", String(i === suggest.at)); });
+      field.setAttribute("aria-activedescendant", `c-sug-${suggest.at}`);
     } else if (e.key === "Enter" || e.key === "Tab") {
       e.preventDefault();
       accept(suggest.at);
@@ -239,9 +261,13 @@ function draft() {
  *  buttons rest meanwhile. */
 function setPlain(on) {
   state.plain = on;
-  $("c-format").value = on ? "plain" : "html";
+  for (const b of $("c-format").querySelectorAll("[data-format]")) {
+    const mine = (b.dataset.format === "plain") === on;
+    b.setAttribute("aria-checked", String(mine));
+    b.tabIndex = mine ? 0 : -1;
+  }
   document.body.classList.toggle("plain-text", on);
-  for (const b of document.querySelectorAll("#c-bar [data-cmd], #c-link")) b.disabled = on;
+  for (const b of document.querySelectorAll("#c-bar [data-cmd], #c-link, #c-highlight")) b.disabled = on;
 }
 
 /** The text as sent in plain text: quoted parts (blockquotes) as "> " lines, as Eudora quotes. */
@@ -260,6 +286,12 @@ function plainText(root) {
       quote.replaceWith(block);
     }
     for (const img of copy.querySelectorAll("img")) img.replaceWith(img.alt ? `[${img.alt}]` : "");
+    // a link keeps its address: "the words <https://…>" (the words alone when they are the address)
+    for (const a of copy.querySelectorAll("a[href]")) {
+      const href = a.getAttribute("href");
+      const words = a.textContent.trim();
+      if (/^(https?|mailto):/i.test(href) && words && words !== href && words !== href.replace(/^mailto:/i, "")) a.append(` <${href.replace(/^mailto:/i, "")}>`);
+    }
     return copy.innerText;
   } finally {
     copy.remove();
@@ -278,21 +310,65 @@ function bodyAsText(text) {
   }
 }
 
-$("c-format").addEventListener("change", async () => {
-  if ($("c-format").value === "html") {
+/** What switching to plain text would lose: "bold, italic, or underlined text", "2 pictures"…
+ *  (empty: nothing but words and line breaks, so nothing is lost). Quoted parts become "> "
+ *  lines and links keep their addresses, so neither counts as lost. */
+function formattingIn(root) {
+  const lost = [];
+  const has = (selector) => root.querySelector(selector);
+  if (has("b, strong, i, em, u, s, strike, sub, sup, mark")) lost.push("bold, italic, or underlined text");
+  if (has("font, [style*='color'], [style*='font'], [style*='background'], [color], [face], [size], h1, h2, h3, h4, h5, h6, big, small")) lost.push("fonts, sizes, and colors");
+  if (has("ul, ol")) lost.push("bulleted and numbered lists (the items stay as lines)");
+  if (has("table")) lost.push("tables (their words stay)");
+  if (has("a[href]")) lost.push("clickable links (each address is kept in the text)");
+  const pictures = root.querySelectorAll("img").length;
+  if (pictures) lost.push(`${pictures === 1 ? "a picture" : `${pictures} pictures`} in the text (attach ${pictures === 1 ? "it" : "them"} to send ${pictures === 1 ? "it" : "them"})`);
+  if (has("[style*='align'], [align], center, hr")) lost.push("alignment and lines");
+  return lost;
+}
+
+/** HTML or plain text. Back to HTML loses nothing (formatting already gone doesn't
+ *  come back); to plain text asks first whenever something would be lost. */
+async function chooseFormat(plain) {
+  if (plain === !!state.plain) return;
+  if (!plain) {
     setPlain(false);
     state.dirty = true;
+    say("HTML: you can format the message again.");
     return;
   }
-  const pictures = $("c-body").querySelectorAll("img").length;
-  if (pictures && !(await askYesNo("Switch to plain text", `Plain text can't show pictures in the message: the ${pictures === 1 ? "picture" : `${pictures} pictures`} in it will be removed (attach ${pictures === 1 ? "it" : "them"} instead to send ${pictures === 1 ? "it" : "them"}). The formatting goes too.`, "Switch to plain text", "Keep HTML"))) {
-    $("c-format").value = "html";
-    return;
-  }
+  const lost = formattingIn($("c-body"));
+  if (lost.length && !(await askYesNo("Switch to plain text", `Plain text is words only. Switching loses all of this message's formatting:\n\n• ${lost.join("\n• ")}\n\nIt doesn't come back if you switch to HTML again.`, "Switch to plain text", "Keep HTML"))) return;
   bodyAsText(plainText($("c-body")));
   setPlain(true);
   state.dirty = true;
+  say("Plain text: the message goes as words only.");
+}
+
+for (const b of $("c-format").querySelectorAll("[data-format]")) b.addEventListener("click", () => chooseFormat(b.dataset.format === "plain"));
+// arrow keys move between the two, as in any group of radio buttons
+$("c-format").addEventListener("keydown", (e) => {
+  if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
+  e.preventDefault();
+  chooseFormat(!state.plain).then(() => $("c-format").querySelector(`[data-format="${state.plain ? "plain" : "html"}"]`)?.focus());
 });
+
+/** Enter starts a new line, not a paragraph. A paragraph
+ *  (<p>) has a blank line's space around it in every mail program and two line breaks in the
+ *  plain-text copy, and the browser makes each Enter inside one another paragraph: replies used
+ *  to start inside one. So lines are <div>s, and the paragraphs Eudora's own text started with
+ *  (the reply's first lines, a draft saved before this) become lines. The original's own
+ *  paragraphs, inside the quote, stay as they are. */
+function linesNotParagraphs(body) {
+  for (const p of [...body.querySelectorAll(":scope > p")]) {
+    const div = document.createElement("div");
+    for (const a of p.attributes) div.setAttribute(a.name, a.value);
+    div.append(...p.childNodes);
+    if (!div.childNodes.length) div.append(document.createElement("br"));
+    p.replaceWith(div);
+  }
+}
+try { document.execCommand("defaultParagraphSeparator", false, "div"); } catch { /* (not every engine knows it) */ }
 
 function load(d) {
   for (const o of $("c-from").options) o.selected = o.value.toLowerCase() === (d.from || "").toLowerCase();
@@ -301,6 +377,7 @@ function load(d) {
   $("c-bcc").value = d.bcc || "";
   $("c-subject").value = d.subject || "";
   $("c-body").innerHTML = d.html || "";
+  linesNotParagraphs($("c-body"));
   state.inReplyTo = d.in_reply_to || null;
   state.references = d.references || [];
   state.files = d.attachments || [];
@@ -320,7 +397,7 @@ async function start() {
     // both at once
     const [, { seed, identities }] = await Promise.all([
       loadSignatures(),
-      invoke("compose_seed", { mode: mode === "draft" ? "new" : mode, id: mode === "draft" ? null : sourceId, ids: sourceIds }),
+      invoke("compose_seed", { mode: mode === "draft" ? "new" : mode, id: mode === "draft" ? null : sourceId, ids: sourceIds, quoting: params.get("quoting") || null }),
     ]);
     const from = $("c-from");
     for (const i of identities) {
@@ -341,6 +418,7 @@ async function start() {
       // replying or forwarding marks the original Replied / Forwarded once this is sent
       const kind = { reply: "reply", replyAll: "reply", forward: "forward", redirect: "redirect" }[mode];
       state.origin = kind && sourceId ? { message: sourceId, kind } : null;
+      state.bottom = !!seed.bottom;
       load({ ...seed, from: pick?.address });
       // a redirect passes the message on as it is: no signature
       if (mode !== "redirect") useSignature(signatureFor(pick?.address));
@@ -369,7 +447,12 @@ async function start() {
     }
     if (!usable.length) say("No account can send yet: sign in to Microsoft 365 (eudora-cli graph login --archive).", true);
     (["new", "forward", "redirect"].includes(mode) ? $("c-to") : $("c-body")).focus();
-    if (!["new", "forward", "redirect", "again"].includes(mode)) placeCaretAtStart($("c-body"));
+    // classic quoting: written below the original, so the cursor waits under it
+    const here = state.bottom && $("c-body").querySelector(".eudora-reply-here");
+    if (here) {
+      placeCaretAtStart(here);
+      here.scrollIntoView({ block: "nearest" });
+    } else if (!["new", "forward", "redirect", "again"].includes(mode)) placeCaretAtStart($("c-body"));
   } catch (err) {
     say(`Couldn't start the message: ${err}`, true);
   }
@@ -389,6 +472,7 @@ async function send() {
   const d = draft();
   if (!d.to.trim() && !d.cc.trim() && !d.bcc.trim()) { say("Who is it to? (To, Cc or Bcc)", true); $("c-to").focus(); return; }
   if (!d.subject.trim() && !(await askYesNo("No subject", "Send it without a subject?", "Send without a subject", "Add a subject"))) { $("c-subject").focus(); return; }
+  if (!(await bossWatch(d))) return;
   state.sending = true;
   $("c-send").disabled = true;
   say(`Sending from ${d.from}…`);
@@ -658,7 +742,8 @@ function useSignature(sig) {
   box.className = "eudora-signature";
   box.innerHTML = sig.html;
   const first = body.firstElementChild;
-  if (mode === "new" || mode === "again" || !first) body.append(box);
+  // (a reply written below the original, classic Eudora's way: the signature at the end too)
+  if (mode === "new" || mode === "again" || state.bottom || !first) body.append(box);
   else first.after(box);
 }
 
@@ -829,3 +914,161 @@ document.addEventListener("keydown", (e) => {
 });
 
 start();
+
+// Bold / Italic / Underline / Strikethrough / Highlight say whether they're on where the cursor
+// is (screen readers hear "Bold, toggle button, pressed")
+document.addEventListener("selectionchange", () => {
+  for (const b of document.querySelectorAll("button[data-cmd][aria-pressed]")) {
+    let on = false;
+    try { on = document.queryCommandState(b.dataset.cmd); } catch { /* (none) */ }
+    b.setAttribute("aria-pressed", String(on));
+  }
+  $("c-highlight").setAttribute("aria-pressed", String(highlighted()));
+});
+
+// ------------------------------------------------------------------ strikethrough, highlight,
+// and the right-click menu
+
+const HIGHLIGHT = "#ffef5e";
+
+/** Whether the text where the cursor is has a highlight (a background color of its own). */
+function highlighted() {
+  const sel = getSelection();
+  let node = sel.rangeCount ? sel.getRangeAt(0).startContainer : null;
+  if (node?.nodeType === 3) node = node.parentElement;
+  const body = $("c-body");
+  while (node && node !== body && body.contains(node)) {
+    if (node.tagName === "MARK") return true;
+    const bg = node.style?.backgroundColor;
+    if (bg && bg !== "transparent" && bg !== "initial" && bg !== "inherit" && !/rgba\(\s*0,\s*0,\s*0,\s*0\s*\)/.test(bg)) return true;
+    node = node.parentElement;
+  }
+  return false;
+}
+
+/** Highlights the text chosen, or takes the highlight off when it has one. */
+function toggleHighlight() {
+  if (state.plain) return;
+  document.execCommand("styleWithCSS", false, true);
+  const off = highlighted();
+  document.execCommand("hiliteColor", false, off ? "transparent" : HIGHLIGHT);
+  document.execCommand("styleWithCSS", false, false);
+  state.dirty = true;
+  $("c-highlight").setAttribute("aria-pressed", String(!off));
+}
+$("c-highlight").addEventListener("mousedown", (e) => e.preventDefault()); // keep the selection in the text
+$("c-highlight").addEventListener("click", toggleHighlight);
+
+// the keys (Word's and Outlook's have none for these; Gmail's Ctrl+Shift+X is strikethrough)
+$("c-body").addEventListener("keydown", (e) => {
+  if (!(e.ctrlKey || e.metaKey) || !e.shiftKey || e.altKey || state.plain) return;
+  const key = e.key.toLowerCase();
+  if (key === "x") { e.preventDefault(); document.execCommand("strikeThrough"); state.dirty = true; }
+  else if (key === "h") { e.preventDefault(); toggleHighlight(); }
+});
+
+/** The right-click menu in the text: cut, copy, paste, and every formatting the toolbar has.
+ *  From the keyboard: Shift+F10 or the Menu key. Plain text: the formatting rests. */
+const textMenu = $("c-menu");
+function closeTextMenu() {
+  if (textMenu.hidden) return;
+  textMenu.hidden = true;
+  $("c-body").focus();
+}
+function menuItem(label, key, act, enabled = true, pressed = null) {
+  const b = el("button", "", label);
+  b.type = "button";
+  b.setAttribute("role", pressed === null ? "menuitem" : "menuitemcheckbox");
+  if (pressed !== null) { b.setAttribute("aria-checked", String(pressed)); b.textContent = `${pressed ? "✓ " : ""}${label}`; }
+  if (key) b.append(el("span", "c-menu-key", key));
+  b.disabled = !enabled;
+  b.addEventListener("mousedown", (e) => e.preventDefault()); // keep the selection
+  b.addEventListener("click", async () => { textMenu.hidden = true; $("c-body").focus(); await act(); state.dirty = true; });
+  return b;
+}
+async function pasteFromMenu() {
+  try {
+    const items = await navigator.clipboard.read();
+    for (const item of items) {
+      if (item.types.includes("text/html") && !state.plain) {
+        const html = await (await item.getType("text/html")).text();
+        document.execCommand("insertHTML", false, html);
+        return;
+      }
+      if (item.types.includes("text/plain")) {
+        document.execCommand("insertText", false, await (await item.getType("text/plain")).text());
+        return;
+      }
+    }
+  } catch {
+    try { document.execCommand("insertText", false, await navigator.clipboard.readText()); return; } catch { /* (not allowed) */ }
+  }
+  say("Paste with Ctrl+V: Eudora wasn't allowed to read the clipboard from the menu.", true);
+}
+$("c-body").addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+  const sel = getSelection();
+  const chosen = sel.rangeCount && !sel.isCollapsed;
+  const rich = !state.plain;
+  const on = (cmd) => { try { return document.queryCommandState(cmd); } catch { return false; } };
+  textMenu.replaceChildren(
+    menuItem("Cut", "Ctrl+X", () => document.execCommand("cut"), chosen),
+    menuItem("Copy", "Ctrl+C", () => document.execCommand("copy"), chosen),
+    menuItem("Paste", "Ctrl+V", pasteFromMenu),
+    el("hr"),
+    menuItem("Bold", "Ctrl+B", () => document.execCommand("bold"), rich, on("bold")),
+    menuItem("Italic", "Ctrl+I", () => document.execCommand("italic"), rich, on("italic")),
+    menuItem("Underline", "Ctrl+U", () => document.execCommand("underline"), rich, on("underline")),
+    menuItem("Strikethrough", "Ctrl+Shift+X", () => document.execCommand("strikeThrough"), rich, on("strikeThrough")),
+    menuItem("Highlight", "Ctrl+Shift+H", toggleHighlight, rich, highlighted()),
+    el("hr"),
+    menuItem("Bulleted List", "", () => document.execCommand("insertUnorderedList"), rich, on("insertUnorderedList")),
+    menuItem("Numbered List", "", () => document.execCommand("insertOrderedList"), rich, on("insertOrderedList")),
+    menuItem("Make Hyperlink…", "", () => $("c-link").click(), rich && chosen),
+    menuItem("Remove Formatting", "", () => { document.execCommand("removeFormat"); document.execCommand("unlink"); }, rich && chosen),
+    el("hr"),
+    menuItem("Select All", "Ctrl+A", () => document.execCommand("selectAll")),
+    menuItem("Check Spelling", "Ctrl+6", () => $("c-spell").click()),
+  );
+  if (state.plain) textMenu.append(el("hr"), menuItem("Switch to HTML to format…", "", () => chooseFormat(false)));
+  textMenu.hidden = false;
+  const { innerWidth, innerHeight } = window;
+  textMenu.style.left = `${Math.max(4, Math.min(e.clientX, innerWidth - textMenu.offsetWidth - 8))}px`;
+  textMenu.style.top = `${Math.max(4, Math.min(e.clientY, innerHeight - textMenu.offsetHeight - 8))}px`;
+  textMenu.querySelector("button:not(:disabled)")?.focus();
+});
+// arrows move in the menu, Esc closes it, a click elsewhere closes it
+textMenu.addEventListener("keydown", (e) => {
+  const items = [...textMenu.querySelectorAll("button:not(:disabled)")];
+  const i = items.indexOf(document.activeElement);
+  if (e.key === "ArrowDown") { e.preventDefault(); items[(i + 1) % items.length]?.focus(); }
+  else if (e.key === "ArrowUp") { e.preventDefault(); items[(i - 1 + items.length) % items.length]?.focus(); }
+  else if (e.key === "Home") { e.preventDefault(); items[0]?.focus(); }
+  else if (e.key === "End") { e.preventDefault(); items[items.length - 1]?.focus(); }
+  else if (e.key === "Escape" || e.key === "Tab") { e.preventDefault(); e.stopPropagation(); closeTextMenu(); }
+});
+document.addEventListener("mousedown", (e) => { if (!textMenu.contains(e.target)) textMenu.hidden = true; });
+window.addEventListener("blur", () => { textMenu.hidden = true; });
+
+/** Classic Eudora's BossWatch "Speak addresses" (compmsgd.cpp): before a Reply to All, or a
+ *  message to more than a few people, who it goes to is said aloud and asked once more, so a
+ *  reply meant for one doesn't reach everyone (Settings ▸ General ▸ Speech; this computer only).
+ *  True = send. */
+async function bossWatch(d) {
+  let when = "off";
+  let many = 5;
+  try {
+    when = JSON.parse(localStorage.getItem("eudora.speakRecipients") || '"off"');
+    many = Number(JSON.parse(localStorage.getItem("eudora.speakRecipientsOver") || "5")) || 5;
+  } catch { /* (off) */ }
+  if (when === "off") return true;
+  const people = [d.to, d.cc, d.bcc].join(",").split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+  const hit = when === "always" || (when === "replyAll" && mode === "replyAll") || (when === "many" && people.length > many) || (when === "replyAllOrMany" && (mode === "replyAll" || people.length > many));
+  if (!hit) return true;
+  // their names, else their addresses ("Ann Smith <ann@x.com>" → "Ann Smith")
+  const names = people.map((p) => p.replace(/<[^>]*>/, "").replace(/"/g, "").trim() || p.replace(/[<>]/g, ""));
+  const text = `This goes to ${names.length} ${names.length === 1 ? "person" : "people"}: ${names.join(", ")}.`;
+  // said by the main window, with the speech chosen there
+  window.__TAURI__?.event?.emit("speak-request", text).catch?.(() => {});
+  return askYesNo(`Send to ${names.length} ${names.length === 1 ? "person" : "people"}?`, text, "Send", "Don't send");
+}

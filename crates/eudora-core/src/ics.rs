@@ -28,6 +28,18 @@ pub struct IcsEvent {
     pub repeats: Option<String>,
     /// Something to tell the user about how it was read (a time zone guessed).
     pub note: Option<String>,
+    /// Which occurrence of a repeating event this one is (RECURRENCE-ID, as written).
+    pub recurrence_id: Option<String>,
+    /// STATUS (CONFIRMED, TENTATIVE, CANCELLED), upper case.
+    pub status: Option<String>,
+    /// TRANSP:TRANSPARENT: shown as free.
+    pub free: bool,
+    /// CLASS:PRIVATE or CONFIDENTIAL.
+    pub private: bool,
+    /// Each attendee's answer (PARTSTAT, upper case; "" when none), in the order of `attendees`.
+    pub answers: Vec<String>,
+    /// SEQUENCE.
+    pub sequence: i64,
 }
 
 /// What the file is for (METHOD: PUBLISH, REQUEST = an invitation, CANCEL…), and its events.
@@ -416,10 +428,286 @@ fn event_of(own: &[&Line], zones: &[(String, Zone)]) -> Option<IcsEvent> {
         attendees: own.iter().filter(|l| l.name == "ATTENDEE").map(|l| person(l)).take(500).collect(),
         repeats: get("RRULE").map(|l| l.value.trim().chars().take(300).collect()),
         note,
+        recurrence_id: get("RECURRENCE-ID").map(|l| l.value.trim().to_string()),
+        status: get("STATUS").map(|l| l.value.trim().to_ascii_uppercase()),
+        free: get("TRANSP").is_some_and(|l| l.value.trim().eq_ignore_ascii_case("TRANSPARENT")),
+        private: get("CLASS").is_some_and(|l| matches!(l.value.trim().to_ascii_uppercase().as_str(), "PRIVATE" | "CONFIDENTIAL")),
+        answers: own.iter().filter(|l| l.name == "ATTENDEE").take(500).map(|l| l.param("PARTSTAT").unwrap_or("").to_ascii_uppercase()).collect(),
+        sequence: get("SEQUENCE").and_then(|l| l.value.trim().parse().ok()).unwrap_or(0),
     })
 }
 
 /// A text value escaped for a calendar file (\ ; , and new lines).
+/// The most occurrences one series makes (a rule with no end, read far ahead, stops here).
+const MAX_OCCURRENCES: usize = 5000;
+
+/// A file's events between `from` and `to` (Unix seconds), each occurrence of a repeating event
+/// on its own (RECURRENCE-ID = its original start, UTC "…Z", or the date for all-day ones), as a
+/// server does when asked to expand them (RFC 4791 `expand`). For servers that send the rule
+/// instead (cPanel's): DAILY, WEEKLY, MONTHLY, and YEARLY with INTERVAL, COUNT, UNTIL, BYDAY
+/// (weekdays, and "2TU" / "-1FR" in a month or year), BYMONTHDAY, BYMONTH, and BYSETPOS; EXDATE
+/// removes one; a changed occurrence (its own RECURRENCE-ID) takes its place. Occurrences are
+/// made in the event's own time zone, so a meeting stays at 9 AM across daylight saving.
+pub fn expand(text: &str, from: i64, to: i64) -> Vec<IcsEvent> {
+    let all = lines(text);
+    let zones = zones_in(&all);
+    // each event's own lines (an alarm inside skipped)
+    let mut blocks: Vec<Vec<&Line>> = Vec::new();
+    let mut i = 0;
+    while i < all.len() {
+        if all[i].name == "BEGIN" && all[i].value.eq_ignore_ascii_case("VEVENT") {
+            let (mut own, mut nested) = (Vec::new(), 0);
+            i += 1;
+            while i < all.len() {
+                let l = &all[i];
+                match l.name.as_str() {
+                    "END" if nested == 0 => break,
+                    "BEGIN" => nested += 1,
+                    "END" => nested -= 1,
+                    _ if nested == 0 => own.push(l),
+                    _ => {}
+                }
+                i += 1;
+            }
+            blocks.push(own);
+        }
+        i += 1;
+    }
+    fn get<'a>(own: &[&'a Line], n: &str) -> Option<&'a Line> {
+        own.iter().find(|l| l.name == n).copied()
+    }
+    let overlaps = |e: &IcsEvent| e.end > from && e.start < to;
+    // changed occurrences, by the time of the occurrence they replace
+    let replaced: Vec<i64> = blocks.iter().filter_map(|b| get(b, "RECURRENCE-ID").and_then(|l| time_of(l, &zones)).map(|t| t.0)).collect();
+    let mut out = Vec::new();
+    for own in &blocks {
+        let Some(event) = event_of(own, &zones) else { continue };
+        if event.recurrence_id.is_some() || event.repeats.is_none() {
+            if overlaps(&event) {
+                out.push(event);
+            }
+            continue;
+        }
+        let Some(start_line) = get(own, "DTSTART") else { continue };
+        let length = event.end - event.start;
+        // the first start in its own zone's wall time, and the way back to Unix seconds
+        let v = start_line.value.trim();
+        let (local, utc_kind) = if event.all_day {
+            (NaiveDate::parse_from_str(v.get(..8).unwrap_or(""), "%Y%m%d").ok().and_then(|d| d.and_hms_opt(0, 0, 0)), true)
+        } else {
+            (NaiveDateTime::parse_from_str(v.trim_end_matches(['Z', 'z']), "%Y%m%dT%H%M%S").ok(), v.ends_with(['Z', 'z']))
+        };
+        let Some(local) = local else { continue };
+        let zone = start_line.param("TZID").map(|id| id.trim_start_matches('/')).and_then(|id| zones.iter().find(|(n, _)| n == id).map(|(_, z)| z.clone()).or_else(|| named_zone(id)));
+        let to_utc = |t: NaiveDateTime| -> i64 {
+            if utc_kind {
+                t.and_utc().timestamp()
+            } else if let Some(z) = &zone {
+                z.utc(t)
+            } else {
+                chrono::Local.from_local_datetime(&t).earliest().map(|x| x.timestamp()).unwrap_or_else(|| t.and_utc().timestamp())
+            }
+        };
+        let removed: Vec<i64> = own
+            .iter()
+            .filter(|l| l.name == "EXDATE")
+            .flat_map(|l| {
+                l.value.split(',').filter_map(|v| time_of(&Line { name: "EXDATE".into(), params: l.params.clone(), value: v.trim().to_string() }, &zones).map(|t| t.0)).collect::<Vec<_>>()
+            })
+            .collect();
+        let rule = Rule::of(event.repeats.as_deref().unwrap_or(""), local, &to_utc);
+        for at in rule.starts(local, to) {
+            let start = to_utc(at);
+            if removed.contains(&start) || replaced.contains(&start) {
+                continue;
+            }
+            let mut e = event.clone();
+            e.start = start;
+            e.end = start + length;
+            e.recurrence_id = Some(if event.all_day { at.format("%Y%m%d").to_string() } else { chrono::DateTime::from_timestamp(start, 0).map(|t| t.format("%Y%m%dT%H%M%SZ").to_string()).unwrap_or_default() });
+            if overlaps(&e) {
+                out.push(e);
+            }
+        }
+    }
+    out.sort_by_key(|e| e.start);
+    out
+}
+
+/// A repeat rule (RRULE), the parts Eudora works out.
+struct Rule {
+    freq: char,
+    interval: i64,
+    count: Option<usize>,
+    /// UNTIL in the event's own wall time (compared with each local start).
+    until: Option<NaiveDateTime>,
+    /// (nth, weekday): nth 0 = every one.
+    by_day: Vec<(i32, Weekday)>,
+    by_month_day: Vec<i32>,
+    by_month: Vec<u32>,
+    by_set_pos: Vec<i32>,
+}
+
+impl Rule {
+    fn of(text: &str, first: NaiveDateTime, to_utc: &dyn Fn(NaiveDateTime) -> i64) -> Rule {
+        let mut r = Rule { freq: 'W', interval: 1, count: None, until: None, by_day: Vec::new(), by_month_day: Vec::new(), by_month: Vec::new(), by_set_pos: Vec::new() };
+        let ints = |v: &str| v.split(',').filter_map(|x| x.trim().parse::<i32>().ok()).collect::<Vec<_>>();
+        for part in text.split(';') {
+            let Some((k, v)) = part.split_once('=') else { continue };
+            match k.trim().to_ascii_uppercase().as_str() {
+                "FREQ" => r.freq = v.trim().to_ascii_uppercase().chars().next().unwrap_or('W'),
+                "INTERVAL" => r.interval = v.trim().parse().unwrap_or(1).max(1),
+                "COUNT" => r.count = v.trim().parse().ok(),
+                "UNTIL" => {
+                    let v = v.trim();
+                    r.until = if v.len() == 8 {
+                        NaiveDate::parse_from_str(v, "%Y%m%d").ok().and_then(|d| d.and_hms_opt(23, 59, 59))
+                    } else if let Ok(t) = NaiveDateTime::parse_from_str(v.trim_end_matches(['Z', 'z']), "%Y%m%dT%H%M%S") {
+                        if v.ends_with(['Z', 'z']) {
+                            // (a UTC end, back to the event's wall time by the first start's offset)
+                            let offset = to_utc(first) - first.and_utc().timestamp();
+                            Some(t + Duration::seconds(-offset))
+                        } else {
+                            Some(t)
+                        }
+                    } else {
+                        None
+                    };
+                }
+                "BYDAY" => {
+                    for d in v.split(',') {
+                        let d = d.trim().to_ascii_uppercase();
+                        if d.len() < 2 {
+                            continue;
+                        }
+                        let (n, code) = d.split_at(d.len() - 2);
+                        if let Some(w) = weekday_of(code) {
+                            r.by_day.push((n.parse().unwrap_or(0), w));
+                        }
+                    }
+                }
+                "BYMONTHDAY" => r.by_month_day = ints(v),
+                "BYMONTH" => r.by_month = ints(v).into_iter().filter(|m| (1..=12).contains(m)).map(|m| m as u32).collect(),
+                "BYSETPOS" => r.by_set_pos = ints(v),
+                _ => {}
+            }
+        }
+        r
+    }
+
+    /// The starts (wall time) up to `to` (Unix seconds, compared roughly: a day's slack).
+    fn starts(&self, first: NaiveDateTime, to: i64) -> Vec<NaiveDateTime> {
+        let mut out = vec![first];
+        let time = first.time();
+        let date = first.date();
+        let past = |t: NaiveDateTime| t.and_utc().timestamp() > to + 2 * 86_400 || self.until.is_some_and(|u| t > u);
+        let full = |out: &Vec<NaiveDateTime>| self.count.is_some_and(|c| out.len() >= c) || out.len() >= MAX_OCCURRENCES;
+        // one period after another, each period's dates in order
+        for period in 0i64.. {
+            if full(&out) {
+                break;
+            }
+            let step = period * self.interval;
+            let mut dates: Vec<NaiveDate> = match self.freq {
+                'D' => {
+                    let d = date + Duration::days(step);
+                    if self.month_ok(d) && self.weekday_ok(d) { vec![d] } else { vec![] }
+                }
+                'W' => {
+                    // the week (from the first's weekday) shifted by whole weeks
+                    let start = date + Duration::weeks(step);
+                    let days: Vec<NaiveDate> = (0..7).map(|k| start + Duration::days(k)).collect();
+                    if self.by_day.is_empty() { vec![start] } else { days.into_iter().filter(|d| self.by_day.iter().any(|(_, w)| *w == d.weekday())).collect() }
+                }
+                'M' => {
+                    let months = date.year() as i64 * 12 + date.month0() as i64 + step;
+                    let (y, m) = ((months / 12) as i32, (months % 12) as u32 + 1);
+                    self.in_month(y, m, date.day())
+                }
+                'Y' => {
+                    let y = date.year() + step as i32;
+                    let months: Vec<u32> = if self.by_month.is_empty() { vec![date.month()] } else { self.by_month.clone() };
+                    let mut all = Vec::new();
+                    for m in months {
+                        if self.by_day.is_empty() && self.by_month_day.is_empty() {
+                            all.extend(NaiveDate::from_ymd_opt(y, m, date.day()));
+                        } else {
+                            all.extend(self.in_month(y, m, date.day()));
+                        }
+                    }
+                    all
+                }
+                _ => return out,
+            };
+            dates.sort();
+            if !self.by_set_pos.is_empty() {
+                let n = dates.len() as i32;
+                let picked: Vec<NaiveDate> = self.by_set_pos.iter().filter_map(|p| if *p > 0 { dates.get(*p as usize - 1).copied() } else if *p < 0 && -p <= n { dates.get((n + p) as usize).copied() } else { None }).collect();
+                dates = picked;
+            }
+            // (a period entirely after the end: done; the first period's own start is already in)
+            let period_start = match self.freq {
+                'D' => date + Duration::days(step),
+                'W' => date + Duration::weeks(step),
+                _ => dates.first().copied().unwrap_or(date + Duration::days(step * 28)),
+            };
+            if past(period_start.and_time(time)) && !dates.iter().any(|d| d.and_time(time) <= first) {
+                break;
+            }
+            for d in dates {
+                let t = d.and_time(time);
+                if t <= first {
+                    continue;
+                }
+                if past(t) || full(&out) {
+                    return out;
+                }
+                out.push(t);
+            }
+            // (a monthly or yearly rule that never matches: stop after 1,000 years of looking)
+            if period > 12_000 {
+                break;
+            }
+        }
+        out
+    }
+
+    fn month_ok(&self, d: NaiveDate) -> bool {
+        self.by_month.is_empty() || self.by_month.contains(&d.month())
+    }
+
+    fn weekday_ok(&self, d: NaiveDate) -> bool {
+        self.by_day.is_empty() || self.by_day.iter().any(|(_, w)| *w == d.weekday())
+    }
+
+    /// A month's dates the rule names (BYMONTHDAY, BYDAY with or without "2TU" / "-1FR"),
+    /// else the first's own day of the month (when that month has it).
+    fn in_month(&self, y: i32, m: u32, day: u32) -> Vec<NaiveDate> {
+        let Some(first) = NaiveDate::from_ymd_opt(y, m, 1) else { return vec![] };
+        let last = NaiveDate::from_ymd_opt(if m == 12 { y + 1 } else { y }, if m == 12 { 1 } else { m + 1 }, 1).and_then(|d| d.pred_opt()).unwrap_or(first);
+        let days: Vec<NaiveDate> = first.iter_days().take_while(|d| *d <= last).collect();
+        if self.by_day.is_empty() && self.by_month_day.is_empty() {
+            return NaiveDate::from_ymd_opt(y, m, day).into_iter().collect();
+        }
+        let mut out: Vec<NaiveDate> = Vec::new();
+        for (n, w) in &self.by_day {
+            let of: Vec<NaiveDate> = days.iter().copied().filter(|d| d.weekday() == *w).collect();
+            match *n {
+                0 => out.extend(of),
+                n if n > 0 => out.extend(of.get(n as usize - 1)),
+                n => out.extend(of.len().checked_sub((-n) as usize).and_then(|k| of.get(k))),
+            }
+        }
+        if !self.by_month_day.is_empty() {
+            let named: Vec<NaiveDate> = self.by_month_day.iter().filter_map(|&n| if n > 0 { days.get(n as usize - 1).copied() } else { days.len().checked_sub((-n) as usize).and_then(|k| days.get(k).copied()) }).collect();
+            out = if self.by_day.is_empty() { named } else { out.into_iter().filter(|d| named.contains(d)).collect() };
+        }
+        out.sort();
+        out.dedup();
+        out
+    }
+}
+
 pub fn escape(s: &str) -> String {
     s.replace('\\', "\\\\").replace(';', "\\;").replace(',', "\\,").replace("\r\n", "\\n").replace('\n', "\\n")
 }
@@ -529,6 +817,58 @@ mod tests {
 
     fn at(s: &str) -> i64 {
         chrono::DateTime::parse_from_rfc3339(s).unwrap().timestamp()
+    }
+
+    /// The occurrences of a one-event file between two times, as "YYYY-MM-DD HH:MM" UTC.
+    fn occurrences(event: &str, from: &str, to: &str) -> Vec<String> {
+        let text = format!("BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:x\r\nSUMMARY:S\r\n{}\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n", event.replace('\n', "\r\n"));
+        expand(&text, at(from), at(to)).iter().map(|e| chrono::DateTime::from_timestamp(e.start, 0).unwrap().format("%Y-%m-%d %H:%M").to_string()).collect()
+    }
+
+    #[test]
+    fn repeating_events_are_worked_out_when_the_server_sends_the_rule() {
+        let (from, to) = ("2026-01-01T00:00:00Z", "2028-01-01T00:00:00Z");
+        // weekly, four times
+        assert_eq!(occurrences("DTSTART:20261123T140000Z\nDTEND:20261123T143000Z\nRRULE:FREQ=WEEKLY;COUNT=4", from, to), ["2026-11-23 14:00", "2026-11-30 14:00", "2026-12-07 14:00", "2026-12-14 14:00"]);
+        // Monday, Wednesday, and Friday until a date; one removed
+        assert_eq!(
+            occurrences("DTSTART:20261102T090000Z\nRRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR;UNTIL=20261109T235959Z\nEXDATE:20261104T090000Z", from, to),
+            ["2026-11-02 09:00", "2026-11-06 09:00", "2026-11-09 09:00"]
+        );
+        // every other week on Tuesday and Thursday
+        assert_eq!(
+            occurrences("DTSTART:20261103T100000Z\nRRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=TU,TH;COUNT=4", from, to),
+            ["2026-11-03 10:00", "2026-11-05 10:00", "2026-11-17 10:00", "2026-11-19 10:00"]
+        );
+        // the second Tuesday and the last Friday of each month
+        assert_eq!(occurrences("DTSTART:20261110T150000Z\nRRULE:FREQ=MONTHLY;BYDAY=2TU;COUNT=3", from, to), ["2026-11-10 15:00", "2026-12-08 15:00", "2027-01-12 15:00"]);
+        assert_eq!(occurrences("DTSTART:20261127T150000Z\nRRULE:FREQ=MONTHLY;BYDAY=-1FR;COUNT=3", from, to), ["2026-11-27 15:00", "2026-12-25 15:00", "2027-01-29 15:00"]);
+        // the 31st: only months that have one; the last weekday of the month (BYSETPOS)
+        assert_eq!(occurrences("DTSTART:20261231T120000Z\nRRULE:FREQ=MONTHLY;BYMONTHDAY=31;COUNT=3", from, to), ["2026-12-31 12:00", "2027-01-31 12:00", "2027-03-31 12:00"]);
+        assert_eq!(occurrences("DTSTART:20261130T120000Z\nRRULE:FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1;COUNT=3", from, to), ["2026-11-30 12:00", "2026-12-31 12:00", "2027-01-29 12:00"]);
+        // every other day; yearly; all day
+        assert_eq!(occurrences("DTSTART:20261201T080000Z\nRRULE:FREQ=DAILY;INTERVAL=2;COUNT=3", from, to), ["2026-12-01 08:00", "2026-12-03 08:00", "2026-12-05 08:00"]);
+        assert_eq!(occurrences("DTSTART;VALUE=DATE:20260704\nRRULE:FREQ=YEARLY", from, to), ["2026-07-04 00:00", "2027-07-04 00:00"]);
+        // a 9 AM meeting in New York stays at 9 AM when daylight saving ends (1 November 2026)
+        assert_eq!(occurrences("DTSTART;TZID=America/New_York:20261026T090000\nRRULE:FREQ=WEEKLY;COUNT=3", from, to), ["2026-10-26 13:00", "2026-11-02 14:00", "2026-11-09 14:00"]);
+        // only those in the range asked for; no end: as far as asked
+        assert_eq!(occurrences("DTSTART:20260105T090000Z\nRRULE:FREQ=WEEKLY", "2026-03-01T00:00:00Z", "2026-03-20T00:00:00Z"), ["2026-03-02 09:00", "2026-03-09 09:00", "2026-03-16 09:00"]);
+    }
+
+    #[test]
+    fn a_changed_occurrence_takes_the_place_of_the_one_it_replaces() {
+        let text = "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:x\r\nSUMMARY:Weekly\r\nDTSTART:20261123T140000Z\r\nDTEND:20261123T143000Z\r\nRRULE:FREQ=WEEKLY;COUNT=3\r\nEND:VEVENT\r\n\
+BEGIN:VEVENT\r\nUID:x\r\nRECURRENCE-ID:20261130T140000Z\r\nSUMMARY:Moved\r\nDTSTART:20261130T170000Z\r\nDTEND:20261130T173000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
+        let events = expand(text, at("2026-11-01T00:00:00Z"), at("2027-01-01T00:00:00Z"));
+        let shown: Vec<(String, Option<String>)> = events.iter().map(|e| (e.summary.clone(), e.recurrence_id.clone())).collect();
+        assert_eq!(
+            shown,
+            [
+                ("Weekly".to_string(), Some("20261123T140000Z".to_string())),
+                ("Moved".to_string(), Some("20261130T140000Z".to_string())),
+                ("Weekly".to_string(), Some("20261207T140000Z".to_string())),
+            ]
+        );
     }
 
     #[test]

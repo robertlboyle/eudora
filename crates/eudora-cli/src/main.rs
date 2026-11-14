@@ -74,6 +74,13 @@ enum Command {
         #[command(subcommand)]
         command: RulesCommand,
     },
+    /// Contacts and calendars on CardDAV / CalDAV servers (iCloud, Fastmail, Nextcloud, hosting
+    /// companies). The password: the variable named by --password-env, else the one kept for the
+    /// account, else the IMAP account's of the same address.
+    Dav {
+        #[command(subcommand)]
+        command: DavCommand,
+    },
     /// Search everything: words (AND by default), OR, NOT, "phrases", from:, subject:, attachment:, date:[a TO b].
     Search {
         query: String,
@@ -258,6 +265,21 @@ enum Command {
     },
     /// File ▸ Work Offline: on, off, or (nothing) says which.
     Offline { state: Option<String> },
+    /// Settings ▸ Accounts ▸ Changes on the server: which accounts keep their mail, calendar
+    /// (with To Do), or contacts on this computer only. With ADDRESS and --mail / --calendar /
+    /// --contacts local (kept here only) or server (Eudora's changes go to the server), changes
+    /// that account's choice. Changes made while local are never sent later.
+    LocalOnly {
+        address: Option<String>,
+        #[arg(long, value_name = "local|server")]
+        mail: Option<String>,
+        #[arg(long, value_name = "local|server")]
+        calendar: Option<String>,
+        #[arg(long, value_name = "local|server")]
+        contacts: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
     /// The signatures (and each address's default), as JSON; with --set FILE, keeps those.
     Signatures {
         #[arg(long)]
@@ -282,6 +304,39 @@ enum Command {
     /// Synthetic Views (Receipts, Invoices, Renewals, Bank Transactions, New Accounts, 2FA
     /// codes): tags what isn't tagged yet, and says how many each holds.
     Views,
+    /// Export to Classic Eudora: writes a folder classic Eudora 7 opens as its mail folder
+    /// (.mbx / .toc mailboxes, descmap.pce, Filters.pce, NNdbase.txt, eudora.ini, Attach), for
+    /// going back to the old program. An earlier export in that folder is brought up to date.
+    /// Rules classic Eudora can't do are left out and listed in "Eudora export report.txt".
+    ExportClassic {
+        /// The folder (empty, or an earlier export; never inside Dropbox or OneDrive).
+        dest: PathBuf,
+        /// Only these accounts (their numbers from `accounts`, or addresses); default every one.
+        #[arg(long, value_delimiter = ',')]
+        accounts: Vec<String>,
+        /// Leave the rules out.
+        #[arg(long)]
+        no_rules: bool,
+        /// Leave the address book out.
+        #[arg(long)]
+        no_contacts: bool,
+        /// Print the report as JSON.
+        #[arg(long)]
+        json: bool,
+    },
+    /// The classic Eudora copy kept current by the download (one way: changes made in classic
+    /// Eudora don't come back). With no option, says how it's set.
+    ClassicMirror {
+        /// Keep a classic copy current in this folder.
+        #[arg(long, conflicts_with = "off")]
+        on: Option<PathBuf>,
+        /// Stop keeping it current (the folder stays as it is).
+        #[arg(long)]
+        off: bool,
+        /// Only these accounts (numbers or addresses); default every one.
+        #[arg(long, value_delimiter = ',')]
+        accounts: Vec<String>,
+    },
     /// Classic Eudora's attachment files (kept apart from the messages): finds the ones still
     /// missing, in the classic folder and in these folders (old backup drives…), and stores
     /// them in the library.
@@ -369,6 +424,38 @@ enum Command {
         #[command(subcommand)]
         command: SyncCommand,
     },
+}
+
+#[derive(Subcommand)]
+enum DavCommand {
+    /// Finds an address's contacts and calendars server and lists its address books and calendars (saves nothing).
+    Test {
+        address: String,
+        /// The server, when it can't be found from the address (e.g. https://dav.example.com).
+        #[arg(long, default_value = "")]
+        server: String,
+        /// The user name, when it isn't the address.
+        #[arg(long, default_value = "")]
+        user: String,
+        #[arg(long)]
+        password_env: Option<String>,
+    },
+    /// Adds (or changes) an account's contacts and calendars: found as `test` does, then saved.
+    Add {
+        address: String,
+        #[arg(long, default_value = "")]
+        server: String,
+        #[arg(long, default_value = "")]
+        user: String,
+        #[arg(long)]
+        password_env: Option<String>,
+    },
+    /// The accounts with a contacts and calendars server.
+    List,
+    /// Removes an account's contacts and calendars from this library (the server keeps them).
+    Remove { address: String },
+    /// Reads an account's address books and calendars (the last month and next year) now.
+    Sync { address: String },
 }
 
 #[derive(Subcommand)]
@@ -506,6 +593,17 @@ enum GraphCommand {
         /// Microsoft 365 mailbox keeps its change).
         #[arg(long, value_name = "ADDRESS")]
         drop_marks: Option<String>,
+    },
+    /// Asks Microsoft which messages were replied to, replied to all, or forwarded (in Outlook,
+    /// on a phone, anywhere): how many of each, in the Inbox or the whole mailbox (read-only;
+    /// the download marks them).
+    Answered {
+        /// The Microsoft account (else the first one signed in).
+        #[arg(long)]
+        account: Option<String>,
+        /// The whole mailbox, not only the Inbox.
+        #[arg(long)]
+        all: bool,
     },
     /// Asks Microsoft for the account's address books now: how many contacts in each, or
     /// Microsoft's answer when it refuses (read-only; the download stores them).
@@ -806,6 +904,81 @@ fn run(cli: &Cli, console: &Console) -> Result<()> {
             library.close(console)?;
             console.done();
             println!("Ready. Sign in (eudora-cli graph login --archive), then download: only what's new since the seed is fetched.");
+        }
+        Command::Dav { command } => {
+            let password_for = |address: &str, env: &Option<String>| -> Result<String> {
+                match env {
+                    Some(v) => std::env::var(v).with_context(|| format!("the environment variable {v} isn't set")),
+                    None => eudora_core::dav::password(address).ok_or_else(|| anyhow::anyhow!("no password kept for {address}: give one with --password-env VAR")),
+                }
+            };
+            let imap_host = |library: &Library, address: &str| -> Option<String> {
+                library.imap_accounts().ok()?.into_iter().find(|c| c.address.eq_ignore_ascii_case(address)).map(|c| c.server)
+            };
+            match command {
+                DavCommand::Test { address, server, user, password_env } | DavCommand::Add { address, server, user, password_env } => {
+                    let adding = matches!(command, DavCommand::Add { .. });
+                    let library = Library::open(&library_path(&cli)?, if adding { Access::Write } else { Access::Read }, console)?;
+                    let password = password_for(address, password_env)?;
+                    let mut config = eudora_core::dav::DavConfig { address: address.clone(), user: user.clone(), server: server.clone(), contacts: None, calendars: None };
+                    let found = eudora_core::dav::discover(&config, &password, imap_host(&library, address).as_deref())?;
+                    println!("Address books: {}", found.contacts.as_deref().unwrap_or("(none found)"));
+                    for b in &found.books {
+                        println!("  {}{}  {}", b.name, if b.writable { "" } else { " (read-only)" }, b.href);
+                    }
+                    println!("Calendars: {}", found.calendars.as_deref().unwrap_or("(none found)"));
+                    for c in &found.calendar_list {
+                        println!("  {}{}  {}", c.name, if c.writable { "" } else { " (read-only)" }, c.href);
+                    }
+                    if adding {
+                        config.contacts = found.contacts.clone();
+                        config.calendars = found.calendars.clone();
+                        let pass = password_env.as_ref().map(|_| password.as_str());
+                        let id = library.save_dav_account(&config, pass)?;
+                        library.close(console)?;
+                        println!("Saved as account {id}: its contacts and calendars are read with the next check (or `eudora-cli dav sync {address}`).");
+                    }
+                }
+                DavCommand::List => {
+                    let library = Library::open(&library_path(&cli)?, Access::Read, console)?;
+                    for c in library.dav_accounts()? {
+                        println!("{}  user {}  contacts {}  calendars {}", c.address, c.user(), c.contacts.as_deref().unwrap_or("-"), c.calendars.as_deref().unwrap_or("-"));
+                    }
+                }
+                DavCommand::Remove { address } => {
+                    let library = Library::open(&library_path(&cli)?, Access::Write, console)?;
+                    library.remove_dav_account(address)?;
+                    library.close(console)?;
+                    println!("Removed {address}'s contacts and calendars from this library (the server keeps them).");
+                }
+                DavCommand::Sync { address } => {
+                    let library = Library::open(&library_path(&cli)?, Access::Write, console)?;
+                    let config = library.dav_accounts()?.into_iter().find(|c| c.address.eq_ignore_ascii_case(address)).ok_or_else(|| anyhow::anyhow!("{address} has no contacts and calendars server here"))?;
+                    let account = library.dav_account_id(&config.address)?.ok_or_else(|| anyhow::anyhow!("{address} has no account here"))?;
+                    let now = eudora_core::library::now();
+                    // (the changes waiting for its server, then its address books and calendars read)
+                    let mut work = eudora_core::dav::plan(&library, 100)?.into_iter().find(|w| w.account == account).unwrap_or(eudora_core::dav::DavWork {
+                        account,
+                        config: config.clone(),
+                        name: String::new(),
+                        contacts: false,
+                        calendars: None,
+                        cards: Vec::new(),
+                        events: Vec::new(),
+                    });
+                    work.contacts = config.contacts.is_some();
+                    work.calendars = config.calendars.is_some().then_some((now - 30 * 86400, now + 365 * 86400));
+                    let (cards, events) = (work.cards.len(), work.events.len());
+                    let result = eudora_core::dav::carry_out(&[work]);
+                    let r = eudora_core::server_changes::record_batch(&library, &result)?;
+                    println!("Sent: {} of {cards} contact changes, {} of {events} event changes{}{}.", r.cards_sent, r.events_sent,
+                        r.cards_send_error.as_deref().map(|e| format!(" (contacts: {e})")).unwrap_or_default(),
+                        r.events_send_error.as_deref().map(|e| format!(" (events: {e})")).unwrap_or_default());
+                    println!("Contacts: {} added, {} changed, {} removed{}.", r.cards.added, r.cards.changed, r.cards.removed, r.cards_error.as_deref().map(|e| format!(" ({e})")).unwrap_or_default());
+                    println!("Events: {} added, {} changed, {} removed{}.", r.events.added, r.events.changed, r.events.removed, r.events_error.as_deref().map(|e| format!(" ({e})")).unwrap_or_default());
+                    library.close(console)?;
+                }
+            }
         }
         Command::Rules { command } => {
             let library = Library::open(&library_path(&cli)?, Access::Read, console)?;
@@ -1153,6 +1326,47 @@ fn run(cli: &Cli, console: &Console) -> Result<()> {
             println!("It's now the library Eudora opens (the Start Menu shortcut and `eudora-cli` without --library).");
             println!("Microsoft 365 accounts sign in again on this computer: eudora-cli graph login --archive");
         }
+        Command::ExportClassic { dest, accounts, no_rules, no_contacts, json } => {
+            let library = Library::open(&library_path(&cli)?, Access::Read, console)?;
+            let options = eudora_core::classic_export::ClassicOptions {
+                accounts: account_ids(&library, accounts)?,
+                folders: Vec::new(),
+                no_rules: *no_rules,
+                no_contacts: *no_contacts,
+            };
+            let r = eudora_core::classic_export::export(&library, dest, &options, console)?;
+            console.done();
+            if *json {
+                println!("{}", serde_json::to_string_pretty(&r)?);
+            } else {
+                print!("{}", eudora_core::classic_export::report_text(&r).replace("\r\n", "\n"));
+            }
+            if r.waiting.is_some() {
+                std::process::exit(3);
+            }
+        }
+        Command::ClassicMirror { on, off, accounts } => {
+            let library = Library::open(&library_path(&cli)?, Access::Read, console)?;
+            if let Some(folder) = on {
+                let settings = eudora_core::classic_export::MirrorSettings {
+                    on: true,
+                    folder: std::path::absolute(folder).unwrap_or_else(|_| folder.clone()).display().to_string(),
+                    accounts: account_ids(&library, accounts)?,
+                    ..Default::default()
+                };
+                library.set_classic_mirror(Some(&settings))?;
+                println!("The download keeps a classic Eudora copy current in {} (one way: changes made in classic Eudora don't come back).", settings.folder);
+            } else if *off {
+                library.set_classic_mirror(None)?;
+                println!("The classic Eudora copy is no longer kept current (its folder stays as it is).");
+            }
+            let m = library.classic_mirror_saved()?;
+            if m.on {
+                println!("Kept current: {} ({})", m.folder, if m.accounts.is_empty() { "every account".to_string() } else { format!("accounts {:?}", m.accounts) });
+            } else {
+                println!("Not kept current{}.", if m.folder.is_empty() { String::new() } else { format!(" (last folder: {})", m.folder) });
+            }
+        }
         Command::OldAttachments { folders } => {
             let library = Library::open(&library_path(&cli)?, Access::Write, console)?;
             let r = library.find_old_attachments(folders, console)?;
@@ -1242,7 +1456,8 @@ fn run(cli: &Cli, console: &Console) -> Result<()> {
                 }
                 Some(p) => p.to_string(),
             };
-            let params: serde_json::Value = serde_json::from_str(&text).context("the parameters aren't JSON")?;
+            // (Windows PowerShell 5.1 starts what it pipes to a program with a byte-order mark)
+            let params: serde_json::Value = serde_json::from_str(text.trim_start_matches('\u{feff}')).context("the parameters aren't JSON")?;
             let library = Library::open(&library_path(&cli)?, Access::Read, console)?;
             match library.api_owner_call(&eudora_core::api::NoHost, method, &params) {
                 Ok(v) => println!("{}", serde_json::to_string_pretty(&v)?),
@@ -1412,6 +1627,42 @@ fn run(cli: &Cli, console: &Console) -> Result<()> {
                 None => {}
             }
             println!("{}", if eudora_core::graph_sync::is_offline(&root) { "Working offline." } else { "Online." });
+        }
+        Command::LocalOnly { address, mail, calendar, contacts, json } => {
+            let library = Library::open(&library_path(&cli)?, Access::Read, console)?;
+            let side = |v: &Option<String>| -> anyhow::Result<Option<bool>> {
+                match v.as_deref() {
+                    None => Ok(None),
+                    Some("local") => Ok(Some(true)),
+                    Some("server") => Ok(Some(false)),
+                    Some(other) => anyhow::bail!("local or server, not \"{other}\""),
+                }
+            };
+            let (m, c, k) = (side(mail)?, side(calendar)?, side(contacts)?);
+            if m.is_some() || c.is_some() || k.is_some() {
+                let Some(address) = address else { anyhow::bail!("name the account's address to change its choice") };
+                let mut choice = library.local_only(address)?;
+                choice.mail = m.unwrap_or(choice.mail);
+                choice.calendar = c.unwrap_or(choice.calendar);
+                choice.contacts = k.unwrap_or(choice.contacts);
+                let dropped = library.set_local_only(address, choice)?;
+                if dropped > 0 && !*json {
+                    println!("{dropped} changes that were waiting for the server were dropped (they stay in Eudora).");
+                }
+            }
+            let rows: Vec<_> = library.local_only_list()?.into_iter().filter(|r| address.as_deref().is_none_or(|a| r.address.eq_ignore_ascii_case(a))).collect();
+            if *json {
+                println!("{}", serde_json::to_string_pretty(&rows)?);
+            } else {
+                for r in &rows {
+                    let said: Vec<String> = r
+                        .services
+                        .iter()
+                        .map(|s| format!("{s}: {}", if r.local.of(eudora_core::local_only::Service::parse(s).unwrap_or(eudora_core::local_only::Service::Mail)) { "local only" } else { "to the server" }))
+                        .collect();
+                    println!("{} ({}): {}", r.address, r.kind, said.join(", "));
+                }
+            }
         }
         Command::Signatures { set } => {
             let library = Library::open(&library_path(&cli)?, Access::Read, console)?;
@@ -2045,6 +2296,25 @@ fn graph(command: &GraphCommand) -> Result<()> {
             println!("You can open {open} of {} mailboxes.", list.len());
         }
         GraphCommand::AddShared { .. } | GraphCommand::Changes { .. } | GraphCommand::ArchiveRefile { .. } | GraphCommand::ArchiveMissing { .. } | GraphCommand::Failed { .. } => unreachable!("handled in main (needs the library)"),
+        GraphCommand::Answered { account, all } => {
+            let mut client = GraphClient::resume_best(account.as_deref(), eudora_core::graph::ALL_SCOPES)?;
+            println!("Signed in as {}", client.account);
+            let started = std::time::Instant::now();
+            match client.last_verbs(!*all, 2000) {
+                Ok(found) => {
+                    let count = |v: i64| found.iter().filter(|(_, x)| *x == v).count() as u64;
+                    println!(
+                        "Of the newest 2,000 {}: replied {}, replied to all {}, forwarded {} ({:.1} s)",
+                        if *all { "messages" } else { "in the Inbox" },
+                        thousands(count(102)),
+                        thousands(count(103)),
+                        thousands(count(104)),
+                        started.elapsed().as_secs_f32()
+                    );
+                }
+                Err(e) => println!("Microsoft refused: {e}"),
+            }
+        }
         GraphCommand::Contacts { account } => {
             let mut client = GraphClient::resume_best(account.as_deref(), eudora_core::graph::ALL_SCOPES)?;
             println!("Signed in as {}", client.account);
@@ -2244,4 +2514,20 @@ fn graph(command: &GraphCommand) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// Accounts named by number or address, as ids.
+fn account_ids(library: &Library, names: &[String]) -> eudora_core::Result<Vec<i64>> {
+    let all = library.accounts()?;
+    names
+        .iter()
+        .map(|n| {
+            let n = n.trim();
+            n.parse::<i64>()
+                .ok()
+                .filter(|id| all.iter().any(|a| a.id == *id))
+                .or_else(|| all.iter().find(|a| a.address.as_deref().is_some_and(|x| x.eq_ignore_ascii_case(n))).map(|a| a.id))
+                .ok_or_else(|| eudora_core::Error::Other(format!("there's no account “{n}” (eudora-cli accounts lists them)")))
+        })
+        .collect()
 }

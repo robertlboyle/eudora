@@ -1,0 +1,25 @@
+[package]
+name = "eudora-voice"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+publish.workspace = true
+
+# Eudora's natural voices (Kokoro), a program of its own downloaded only when the user asks for
+# them. Eudora starts it and sends it text; it answers with speech. Pure Rust: the model runs on
+# rten (already in Eudora's build for OCR), never ONNX Runtime (its official builds carry
+# Microsoft's telemetry); no GPL (espeak-ng, Piper): words come from misaki's dictionaries, then the
+# CMU Pronouncing Dictionary (BSD), then the NRL letter-to-sound rules (public domain).
+[[bin]]
+name = "eudora-voice"
+path = "src/main.rs"
+
+[dependencies]
+# Kokoro's own word-to-sound converter, ported to Rust (MIT); its espeak-ng fallback (GPL) left out
+misaki-rs = { version = "=0.9.0", default-features = false }
+rten = { version = "=0.26.0", features = ["all-ops"] }
+rten-tensor = "=0.26.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+base64 = "0.22"

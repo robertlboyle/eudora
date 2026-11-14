@@ -147,7 +147,7 @@ pub fn is_newer(candidate: &str, current: &str) -> bool {
 
 // --- signatures -------------------------------------------------------------------------------
 
-fn public_key() -> Result<Vec<u8>> {
+pub(crate) fn public_key() -> Result<Vec<u8>> {
     use base64::Engine;
     let raw = base64::engine::general_purpose::STANDARD
         .decode(PUBLIC_KEY.trim())
@@ -205,7 +205,7 @@ pub fn configured_url() -> String {
     UPDATE_URL.to_string()
 }
 
-fn join(base: &str, name: &str) -> String {
+pub(crate) fn join(base: &str, name: &str) -> String {
     format!("{}/{name}", base.trim_end_matches('/'))
 }
 
@@ -221,7 +221,7 @@ fn agent() -> ureq::Agent {
         .new_agent()
 }
 
-fn open(url: &str) -> Result<ureq::Body> {
+pub(crate) fn open(url: &str) -> Result<ureq::Body> {
     if !url.to_ascii_lowercase().starts_with("https://") {
         return Err(Error::Other(format!("Updates are only fetched over HTTPS (not “{url}”).")));
     }
@@ -236,7 +236,7 @@ fn open(url: &str) -> Result<ureq::Body> {
     Ok(response.into_body())
 }
 
-fn read_small(url: &str, limit: u64) -> Result<Vec<u8>> {
+pub(crate) fn read_small(url: &str, limit: u64) -> Result<Vec<u8>> {
     let mut data = Vec::new();
     open(url)?.into_reader().take(limit + 1).read_to_end(&mut data).map_err(|e| Error::Network(format!("The update information didn't arrive ({e}).")))?;
     if data.len() as u64 > limit {
@@ -275,7 +275,7 @@ fn matches(path: &Path, release: &Release) -> bool {
     hex(&digest.finalize()) == release.sha256
 }
 
-fn hex(bytes: &[u8]) -> String {
+pub(crate) fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 

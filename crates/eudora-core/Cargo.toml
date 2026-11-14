@@ -30,6 +30,8 @@ psl = "2.1.241"
 rayon = "1.12.0"
 ring = "0.17.14"
 rusqlite = { version = "0.40.2", features = ["bundled"] }
+# CardDAV / CalDAV answers (approved 2026-10-18; MIT; already in the build through Tauri)
+quick-xml = "=0.42.0"
 rustls = { version = "0.23.45", default-features = false, features = ["ring", "std", "tls12", "logging"] }
 rustls-platform-verifier = "0.7.1"
 serde = { version = "1.0.229", features = ["derive"] }
@@ -63,6 +65,8 @@ tempfile = "3.27.0"
 # its mail servers get rustls's High and Strict levels.
 [target.'cfg(not(target_os = "android"))'.dependencies]
 native-tls = "0.2.18"
+# speech (speech.rs; see the note at the end of this file)
+tts = "=0.26.3"
 
 # plugins (WebAssembly, compiled at run time): not on iOS, where Apple allows no code made at run
 # time
@@ -80,7 +84,7 @@ dispatch2 = "0.3.1"
 objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSString", "NSURL"] }
 
 [target."cfg(windows)".dependencies]
-windows = { version = "0.62.2", features = ["Media_Ocr", "Graphics_Imaging", "Storage_Streams", "Foundation", "Globalization", "Win32_System_WinRT", "Win32_Globalization", "Win32_System_Com", "Win32_UI_Shell", "Win32_UI_Shell_Common", "Win32_Foundation", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_Storage_FileSystem", "Win32_Security", "Win32_Security_Authorization", "Win32_System_IO", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_System_RestartManager"] }
+windows = { version = "0.62.2", features = ["Media_Ocr", "Graphics_Imaging", "Storage_Streams", "Foundation", "Globalization", "Win32_System_WinRT", "Win32_Globalization", "Win32_System_Com", "Win32_UI_Shell", "Win32_UI_Shell_Common", "Win32_Foundation", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_Storage_FileSystem", "Win32_Security", "Win32_Security_Authorization", "Win32_System_IO", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse", "Win32_System_RestartManager", "Win32_Media_Audio"] }
 
 # the Mac's own Open dialog, spelling, file icons and OCR (pick.rs, spell.rs, file_icons.rs, ocr.rs):
 # the AppKit bindings Tauri's window layer already builds on the Mac (Vision through objc2 itself)
@@ -89,3 +93,8 @@ objc2 = "0.6.5"
 dispatch2 = "0.3.1"
 objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSData", "NSDictionary", "NSEnumerator", "NSGeometry", "NSRange", "NSString", "NSURL"] }
 objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSOpenPanel", "NSSavePanel", "NSPanel", "NSWindow", "NSResponder", "NSApplication"] }
+
+# speech (speech.rs): MIT; the system's own voices (Windows' WinRT, the Mac's and iPhone's
+# AVFoundation, Linux's speech-dispatcher). Pinned: its newest release (2024) still builds on
+# windows 0.58 / objc 0.2, kept private inside it. Not on Android (its backend needs a Java class
+# in the app: the window's own speech there). (in the not-Android table above)

@@ -15,7 +15,7 @@ body.skin-eudora {
   --button-radius: 3px;
 
   --text: #1b1b1b;
-  --muted: #666b73;
+  --muted: #5e626a;
   --window: #e9e7e3;
   --toolbar: #efedea;
   --sidebar: #f7f6f4;
@@ -28,7 +28,7 @@ body.skin-eudora {
   --button: #f8f7f5;
   --hover: #eef3fb;
   --line: #d6d2cc;
-  --line-strong: #bfbab2;
+  --line-strong: #8d8a84;
   --row-line: #f0eeeb;
   --accent: #1f5fae;
   --accent-soft: #1f5fae33;
@@ -61,7 +61,7 @@ body.skin-eudora .c-who { font-weight: 500; }
     --button: #2e2c29;
     --hover: #2a3442;
     --line: #3a3834;
-    --line-strong: #4a4742;
+    --line-strong: #7b7975;
     --row-line: #252422;
     --accent: #4f8fe0;
     --accent-soft: #4f8fe044;
@@ -74,3 +74,10 @@ body.skin-eudora .c-who { font-weight: 500; }
     --quote3: #8fcf8f;
   }
 }
+
+/* Advanced Search: Eudora's plain dialog; Eudora Classic as 7.1's Find Messages (square, gray) */
+body.skin-eudora dialog.adv-search h2 { font-weight: 600; }
+body.skin-eudora.classic dialog.adv-search { border-radius: 0; }
+body.skin-eudora.classic .adv-search button, body.skin-eudora.classic .adv-search input,
+body.skin-eudora.classic .adv-search select, body.skin-eudora.classic .adv-search textarea, body.skin-eudora.classic .as-rows { border-radius: 0; }
+body.skin-eudora.classic .as-rows { background: var(--window); }

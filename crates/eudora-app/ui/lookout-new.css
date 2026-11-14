@@ -30,7 +30,7 @@ body.skin-lookout-new {
   --button: #ffffff;
   --hover: #f5f5f5;
   --line: #e0e0e0;
-  --line-strong: #d1d1d1;
+  --line-strong: #909090;
   --row-line: #f0f0f0;
   --accent: #0f6cbd;
   --accent-soft: #0f6cbd33;
@@ -99,7 +99,7 @@ body.skin-lookout-new .chip { border-radius: 4px; }
     --button: #333333;
     --hover: #333333;
     --line: #3d3d3d;
-    --line-strong: #525252;
+    --line-strong: #7f7f7f;
     --row-line: #333333;
     --accent: #479ef5;
     --selected: #26364a;
@@ -112,3 +112,7 @@ body.skin-lookout-new .chip { border-radius: 4px; }
   body.skin-lookout-new .folder.on { background: #383838; }
   body.skin-lookout-new .search { background: #292929eb; }
 }
+
+/* Advanced Search: new Outlook's rounded card */
+body.skin-lookout-new dialog.adv-search { border-radius: 10px; box-shadow: 0 8px 32px #00000033; }
+body.skin-lookout-new .as-rows { border-radius: 8px; }

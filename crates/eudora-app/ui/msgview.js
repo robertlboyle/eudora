@@ -14,6 +14,7 @@ try {
 
 for (const el of document.querySelectorAll("[data-icon]")) {
   el.classList.add("icon");
+  el.setAttribute("aria-hidden", "true");
   el.style.setProperty("--icon", `url("icons/${window.ICON_SET || "free"}/${el.dataset.icon}.svg")`);
 }
 
@@ -93,6 +94,7 @@ async function renderBody() {
   if (view === "message" && m.html) {
     const frame = document.createElement("iframe");
     frame.setAttribute("sandbox", "allow-same-origin");
+    frame.title = `Message: ${m.subject || "(no subject)"}`;
     frame.setAttribute("referrerpolicy", "no-referrer");
     frame.srcdoc = sandboxed(m.html);
     frame.addEventListener("load", () => {
@@ -248,6 +250,8 @@ function printMessage() {
   $("print-frame")?.remove();
   const frame = document.createElement("iframe");
   frame.id = "print-frame";
+  frame.setAttribute("aria-hidden", "true");
+  frame.tabIndex = -1;
   frame.setAttribute("sandbox", "allow-same-origin allow-modals");
   frame.style.cssText = "position: fixed; width: 0; height: 0; border: 0; left: -9999px";
   frame.srcdoc = m.html ? sandboxed(m.html) : `<!doctype html><meta charset="utf-8"><pre style="white-space: pre-wrap; font: 13px 'Segoe UI', sans-serif">${escapeHtml(m.text || "")}</pre>`;
@@ -291,4 +295,34 @@ document.addEventListener("keydown", (e) => {
   // senders on the always-show list (Eudora's Settings ▸ Mail): their pictures load by themselves
   if (opened.pictures && current.web_pictures?.length && !current.warning) loadPictures(current);
   renderBody();
+})();
+
+// the views as tabs for screen readers and the keyboard (as a11y.js does in the main window)
+(() => {
+  function makeTabs(list) {
+    const tabs = () => [...list.querySelectorAll("button")];
+    const sync = () => {
+      for (const b of tabs()) {
+        const on = b.classList.contains("on");
+        b.setAttribute("role", "tab");
+        b.setAttribute("aria-selected", String(on));
+        b.tabIndex = on ? 0 : -1;
+      }
+    };
+    sync();
+    new MutationObserver(sync).observe(list, { subtree: true, attributes: true, attributeFilter: ["class"], childList: true });
+    list.addEventListener("keydown", (e) => {
+      const all = tabs();
+      const i = all.indexOf(document.activeElement);
+      const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: all.length - 1 }[e.key];
+      if (to === undefined || i < 0) return;
+      e.preventDefault();
+      const b = all[(to + all.length) % all.length];
+      b.focus();
+      b.click();
+    });
+  }
+  const list = document.getElementById("v-views");
+  list.setAttribute("aria-label", "Show the message as");
+  makeTabs(list);
 })();

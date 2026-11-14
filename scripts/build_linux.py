@@ -251,7 +251,7 @@ def make_deb(stage: Path, work: Path, v: str, arch: str, depends: str, target: P
     (root / "DEBIAN" / "control").write_text(
         f"Package: eudora\nVersion: {v}\nArchitecture: {ARCHES[arch][2]}\n"
         f"Maintainer: Planet Networks <software@planet.net>\nInstalled-Size: {size}\n"
-        f"Depends: {depends}, libayatana-appindicator3-1\nRecommends: xdg-utils, gnome-keyring | kwalletmanager\n"
+        f"Depends: {depends}, libayatana-appindicator3-1, libspeechd2\nRecommends: xdg-utils, gnome-keyring | kwalletmanager\n"
         f"Section: mail\nPriority: optional\nHomepage: {HOMEPAGE}\nDescription: {SUMMARY}\n {DESCRIPTION}\n",
         encoding="utf-8")
     for name, text in (("postinst", DEB_POSTINST.replace("@ARCH@", ARCHES[arch][2])), ("postrm", DEB_POSTRM)):
@@ -286,6 +286,8 @@ BuildArch: {rpm_arch}
 Recommends: xdg-utils
 # (the tray icon's library is loaded while running, so rpm can't find it in the programs)
 Requires: libayatana-appindicator3.so.1()(64bit)
+# (speech: Read Aloud and spoken alerts, through speech-dispatcher)
+Requires: libspeechd.so.2()(64bit)
 %define debug_package %{{nil}}
 %define __os_install_post %{{nil}}
 %define _build_id_links none
@@ -331,6 +333,11 @@ def build(out: Path) -> None:
     step(1, "Building the command line (release)")
     run("cargo", "build", "--release", "--locked", "-p", "eudora-cli", cwd=ROOT)
     cli = target_dir / "release" / "eudora-cli"
+    # the natural voices' program: never in the packages, a download of its own (core/voices.rs);
+    # made here beside them, for `eudora-release voices --platform linux-<arch> --program …`
+    run("cargo", "build", "--release", "--locked", "-p", "eudora-voice", cwd=ROOT)
+    out.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(target_dir / "release" / "eudora-voice", out / f"eudora-voice-linux-{arch}")
 
     step(2, "Building the window and the AppImage (Tauri)")
     sidecar = work / "sidecar"

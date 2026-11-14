@@ -14,6 +14,7 @@
 <tr><td>Work Offline</td><td></td><td>Stay off the network. <a href="#pause">More</a></td></tr>
 <tr><td>Print…</td><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td>Print the message. <a href="#printing">More</a></td></tr>
 <tr><td>Import…</td><td></td><td>Bring in old mail. <a href="#import">More</a></td></tr>
+<tr><td>Export ▸ Classic Eudora…</td><td></td><td>Write your mail, rules, and address book as files classic Eudora 7 opens. <a href="#classic-export">More</a></td></tr>
 <tr><td>Back Up Eudora…</td><td></td><td><a href="#backup">More</a></td></tr>
 <tr><td>Restore Eudora…</td><td></td><td><a href="#restore">More</a></td></tr>
 <tr><td>Accounts… (Modern)</td><td></td><td>Settings, at its Accounts page. <a href="#ref-options">More</a></td></tr>
@@ -26,7 +27,8 @@
 <tr><td>Undo</td><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Undo the last move or delete.</td></tr>
 <tr><td>Cut, Copy, Paste</td><td><kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>C</kbd> / <kbd>V</kbd></td><td></td></tr>
 <tr><td>Select All</td><td><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td>All the text in the field or message you're in; else every message in the list.</td></tr>
-<tr><td>Find Messages…</td><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>The search box. <a href="#search">More</a></td></tr>
+<tr><td>Find Messages…</td><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>The search box (Classic: the Find Messages window). <a href="#search">More</a></td></tr>
+<tr><td>Advanced Search… (Modern; also the sliders button beside the search box)</td><td></td><td>Build a search from several conditions. <a href="#advanced-search">More</a></td></tr>
 <tr><td>Find Text…</td><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd> (Classic: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd>)</td><td>Find words in a message. <a href="#find-text">More</a></td></tr>
 <tr><td>Find Again (Classic: Find Text Again)</td><td><kbd>F3</kbd></td><td></td></tr>
 <tr><td>Check Spelling</td><td><kbd>Ctrl</kbd>+<kbd>6</kbd></td><td><a href="#spelling">More</a></td></tr>
@@ -58,6 +60,8 @@
 <tr><td>Change Status, Change Priority, Change Label… (Classic: Change ▸ Status, Priority, Label…)</td><td></td><td><a href="#marks">More</a></td></tr>
 <tr><td>Flag as To Do</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd></td><td><a href="#todo">More</a></td></tr>
 <tr><td>Show All Headers (Classic: Blah Blah Blah)</td><td><kbd>F7</kbd></td><td></td></tr>
+<tr><td>Read Aloud (<a href="#access-speech">more</a>)</td><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Space</kbd></td><td></td></tr>
+<tr><td>Stop Reading</td><td></td><td></td></tr>
 <tr><td>Spam (Classic: Junk)</td><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd> (Classic with "Ctrl+J for Junk": <kbd>Ctrl</kbd>+<kbd>J</kbd>)</td><td><a href="#spam-marking">More</a></td></tr>
 <tr><td>Not Spam (Classic: Not Junk)</td><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>J</kbd></td><td></td></tr>
 <tr><td>Delete</td><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td><a href="#moving">More</a></td></tr>
@@ -130,7 +134,7 @@
 <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd>, <kbd>Delete</kbd></td><td colspan="2">Delete</td></tr>
 <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td colspan="2">Undo</td></tr>
 <tr><td><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td colspan="2">Select All</td></tr>
-<tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td colspan="2">Find Messages (search)</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>F</kbd></td><td>Find Messages (the search box)</td><td>Find Messages (the Advanced Search window)</td></tr>
 <tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd></td><td>Find Text</td><td></td></tr>
 <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd></td><td>Sort with the Spam Filter</td><td>Find Text</td></tr>
 <tr><td><kbd>F3</kbd>, <kbd>Shift</kbd>+<kbd>F3</kbd></td><td colspan="2">Find Again, back</td></tr>
@@ -146,6 +150,7 @@
 <tr><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>, <kbd>Insert</kbd></td><td colspan="2">Flag as To Do</td></tr>
 <tr><td><kbd>Ctrl</kbd>+<kbd>L</kbd></td><td colspan="2">Address Book</td></tr>
 <tr><td><kbd>F7</kbd></td><td>Show All Headers</td><td>Blah Blah Blah</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Space</kbd></td><td colspan="2">Read Aloud (again: stop reading); in every look, as in Outlook</td></tr>
 <tr><td><kbd>Ctrl</kbd>+<kbd>P</kbd></td><td colspan="2">Print</td></tr>
 <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td colspan="2">Open File</td></tr>
 <tr><td><kbd>Ctrl</kbd>+<kbd>W</kbd></td><td colspan="2">Close</td></tr>
@@ -164,18 +169,18 @@
 </table>
 </section>
 
-<section id="ref-options" data-title="Settings" data-index="Settings; Options; Preferences; settings window; File Settings; Tools Options; Account Settings; Personalities; Look; Recent Mail settings; Calendar settings; Speed; Downloading; Updates; Programs and plugins; Labels; Address completion; Pictures from the web; Web access; Sync; Accounts; Library">
+<section id="ref-options" data-title="Settings" data-index="Settings; Options; Preferences; settings window; File Settings; Tools Options; Account Settings; Personalities; Look; Recent Mail settings; Calendar settings; Speed; Downloading; Updates; Programs and plugins; Labels; Address completion; New mail sound; Pictures from the web; Web access; Sync; Accounts; Library">
 <h1>Settings</h1>
 <p>Every setting is in one window. Open it with <span class="ui">File ▸ Settings…</span> (<kbd>Ctrl</kbd>+<kbd>,</kbd>) in Eudora Modern, <span class="ui">Tools ▸ Options…</span> in Eudora Classic, <span class="ui">File ▸ Options</span> in the Lookout looks, <span class="ui">Tools ▸ Settings</span> in Thunderbird-style, <span class="ui">Settings ▸ See all settings</span> (Gmail-style) or <span class="ui">Settings ▸ More Settings</span> (Yahoo-style), or the gear on the toolbar. Its pages are listed down the left, and it opens on the page you used last. <b>Save</b> keeps what you changed; <b>Cancel</b> leaves it.</p>
 <p>The older commands open the matching page: Personalities and Account Settings open <b>Accounts</b>; Signatures, Filters, and Mail Filter Rules open <b>Mail</b> with their editor over it; Plugins opens <b>Programs and plugins</b>.</p>
 <table>
-<tr><th>Accounts</th><td>Add Microsoft, Google, and other accounts; names; Change… for server settings; Check every; Find shared mailboxes; Sign in to Microsoft 365 again. <a href="#add-microsoft">More</a></td></tr>
-<tr><th>General</th><td>The look; Map Ctrl+R to Reply to All; Ctrl+J for Junk (Classic); organize mail by folders or labels; how many hours Recent Mail shows (and on Mondays); address completion. <a href="#looks">More</a></td></tr>
-<tr><th>Mail</th><td>Labels and their colors; pictures from the web (fetch every time or keep, and the senders whose pictures always show); buttons for Signatures…, Rules (filters)…, Spam filter (Mail Filter Rules)…, Subscriptions…, and Columns…. <a href="#marks">More</a></td></tr>
+<tr><th>Accounts</th><td>Add Microsoft, Google, and other accounts; contacts and calendars from CardDAV / CalDAV servers (<a href="#add-dav">how</a>); names; Change… for server settings; Check every; Changes on the server… (keep an account's mail, calendar, or contacts on this computer only: <a href="#local-only">how</a>); Find shared mailboxes; Sign in to Microsoft 365 again. <a href="#add-microsoft">More</a></td></tr>
+<tr><th>General</th><td>The look; Map Ctrl+R to Reply to All; Ctrl+J for Junk (Classic); organize mail by folders or labels; how many hours Recent Mail shows (and on Mondays); the new-mail sound (<a href="#access-sound">more</a>); speech: its engine, voice, and speed (<a href="#access-speech">more</a>); address completion. <a href="#looks">More</a></td></tr>
+<tr><th>Mail</th><td>How replies quote the original (above it, or classic Eudora's "&gt;" lines written below; <a href="#reply-forward">more</a>); labels and their colors; pictures from the web (fetch every time or keep, and the senders whose pictures always show); buttons for Signatures…, Rules (filters)…, Spam filter (Mail Filter Rules)…, Subscriptions…, and Columns…. <a href="#marks">More</a></td></tr>
 <tr><th>Calendar</th><td>First day of the week; business day; Google Maps key for places; Zoom room and Zoom app. <a href="#appointments">More</a></td></tr>
 <tr><th>To Do</th><td>Your Twos user id and token. <a href="#todo">More</a></td></tr>
 <tr><th>Downloading and sync</th><td>Download while Eudora is open; include the Online Archive; download all of the shared mailboxes; how often Gmail is checked while nobody uses Eudora here (2 hours at first; <a href="#gmail-limits">More</a>); sync between your computers (set up, join, sync now, where settings travel). <a href="#checking">More</a></td></tr>
-<tr><th>Library</th><td>Buttons for Back Up Eudora…, Restore Eudora…, Import…, Find Old Attachments…, Optimize Library…, and Forget Sign-ins…; <b>Keep original messages exactly, for archive and legal purposes</b> (on at first; <a href="#keep-originals">More</a>); <b>Mail kept on this computer</b>: a slider or any number of days, weeks, months, or years, Keep Only This Period…, Keep Everything (everything at first; <a href="#keep-period">More</a>). <a href="#backup">More</a></td></tr>
+<tr><th>Library</th><td>Buttons for Back Up Eudora…, Restore Eudora…, Import…, Find Old Attachments…, Export to Classic Eudora…, Optimize Library…, and Forget Sign-ins…; <b>Keep a classic Eudora copy current in this folder</b> (off at first, one way; <a href="#classic-copy">More</a>); <b>Keep original messages exactly, for archive and legal purposes</b> (on at first; <a href="#keep-originals">More</a>); <b>Mail kept on this computer</b>: a slider or any number of days, weeks, months, or years, Keep Only This Period…, Keep Everything (everything at first; <a href="#keep-period">More</a>). <a href="#backup">More</a></td></tr>
 <tr><th>Speed and maintenance</th><td>Memory for speed; when maintenance runs; Run Maintenance Now. <a href="#maintenance">More</a></td></tr>
 <tr><th>Programs and plugins</th><td>Whether programs may ask to use Eudora, every program's permissions and log, and Plugins…. <a href="#api">More</a></td></tr>
 <tr><th>Updates</th><td>Check when Eudora starts, and how often. <a href="#updates">More</a></td></tr>
@@ -190,7 +195,7 @@
 <h2>Lookout style (classic and new)</h2>
 <p>Outlook's ribbon tabs as menus, with Outlook's shortcuts.</p>
 <table>
-<tr><th>File</th><td>Open… (<kbd>Ctrl</kbd>+<kbd>O</kbd>), Save (<kbd>Ctrl</kbd>+<kbd>S</kbd>), Drafts…, Close, Account Settings ▸ (Add Account…, Account Settings…, Forget Sign-ins…), Options, Open &amp; Export ▸ (Import…, Back Up…, Restore…, Find Old Attachments…), Print… (<kbd>Ctrl</kbd>+<kbd>P</kbd>), Exit</td></tr>
+<tr><th>File</th><td>Open… (<kbd>Ctrl</kbd>+<kbd>O</kbd>), Save (<kbd>Ctrl</kbd>+<kbd>S</kbd>), Drafts…, Close, Account Settings ▸ (Add Account…, Account Settings…, Forget Sign-ins…), Options, Open &amp; Export ▸ (Import…, Back Up…, Export to Classic Eudora…, Restore…, Find Old Attachments…), Print… (<kbd>Ctrl</kbd>+<kbd>P</kbd>), Exit</td></tr>
 <tr><th>Edit</th><td>Undo, Cut, Copy, Paste, Select All, Find in This Message… (<kbd>F4</kbd>), Find Again (<kbd>F3</kbd>), Spelling &amp; Grammar (<kbd>F7</kbd>)</td></tr>
 <tr><th>Home</th><td>New Email (<kbd>Ctrl</kbd>+<kbd>N</kbd>), New Appointment (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>), Delete (<kbd>Ctrl</kbd>+<kbd>D</kbd>), Junk ▸ (Block Sender, Not Junk, Junk Email Options…), Reply (<kbd>Ctrl</kbd>+<kbd>R</kbd>), Reply All (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>), Forward (<kbd>Ctrl</kbd>+<kbd>F</kbd>), Redirect…, Resend This Message…, Move to Folder… (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>), Rules ▸ (Create Rule…, Manage Rules &amp; Alerts…, Run Rules Now, Sort with the Spam Filter…), Mark as Read (<kbd>Ctrl</kbd>+<kbd>Q</kbd>), Mark as Unread (<kbd>Ctrl</kbd>+<kbd>U</kbd>), Categorize…, Follow Up (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd>), Importance ▸, Address Book (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>), Search (<kbd>Ctrl</kbd>+<kbd>E</kbd>), Send (<kbd>Ctrl</kbd>+<kbd>Enter</kbd>), Attach File…, Delay Delivery…</td></tr>
 <tr><th>Send / Receive</th><td>Send/Receive All Folders (<kbd>F9</kbd>), Send All, Outbox, Work Offline, pause and resume downloading, Show Progress</td></tr>
@@ -206,7 +211,7 @@
 <tr><th>View</th><td>Folder Pane (<kbd>F9</kbd>), Columns…, Hide Mail I Sent, Headers: All, Message Source (<kbd>Ctrl</kbd>+<kbd>U</kbd>)</td></tr>
 <tr><th>Go</th><td>Next Message, Previous Message, Inbox, All Mail, Folder… (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd>), Mail (<kbd>Ctrl</kbd>+<kbd>1</kbd>), Calendar (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>), Tasks (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>)</td></tr>
 <tr><th>Message</th><td>Reply (<kbd>Ctrl</kbd>+<kbd>R</kbd>), Reply to All (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>), Forward (<kbd>Ctrl</kbd>+<kbd>L</kbd>), Redirect (<kbd>Ctrl</kbd>+<kbd>B</kbd>), Edit as New Message… (<kbd>Ctrl</kbd>+<kbd>E</kbd>), Tag…, Mark ▸ (As Read, As Unread, As Junk, As Not Junk, Starred), Priority ▸, Move To… (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>), Copy To…, Delete Message (<kbd>Ctrl</kbd>+<kbd>D</kbd>), Attach File(s)… (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>), Send Now (<kbd>Ctrl</kbd>+<kbd>Enter</kbd>), Send Later… (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Enter</kbd>)</td></tr>
-<tr><th>Tools</th><td>Address Book (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>), Activity Manager, Message Filters…, Run Filters on Folder, Create Filter From Message…, Run Junk Mail Controls…, Junk Mail Settings…, Subscriptions…, Add-ons…, Import…, Export (Back Up)…, Restore…, Account Settings, Settings (<kbd>Ctrl</kbd>+<kbd>,</kbd>)</td></tr>
+<tr><th>Tools</th><td>Address Book (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>), Activity Manager, Message Filters…, Run Filters on Folder, Create Filter From Message…, Run Junk Mail Controls…, Junk Mail Settings…, Subscriptions…, Add-ons…, Import…, Export (Back Up)…, Export to Classic Eudora…, Restore…, Account Settings, Settings (<kbd>Ctrl</kbd>+<kbd>,</kbd>)</td></tr>
 <tr><th>Help</th><td>Eudora Help (<kbd>F1</kbd>; Mac: <kbd>⌘</kbd>+<kbd>?</kbd>), Statistics…, Check for Updates…, About Eudora</td></tr>
 </table>
 <h2>Gmail-style and Yahoo-style</h2>
@@ -216,7 +221,7 @@
 <tr><th>Edit</th><td>Undo, Cut, Copy, Paste, Select All, Search mail (<kbd>Ctrl</kbd>+<kbd>F</kbd>), Find in message… (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>F</kbd>), Find Again (<kbd>F3</kbd>), Check spelling (<kbd>Ctrl</kbd>+<kbd>6</kbd>)</td></tr>
 <tr><th>Labels (Gmail) / Folders (Yahoo)</th><td>Inbox, All Mail, Drafts, Scheduled / Outbox, Spam, Trash, Label as…, Move to… (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>), Copy to…, Create new label… / New folder…, Go to label / folder… (<kbd>Ctrl</kbd>+<kbd>Y</kbd>), Empty Trash…, Manage subscriptions…</td></tr>
 <tr><th>Apps</th><td>Mail (<kbd>Ctrl</kbd>+<kbd>1</kbd>), Calendar (<kbd>Ctrl</kbd>+<kbd>2</kbd>), Contacts (<kbd>Ctrl</kbd>+<kbd>3</kbd>), Tasks (<kbd>Ctrl</kbd>+<kbd>4</kbd>), New event</td></tr>
-<tr><th>Settings</th><td>See all settings / More Settings (<kbd>Ctrl</kbd>+<kbd>,</kbd>), Accounts and Import / Mailboxes, Signature…, Filters…, Spam and blocked addresses…, Add-ons…, Offline, Activity, Import mail…, Back up…, Restore…</td></tr>
+<tr><th>Settings</th><td>See all settings / More Settings (<kbd>Ctrl</kbd>+<kbd>,</kbd>), Accounts and Import / Mailboxes, Signature…, Filters…, Spam and blocked addresses…, Add-ons…, Offline, Activity, Import mail…, Back up…, Export to classic Eudora…, Restore…</td></tr>
 <tr><th>Help</th><td>Help (<kbd>F1</kbd>; Mac: <kbd>⌘</kbd>+<kbd>?</kbd>), Statistics…, Check for Updates…, About Eudora</td></tr>
 </table>
 </section>
@@ -233,7 +238,7 @@
 <p>Choose columns, add a header column, Reset.</p>
 </section>
 
-<section id="ref-files" data-title="Files and folders Eudora uses" data-index="files; folders; data folder; library folder; log; download log; packs; index; where is my mail; credential store; Keychain">
+<section id="ref-files" data-title="Files and folders Eudora uses" data-index="files; folders; uninstall; delete my data; remove Eudora; data folder; library folder; log; download log; packs; index; where is my mail; credential store; Keychain">
 <h1>Files and folders Eudora uses</h1>
 <table>
 <tr><th>The library</th><td>Windows <code>%LOCALAPPDATA%\Eudora\Library</code>; Mac <code>~/Library/Application Support/Eudora/Library</code>; Linux <code>~/.local/share/eudora/library</code>. A restored library can be elsewhere; Eudora remembers the one it last opened.</td></tr>
@@ -242,5 +247,8 @@
 <tr><th>Passwords and sign-ins</th><td>Windows Credential Manager; the Mac's Keychain; the phone's keychain or keystore. Never in the library.</td></tr>
 <tr><th>The program</th><td>Windows <code>%LOCALAPPDATA%\Programs\Eudora</code> (or Program Files when installed for everyone); Mac <code>Applications/Eudora.app</code>.</td></tr>
 </table>
-<p>Uninstalling Eudora never removes your library.</p>
+<h2 id="uninstall">Uninstalling Eudora</h2>
+<p>Uninstalling removes the program, its shortcuts, its PATH entry, and its file types. <b>Your library, settings, and saved passwords are kept</b>, so installing Eudora again later finds everything as it was, with no restore needed.</p>
+<p>On Windows, at the end of uninstalling, Eudora asks whether to delete them too. It lists the folders it would delete (your library, Eudora's own folder, and its web view's folder), plus Eudora's saved passwords and sign-ins in Credential Manager. <b>Keep My Data</b> is the default. <b>Delete</b> works only after you type <code>DELETE</code> in the box. Deleting can't be undone: mail kept only on this computer (POP3 accounts, imported files, and old Eudora mailboxes) is gone for good. Mail on Microsoft 365, Gmail, and IMAP servers stays on those servers. Make a backup first (<a href="#backup">File ▸ Back Up Eudora…</a>) if you might want it again.</p>
+<p>Eudora doesn't ask while another copy is still installed on the computer (one for everyone and one for you), because that copy still uses the library, or when uninstalling silently. It deletes only the data of the Windows user who uninstalls it.</p>
 </section>

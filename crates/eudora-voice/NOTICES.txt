@@ -1,0 +1,49 @@
+Eudora's natural voices (eudora-voice)
+Copyright (c) Planet Networks. MIT OR Apache-2.0, as Eudora.
+
+It is built from, and downloaded with, these works of others:
+
+Kokoro-82M (the voice model kokoro-v1.0.onnx and its voices voices-v1.0.bin)
+  By hexgrad (https://huggingface.co/hexgrad/Kokoro-82M), Apache License 2.0; the ONNX files as
+  published by thewh1teagle/kokoro-onnx (model-files-v1.0).
+
+misaki-rs (Kokoro's word-to-sound converter, ported to Rust, with misaki's English dictionaries)
+  MIT License. Built without its espeak-ng fallback.
+
+rten (runs the model)
+  By Robert Knight, MIT OR Apache-2.0.
+
+The CMU Pronouncing Dictionary (data/cmudict.dict)
+  Copyright (C) 1993-2015 Carnegie Mellon University. All rights reserved.
+
+  Redistribution and use in source and binary forms, with or without modification, are permitted
+  provided that the following conditions are met:
+
+  1. Redistributions of source code must retain the above copyright notice, this list of
+     conditions and the following disclaimer. The contents of this file are deemed to be source
+     code.
+
+  2. Redistributions in binary form must reproduce the above copyright notice, this list of
+     conditions and the following disclaimer in the documentation and/or other materials provided
+     with the distribution.
+
+  This work was supported in part by funding from the Defense Advanced Research Projects Agency,
+  the Office of Naval Research and the National Science Foundation of the United States of
+  America, and by member companies of the Carnegie Mellon Sphinx Speech Consortium. We acknowledge
+  the contributions of many volunteers to the expansion and improvement of this dictionary.
+
+  THIS SOFTWARE IS PROVIDED BY CARNEGIE MELLON UNIVERSITY ``AS IS'' AND ANY EXPRESSED OR IMPLIED
+  WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL CARNEGIE MELLON UNIVERSITY NOR ITS
+  EMPLOYEES BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+  WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
+  WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+The NRL letter-to-sound rules (src/nrl_rules.rs)
+  From NRL Report 7948, "Automatic Translation of English Text to Phonetics by Means of
+  Letter-to-Sound Rules" (Naval Research Laboratory, 1976), a work of the US Government, as put in
+  C by John A. Wasser in 1985 and placed by him in the public domain.
+
+Kokoro's symbol table (data/kokoro-vocab.json) is from Kokoro-82M's config.json (Apache-2.0).

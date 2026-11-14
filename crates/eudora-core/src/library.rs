@@ -188,6 +188,9 @@ pub fn default_library_path() -> Option<PathBuf> {
     desktop_dir().map(|d| d.join(LIBRARY_DIR))
 }
 
+/// The names the user gave people while writing (`Library::remember_names`).
+pub const CONTACT_NAMES: &str = "contact-names";
+
 const LIBRARY_DIR: &str = if cfg!(any(windows, target_os = "macos")) { "Library" } else { "library" };
 
 // ------------------------------------------------------------------ the move from "Eudora 27"
@@ -240,7 +243,7 @@ pub struct MoveBlocked {
     pub from: String,
     pub to: String,
     pub why: String,
-    /// "PlanetPDF (bridespeed overbuild.pdf)", or the program alone when the file isn't known.
+    /// "PlanetPDF (invoice.pdf)", or the program alone when the file isn't known.
     pub programs: Vec<String>,
 }
 
@@ -1536,7 +1539,8 @@ impl Library {
         let imap = same_account && kind == "imap" && self.imap_writable()?.contains(&from_account);
         // Gmail (the Gmail API): a move there is a change of labels (`gmail_changes`)
         let gmail = same_account && kind == "gmail";
-        let queued = graph || imap || gmail;
+        // an account whose mail is kept local (`local_only`): filed here only
+        let queued = (graph || imap || gmail) && !self.local_only_account(from_account, crate::local_only::Service::Mail)?;
         self.conn.execute_batch("BEGIN IMMEDIATE")?;
         let result = (|| -> Result<u64> {
             let mut moved = 0;
@@ -1582,7 +1586,7 @@ impl Library {
                     self.conn.execute("INSERT INTO filing_pending (account, message, folder, at) VALUES (?1, ?2, ?3, ?4)", params![to_account, id, folder, now()])?;
                     Ok(())
                 };
-                if graph && (self.from_archive(*id)? || in_online_archive(&to_path)) {
+                if queued && graph && (self.from_archive(*id)? || in_online_archive(&to_path)) {
                     // stays where it is on the server (archive mail never leaves the archive;
                     // the mailbox's mail isn't moved into it): only filed here, keeping its
                     // server id, and a move still waiting is called off
@@ -1704,15 +1708,60 @@ impl Library {
              GROUP BY address;",
         )?;
         // then the swap, quickly
+        let chosen = self.chosen_names()?;
         self.conn.execute_batch("BEGIN IMMEDIATE")?;
-        let result = self.conn.execute_batch(
-            "DELETE FROM contacts;
-             INSERT INTO contacts (address, name, sent, received, last) SELECT address, name, sent, received, last FROM temp.contacts_new;",
-        );
+        let result = self
+            .conn
+            .execute_batch(
+                "DELETE FROM contacts;
+                 INSERT INTO contacts (address, name, sent, received, last) SELECT address, name, sent, received, last FROM temp.contacts_new;",
+            )
+            .and_then(|_| {
+                // names the user corrected while writing win over the ones the mail carries
+                let mut stmt = self.conn.prepare_cached("UPDATE contacts SET name = ?2 WHERE address = ?1")?;
+                for (address, name) in &chosen {
+                    stmt.execute(params![address, name])?;
+                }
+                Ok(())
+            });
         self.conn.execute_batch(if result.is_ok() { "COMMIT" } else { "ROLLBACK" })?;
         let _ = self.conn.execute_batch("DELETE FROM temp.contacts_new;");
         result?;
         Ok(self.conn.query_row("SELECT COUNT(*) FROM contacts", [], |r| r.get::<_, i64>(0))? as u64)
+    }
+
+    /// Names the user gave people while writing (setting `contact-names`: lowercase address →
+    /// name), which address completion offers from then on.
+    pub fn chosen_names(&self) -> Result<std::collections::BTreeMap<String, String>> {
+        Ok(self.setting(CONTACT_NAMES)?.and_then(|v| serde_json::from_str(&v).ok()).unwrap_or_default())
+    }
+
+    /// Remembers the names in address fields as written: for each "Name <address>" whose name
+    /// isn't the one completion offers, that name is offered from now on, and kept when the
+    /// suggestions are rebuilt from the mail. A bare address changes nothing; neither does a name
+    /// that is only the address. Returns how many changed.
+    pub fn remember_names(&self, fields: &[&str]) -> Result<usize> {
+        let mut chosen = self.chosen_names()?;
+        let mut changed = 0;
+        for entry in fields.iter().flat_map(|f| crate::compose::split_addresses(f)) {
+            let Some(open) = entry.rfind('<') else { continue };
+            let name = entry[..open].trim().trim_matches('"').trim().to_string();
+            let address = crate::compose::address_of(&entry).to_lowercase();
+            if name.is_empty() || !address.contains('@') || name.eq_ignore_ascii_case(&address) || name.chars().count() > 200 {
+                continue;
+            }
+            let offered: Option<String> = self.conn.query_row("SELECT name FROM contacts WHERE address = ?1", params![address], |r| r.get(0)).optional()?.flatten();
+            if offered.as_deref() == Some(name.as_str()) || chosen.get(&address) == Some(&name) {
+                continue;
+            }
+            self.conn.execute("UPDATE contacts SET name = ?2 WHERE address = ?1", params![address, name])?;
+            chosen.insert(address, name);
+            changed += 1;
+        }
+        if changed > 0 {
+            self.set_setting(CONTACT_NAMES, &serde_json::to_string(&chosen)?)?;
+        }
+        Ok(changed)
     }
 
     /// People whose address or name starts with what's typed (any word of the name), from
@@ -1958,13 +2007,19 @@ impl Library {
 
     pub fn folders(&self) -> Result<Vec<FolderInfo>> {
         let mut stmt = self.conn.prepare(
-            "SELECT f.id, f.path, COALESCE((SELECT fc.messages FROM folder_counts fc WHERE fc.folder = f.id), 0), COALESCE(a.label, a.address, a.name), a.id
+            "SELECT f.id, f.path, COALESCE((SELECT fc.messages FROM folder_counts fc WHERE fc.folder = f.id), 0), COALESCE(a.label, a.address, a.name), a.id, a.kind
              FROM folders f JOIN accounts a ON a.id = f.account ORDER BY a.position, a.id, f.path",
         )?;
         let rows = stmt.query_map([], |r| {
-            Ok(FolderInfo { id: r.get(0)?, path: r.get(1)?, messages: r.get::<_, i64>(2)? as u64, account: r.get(3)?, account_id: r.get(4)? })
+            Ok((FolderInfo { id: r.get(0)?, path: r.get(1)?, messages: r.get::<_, i64>(2)? as u64, account: r.get(3)?, account_id: r.get(4)? }, r.get::<_, String>(5)?))
         })?;
-        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+        // (Exchange's system folders that hold no mail, downloaded by an older Eudora: not shown)
+        Ok(rows
+            .collect::<rusqlite::Result<Vec<_>>>()?
+            .into_iter()
+            .filter(|(f, kind)| !(kind.starts_with("graph") && crate::graph::is_system_folder(&f.path)))
+            .map(|(f, _)| f)
+            .collect())
     }
 
     pub fn find_folder(&self, path: &str) -> Result<Option<i64>> {
@@ -2002,28 +2057,33 @@ impl Library {
     fn search_checked(&self, query: &str, today: chrono::NaiveDate, limit: usize, order: SortOrder, without: Option<std::sync::Arc<crate::index::IdSet>>) -> Result<(SearchResult, Vec<MessageRow>)> {
         let query = crate::aqs::translate(query, today);
         let query = self.resolve_folders(&query)?;
-        match self.search_translated(&query, limit, order, without.clone()) {
+        // status, priority, labels, account (search_marks.rs): out of the query, as a bitmap
+        let (query, narrow) = self.resolve_marks(&query)?;
+        let narrow = narrow.map(std::sync::Arc::new);
+        const EVERY_DATE: &str = "date:[1970-01-01T00:00:00Z TO 2200-01-01T00:00:00Z]";
+        let query = if query.trim().is_empty() { EVERY_DATE.to_string() } else { query };
+        match self.search_translated(&query, limit, order, without.clone(), narrow.clone()) {
             // only exclusions ("-folder:inbox", "hasattachment:no"): the index needs something to
             // take them from, so every message
             Err(Error::Query(tantivy::query::QueryParserError::AllButQueryForbidden)) => {
-                self.search_translated(&format!("date:[1970-01-01T00:00:00Z TO 2200-01-01T00:00:00Z] {query}"), limit, order, without)
+                self.search_translated(&format!("{EVERY_DATE} {query}"), limit, order, without, narrow)
             }
             other => other,
         }
     }
 
-    fn search_translated(&self, query: &str, limit: usize, order: SortOrder, without: Option<std::sync::Arc<crate::index::IdSet>>) -> Result<(SearchResult, Vec<MessageRow>)> {
+    fn search_translated(&self, query: &str, limit: usize, order: SortOrder, without: Option<std::sync::Arc<crate::index::IdSet>>, narrow: Option<std::sync::Arc<crate::index::Narrow>>) -> Result<(SearchResult, Vec<MessageRow>)> {
         let (rest, clauses) = crate::header_index::split_query(query);
         let result = if clauses.is_empty() {
-            self.index.search_filtered(query, limit, order, None, without)?
-        } else if without.is_some() {
-            // headers and mailboxes left out: the header index's matches, through the main index
+            self.index.search_filtered(query, limit, order, None, without, narrow)?
+        } else if without.is_some() || narrow.is_some() {
+            // headers and mailboxes left out (or narrowed): the header index's matches, through the main index
             // (every date when nothing else was asked for), leaving those out
             let hx = self.headers.as_ref().ok_or_else(|| Error::Other("searching by header isn't ready yet: the download prepares it (it starts the next time the download runs)".into()))?;
             hx.reload()?;
             let within = hx.matching_ids(&clauses)?;
             let words = if rest.trim().is_empty() { "date:[1970-01-01T00:00:00Z TO 2200-01-01T00:00:00Z]".to_string() } else { rest.clone() };
-            self.index.search_filtered(&words, limit, order, Some(&within), without)?
+            self.index.search_filtered(&words, limit, order, Some(&within), without, narrow)?
         } else {
             let hx = self.headers.as_ref().ok_or_else(|| Error::Other("searching by header isn't ready yet: the download prepares it (it starts the next time the download runs)".into()))?;
             hx.reload()?;

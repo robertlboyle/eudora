@@ -36,6 +36,7 @@ impl Library {
     /// Every account's Trash with something in it (or in its archive's).
     pub fn trash_summary(&self) -> Result<Vec<TrashSummary>> {
         let imap = self.imap_writable()?;
+        let local = self.local_only_accounts(crate::local_only::Service::Mail)?;
         let mut stmt = self.conn.prepare("SELECT id, kind, COALESCE(label, address, name) FROM accounts ORDER BY id")?;
         let accounts: Vec<(i64, String, String)> = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?.collect::<rusqlite::Result<_>>()?;
         let mut out = Vec::new();
@@ -50,7 +51,7 @@ impl Library {
                 None => 0,
             };
             if messages + archive_kept > 0 {
-                out.push(TrashSummary { account, shown, folder, path, messages, on_server: kind.starts_with("graph") || (kind == "imap" && imap.contains(&account)), archive_kept });
+                out.push(TrashSummary { account, shown, folder, path, messages, on_server: (kind.starts_with("graph") || (kind == "imap" && imap.contains(&account))) && !local.contains(&account), archive_kept });
             }
         }
         Ok(out)
@@ -60,6 +61,9 @@ impl Library {
     pub fn empty_trash(&self, accounts: &[i64]) -> Result<u64> {
         let mut emptied = 0;
         let imap = self.imap_writable()?;
+        // mail kept local (`local_only`): emptied here only, its server items kept (so it isn't
+        // downloaded again)
+        let local = self.local_only_accounts(crate::local_only::Service::Mail)?;
         for account in accounts {
             let Some((folder, _)) = self.existing_trash(*account)? else { continue };
             let kind: String = self.conn.query_row("SELECT kind FROM accounts WHERE id = ?1", params![account], |r| r.get(0))?;
@@ -92,7 +96,7 @@ impl Library {
                             server_id = payload["server_id"].as_str().map(str::to_string);
                             on_server_in = payload["from"].as_i64().unwrap_or(folder);
                         }
-                        if kind.starts_with("graph") || (kind == "imap" && imap.contains(account)) {
+                        if (kind.starts_with("graph") || (kind == "imap" && imap.contains(account))) && !local.contains(account) {
                             // every copy the server has of it there (identical copies are one
                             // message here, each with its own server item)
                             let mut items: Vec<String> = {

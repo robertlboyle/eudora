@@ -98,6 +98,19 @@ pub enum Action {
     Redirect { to: String },
     Reply { with: String },
     Notify,
+    /// Says who it's from and / or its subject aloud (classic's "Speak", TextToSpeech.cpp: "From:
+    /// Ann Smith. Lunch Friday"), with the speech chosen in Settings ▸ General ▸ Speech.
+    Speak {
+        #[serde(default = "yes")]
+        who: bool,
+        #[serde(default = "yes")]
+        subject: bool,
+    },
+    /// Plays a sound (classic's "Play Sound"): a sound file, or "" = the new-mail sound.
+    Sound {
+        #[serde(default)]
+        file: String,
+    },
     /// Runs a plugin's rule action on the message (it sees only what the user granted it).
     Plugin { plugin: String, command: String },
     /// Sort it with the spam filter (`triage_decide`): Junk, Bulk, Lists… or it stays.
@@ -363,6 +376,12 @@ fn classic_action(word: &str, rest: &str, account: &str) -> Option<Action> {
         "redirect" => Action::Redirect { to: rest.to_string() },
         "reply" => Action::Reply { with: rest.to_string() },
         "notifyUser" | "notifyApp" => Action::Notify,
+        "sound" => Action::Sound { file: rest.trim().to_string() },
+        // "speak <options> <voice>": 1 = who it's from, 2 = the subject (TextToSpeech.h)
+        "speak" => {
+            let options: u32 = rest.split_whitespace().next().and_then(|n| n.parse().ok()).unwrap_or(3);
+            Action::Speak { who: options & 1 != 0, subject: options & 2 != 0 }
+        }
         "stop" => Action::Stop,
         _ => return None,
     })
@@ -681,6 +700,17 @@ impl RunReport {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn classic_speak_and_sound_actions_come_in() {
+        use super::{Action, classic_action};
+        assert_eq!(classic_action("speak", "1 {abc}", "a@b.c"), Some(Action::Speak { who: true, subject: false }));
+        assert_eq!(classic_action("speak", "3", "a@b.c"), Some(Action::Speak { who: true, subject: true }));
+        assert_eq!(classic_action("sound", r"C:\Sounds\ding.wav", "a@b.c"), Some(Action::Sound { file: r"C:\Sounds\ding.wav".into() }));
+        // (rules saved before: who and subject both on)
+        let a: Action = serde_json::from_str(r#"{"do":"speak"}"#).unwrap();
+        assert_eq!(a, Action::Speak { who: true, subject: true });
+    }
+
     use super::*;
 
     fn facts(raw: &str) -> Facts {
@@ -885,4 +915,8 @@ mod tests {
         assert!(t("«Any Header»", Verb::Contains, "ann@example"));
         assert!(t("From:", Verb::NotContains, "bob"));
     }
+}
+
+fn yes() -> bool {
+    true
 }

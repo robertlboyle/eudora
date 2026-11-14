@@ -16,7 +16,7 @@ body.skin-yahoo {
   --button-radius: 6px;
 
   --text: #232a31;
-  --muted: #6e7780;
+  --muted: #677078;
   --window: #f5f8fa;
   --toolbar: #6001d2;
   --sidebar: #f5f8fa;
@@ -29,7 +29,7 @@ body.skin-yahoo {
   --button: #ffffff;
   --hover: #f1ecfa;
   --line: #e0e4e9;
-  --line-strong: #c7cdd2;
+  --line-strong: #8d9295;
   --row-line: #eef0f2;
   --accent: #6001d2;
   --accent-soft: #6001d233;
@@ -83,7 +83,7 @@ body.skin-yahoo #m-back { color: var(--accent); border-color: #c9b3f3; }
     --button: #2d2840;
     --hover: #2f2944;
     --line: #3a3450;
-    --line-strong: #4f4866;
+    --line-strong: #7b768c;
     --row-line: #2f2a40;
     --accent: #b28aff;
     --selected: #3d2d6b;
@@ -97,3 +97,8 @@ body.skin-yahoo #m-back { color: var(--accent); border-color: #c9b3f3; }
   body.skin-yahoo .folder.on { background: #3d2d6b; color: #e3d6ff; }
   body.skin-yahoo .l-from { color: inherit; }
 }
+
+/* Advanced Search: Yahoo's purple */
+body.skin-yahoo dialog.adv-search { border-radius: 10px; }
+body.skin-yahoo .adv-search .primary { background: #6001d2; border-color: #6001d2; }
+body.skin-yahoo .adv-search button { border-radius: 18px; }

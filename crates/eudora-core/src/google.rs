@@ -1108,7 +1108,7 @@ mod tests {
             "emailAddresses": [{ "value": "ann@x.example", "type": "work" }],
             "phoneNumbers": [{ "value": "+1 555 0100", "type": "mobile" }],
             "organizations": [{ "name": "Acme", "title": "CTO" }],
-            "addresses": [{ "streetAddress": "1 Main St", "city": "Rockaway", "region": "NJ", "postalCode": "07866", "type": "home" }],
+            "addresses": [{ "streetAddress": "1 Main St", "city": "Springfield", "region": "IL", "postalCode": "62701", "type": "home" }],
             "birthdays": [{ "date": { "month": 5, "day": 4 } }]
         });
         let c = card_from_person(&p);

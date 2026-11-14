@@ -39,6 +39,9 @@ enum FileKind {
 
 fn classify(path: &Path) -> Result<FileKind> {
     let ext = path.extension().and_then(|e| e.to_str()).map(str::to_ascii_lowercase).unwrap_or_default();
+    if let Some(why) = classic_backup(path) {
+        return Ok(FileKind::NotMail(why));
+    }
     if NOT_MAIL.contains(&ext.as_str()) {
         return Ok(FileKind::NotMail(format!(".{ext} files don't hold messages")));
     }
@@ -53,6 +56,23 @@ fn classify(path: &Path) -> Result<FileKind> {
         return Ok(FileKind::NotMail("empty file".into()));
     }
     Ok(FileKind::NotMail("not a mailbox or message file".into()))
+}
+
+/// Classic Eudora's backups of In and Out ("In.mbx.001", "Out.toc.002"): before each Compact it
+/// copies those mailboxes aside (fileutil.cpp `CascadeBackupFile`, setting InOutBackups, two by
+/// default). They're old copies of the mailbox beside them, not more mail: importing them would
+/// bring back messages deleted since as a folder of duplicates. Listed as left out, with why.
+fn classic_backup(path: &Path) -> Option<String> {
+    let name = path.file_name()?.to_str()?.to_ascii_lowercase();
+    let (stem, number) = name.rsplit_once('.')?;
+    if number.len() != 3 || !number.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    if stem.ends_with(".mbx") || stem.ends_with(".toc") {
+        let mailbox = &path.file_name()?.to_string_lossy()[..stem.len()];
+        return Some(format!("classic Eudora's backup of {mailbox} from before a Compact (the mailbox itself holds the mail)"));
+    }
+    None
 }
 
 /// Starts with "Name: value" header lines (at least two of the usual ones).
@@ -148,5 +168,22 @@ mod tests {
         let summary: Vec<(SourceKind, String, usize)> = found.sources.iter().map(|s| (s.kind.clone(), s.folder.clone(), s.files.len())).collect();
         assert_eq!(summary, vec![(SourceKind::Eml, "Clients/Acme".into(), 2), (SourceKind::Mbox, "In".into(), 1)]);
         assert_eq!(found.skipped.len(), 2);
+    }
+
+    #[test]
+    fn classic_backups_of_in_and_out_are_left_out_and_said() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        let mail = b"From ???@??? Sat Jan 03 01:05:34 1996\r\nSubject: x\r\n\r\ny\r\n";
+        std::fs::write(root.join("In.mbx"), mail).unwrap();
+        std::fs::write(root.join("In.mbx.001"), mail).unwrap();
+        std::fs::write(root.join("In.toc.001"), b"\x31\x00").unwrap();
+        std::fs::write(root.join("Out.mbx.002"), mail).unwrap();
+        let found = discover(&[root.to_path_buf()]).unwrap();
+        assert_eq!(found.sources.iter().map(|s| s.folder.as_str()).collect::<Vec<_>>(), vec!["In"]);
+        let why: Vec<&str> = found.skipped.iter().map(|(_, w)| w.as_str()).collect();
+        assert_eq!(why.iter().filter(|w| w.contains("backup of In.mbx")).count(), 1);
+        assert!(why.iter().any(|w| w.contains("backup of Out.mbx")));
+        assert!(why.iter().any(|w| w.contains("backup of In.toc")));
     }
 }

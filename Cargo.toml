@@ -1,9 +1,9 @@
 [workspace]
 resolver = "3"
-members = ["crates/eudora-core", "crates/eudora-testkit", "crates/eudora-cli", "crates/eudora-app", "crates/eudora-web", "crates/eudora-release"]
+members = ["crates/eudora-core", "crates/eudora-testkit", "crates/eudora-cli", "crates/eudora-app", "crates/eudora-web", "crates/eudora-release", "crates/eudora-voice"]
 
 [workspace.package]
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 authors = ["Planet Networks"]
@@ -15,3 +15,8 @@ debug = "line-tables-only"
 # Tests run optimized: they push tens of thousands of messages through zstd, SQLite and Tantivy.
 [profile.test]
 opt-level = 2
+
+# The natural voices' program is downloaded on request: as small as it can be (no debugging tables)
+[profile.release.package.eudora-voice]
+debug = false
+strip = true

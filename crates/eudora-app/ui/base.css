@@ -482,6 +482,11 @@ dialog[open] { overflow: auto; }
 #prefs label { display: block; margin: 4px 0; }
 #prefs select, #prefs input[type=text] { padding: 4px 6px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--field); }
 .p-note { margin: 4px 0; color: var(--muted); font-size: 0.92em; }
+/* Changes on the server (local only), per account */
+#local-box { max-width: 620px; }
+.local-choice { margin: 12px 0; }
+.local-choice label { font-weight: 600; display: flex; gap: 8px; align-items: center; min-height: 24px; }
+.local-choice .p-note { margin-left: 28px; }
 .p-account { display: grid; grid-template-columns: 1fr 220px; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
 .p-address { font-weight: 600; }
 .p-kind { color: var(--muted); font-size: 0.9em; overflow-wrap: anywhere; }
@@ -733,6 +738,9 @@ dialog.ask { width: min(480px, 92vw); padding: 18px 22px; border: 1px solid var(
 dialog.ask::backdrop { background: #00000055; }
 dialog.ask h2 { margin: 0 24px 10px 0; font-size: 1.15em; }
 dialog.ask p { margin: 0 0 10px; line-height: 1.4; white-space: pre-line; }
+.ask-form { display: grid; gap: 8px; margin: 4px 0 12px; }
+.ask-form label { display: grid; gap: 3px; font-size: 12px; }
+.ask-form input { padding: 5px 7px; font: inherit; }
 dialog.ask .ask-detail { opacity: 0.8; font-size: 0.92em; }
 dialog.ask .ask-field { display: grid; gap: 6px; }
 dialog.ask .ask-field input { padding: 5px 7px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--field); color: var(--text); }
@@ -848,6 +856,25 @@ body.reader-window { grid-template-rows: 1fr auto; }
 
 /* the contact editor */
 .ab-tools { margin-top: 12px; display: flex; gap: 8px; }
+.ab-dupe { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 10px 0; }
+.ab-dupe .ab-name { font-weight: 600; }
+.ab-dupe .ab-sub, .ab-merged .ab-sub { font-size: 0.85em; color: var(--muted); }
+.ab-dupe-card { display: block; margin-top: 6px; }
+.ab-dupe-card .ab-sub { margin-left: 22px; }
+.ab-merged { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 8px 0; max-height: 40vh; overflow: auto; }
+.ab-merged .ab-name { font-weight: 600; }
+.ab-plan { margin: 6px 0 0 18px; padding: 0; }
+.ab-dupe.maybe { border-style: dashed; }
+.ab-mergeform { max-height: 60vh; overflow: auto; min-width: min(560px, 80vw); }
+.ab-choice { border: 1px solid var(--line); border-radius: 6px; margin: 8px 0; padding: 6px 10px; }
+.ab-choice legend { font-weight: 600; padding: 0 4px; }
+.ab-opt { display: block; margin: 3px 0; }
+.ab-from { color: var(--muted); font-size: 0.85em; }
+.ab-edit { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+.ab-edit input { flex: 1; }
+.ab-choice textarea { width: 100%; box-sizing: border-box; margin-top: 6px; }
+.ab-warn { color: var(--danger, #b00020); font-weight: 600; }
+.ab-auto { margin: 8px 0; }
 .ab-edit h3 { margin: 0 0 8px; }
 .ab-edit-field { align-items: center; }
 .ab-edit-field input, .ab-edit-field textarea, .ab-edit-field select { width: 100%; box-sizing: border-box; }
@@ -1101,3 +1128,115 @@ dialog.appt { width: min(680px, 94vw); }
 #pick { width: min(520px, 92vw); }
 #pick-list .folder { cursor: pointer; user-select: none; }
 #pick-list .folder.pick-parent .f-name { opacity: 0.7; }
+
+/* ---------------------------------------------------------------- accessibility (docs/ACCESSIBILITY.md)
+    */
+
+/* read by screen readers, never seen */
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+/* where the keyboard is, always visible (WCAG 2.4.7 / 2.4.11): a 2px ring outside controls, inside
+   the panes that take focus whole */
+:where(button, a, input, select, textarea, summary, [tabindex], [contenteditable="true"]):focus-visible {
+  outline: 2px solid var(--focus-ring, #1a5fd0); outline-offset: 2px;
+}
+#folders:focus-visible, #list:focus-visible, #ab-list:focus-visible, #page:focus-visible { outline: 2px solid var(--focus-ring, #1a5fd0); outline-offset: -2px; }
+.search:focus-within { outline: 2px solid var(--focus-ring, #1a5fd0); outline-offset: 1px; }
+@media (prefers-color-scheme: dark) { :root { --focus-ring: #7fb0ff; } }
+
+/* no movement for those who asked their system for less */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+
+/* Windows High Contrast and other forced colors: the system's colors, as classic Eudora used
+   (GetSysColor everywhere); icons drawn in the text color, selection in Highlight */
+@media (forced-colors: active) {
+  .icon { forced-color-adjust: none; background-color: CanvasText; }
+  button .icon, .tool .icon { background-color: ButtonText; }
+  .row.on, .folder.on, .ab-row.on, #list:not(:focus) .row.on, .cal-event.on {
+    forced-color-adjust: none; background: Highlight; color: HighlightText;
+  }
+  .row.on .icon, .folder.on .icon, .ab-row.on .icon { background-color: HighlightText; }
+  .splitter { background: CanvasText; }
+  :where(button, a, input, select, textarea, summary, [tabindex]):focus-visible, #folders:focus-visible, #list:focus-visible { outline-color: Highlight; }
+  .label-chip, .chip { border: 1px solid CanvasText; }
+}
+
+/* the Mailboxes tree: the row the keyboard is on (a11y.js) */
+#folders:focus .folder.kb { outline: 2px solid var(--focus-ring, #1a5fd0); outline-offset: -2px; }
+.popup-menu button:focus-visible { outline: 2px solid var(--focus-ring, #1a5fd0); outline-offset: -2px; background: var(--hover); }
+
+/* large toolbar buttons (Settings ▸ General; classic Eudora's "Show large buttons") */
+.big-buttons #toolbar .tool { padding: 7px 12px; min-height: 40px; }
+.big-buttons #toolbar .tool .icon { width: 1.6em; height: 1.6em; }
+.big-buttons #toolbar .tool .label { display: inline !important; font-size: 1.05em; }
+.big-buttons #c-bar button { min-height: 36px; padding: 6px 12px; }
+
+/* targets at least 24 pixels (WCAG 2.5.8): small icons keep their look, their clickable area
+   grows around them */
+.folder .twist, .folder .f-search { position: relative; }
+.folder .twist::after, .folder .f-search::after { content: ""; position: absolute; left: 50%; top: 50%; width: 24px; height: 24px; transform: translate(-50%, -50%); }
+.folder .twist { min-width: 18px; }
+.cw-btn { height: 24px; min-width: 26px; }
+/* Roomier rows (Settings ▸ General ▸ Text size and buttons): the Eudora look's dense lists at
+   24 pixels a row */
+html.roomy body.skin-eudora { --row: 24px; --folder-row: 24px; }
+
+/* Advanced Search (classic's Find Messages; advsearch.js): the button beside the search box, then
+   the window. Colors come from the look's own variables; each look adds its touches. */
+.search .search-adv { flex: none; display: inline-flex; align-items: center; padding: 3px 5px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; }
+.search .search-adv:hover, .search .search-adv:focus-visible { color: var(--accent); border-color: var(--line); }
+dialog.adv-search { width: min(860px, 96vw); max-height: 90vh; padding: 18px 22px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--reader); color: var(--text); }
+dialog.adv-search::backdrop { background: #00000055; }
+dialog.adv-search h2 { margin: 0 0 6px; font-size: 1.25em; }
+.adv-search fieldset { border: 0; margin: 0; padding: 0; }
+.adv-search legend { padding: 0; font-weight: 600; }
+.as-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 10px 0 8px; }
+.as-match { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.as-match legend { float: left; margin-right: 6px; }
+.as-more-fewer { display: inline-flex; gap: 6px; }
+.adv-search button { padding: 4px 12px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--button); color: var(--text); cursor: pointer; }
+.adv-search button:disabled { opacity: 0.5; cursor: default; }
+.adv-search input, .adv-search select, .adv-search textarea { padding: 4px 6px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--field); color: var(--text); font: inherit; }
+.adv-search :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.as-rows { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--list); }
+.as-row { display: grid; grid-template-columns: 2.4em minmax(130px, 1.1fr) minmax(120px, 1fr) minmax(180px, 2fr) auto auto; gap: 6px; align-items: center; }
+.as-join { color: var(--muted); font-size: 0.9em; text-align: right; }
+.as-values { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.as-values input, .as-values select { flex: 1; min-width: 0; }
+.as-values input[type="number"] { max-width: 9em; }
+.as-and { color: var(--muted); }
+.as-add, .as-remove { width: 30px; min-height: 28px; padding: 0 !important; font-weight: 700; }
+.as-scope { margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.as-accounts { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 6px 8px; max-height: 9em; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+.as-query-label { display: block; margin-top: 12px; font-weight: 600; }
+.as-query { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; font-family: var(--mono, Consolas, monospace) !important; font-size: var(--mono-size, 13px); resize: vertical; }
+.as-edited button { margin-left: 6px; }
+@media (max-width: 640px) {
+  .as-row { grid-template-columns: 1fr 1fr; }
+  .as-join { display: none; }
+  .as-values { grid-column: 1 / -1; }
+}
+@media (forced-colors: active) {
+  .adv-search button, .adv-search input, .adv-search select, .adv-search textarea, .as-rows { border: 1px solid CanvasText; }
+}
+
+/* Export to Classic Eudora: the accounts to export (a list that scrolls when long) */
+.ec-accounts { max-height: 12em; overflow: auto; margin: 8px 0; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; }
+.ec-accounts legend { padding: 0 4px; }
+
+/* Settings ▸ Mail ▸ Senders whose pictures always show */
+#pic-senders-box { width: min(560px, 92vw); }
+.ps-tools { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
+.ps-tools input { flex: 1; }
+.ps-list { list-style: none; margin: 0; padding: 0; height: 260px; overflow: auto; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--field); }
+.ps-list li { display: flex; align-items: center; gap: 8px; padding: 3px 8px; }
+.ps-list li:nth-child(even) { background: var(--hover); }
+.ps-list li span { flex: 1; overflow-wrap: anywhere; }
+.ps-list .ps-empty { color: var(--muted); padding: 8px; }
+
+/* Export to Classic Eudora: the mailboxes, grouped as the sidebar shows them */
+.ec-group + .ec-group { margin-top: 8px; }
+.ec-group-title { font-weight: 600; color: var(--muted); margin: 2px 0; }
+#ec-accounts { max-height: 260px; overflow: auto; }

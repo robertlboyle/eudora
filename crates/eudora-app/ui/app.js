@@ -72,6 +72,7 @@ function iconUrl(name) {
 function icon(name) {
   const span = document.createElement("span");
   span.className = "icon";
+  span.setAttribute("aria-hidden", "true"); // (a picture: the button's words name it)
   span.style.setProperty("--icon", `url("${iconUrl(name)}")`);
   return span;
 }
@@ -79,9 +80,37 @@ function icon(name) {
 function fillIcons(root = document) {
   for (const el of root.querySelectorAll("[data-icon]")) {
     el.classList.add("icon");
+    el.setAttribute("aria-hidden", "true");
     el.style.setProperty("--icon", `url("${iconUrl(el.dataset.icon)}")`);
   }
 }
+
+/** Names for a screen reader where the page has only pictures: a dialog takes its heading as its
+ *  name; a button showing only an icon or a symbol takes the first part of its tooltip ("Settings"
+ *  of "Settings: look, folders…"). Run at start and on whatever is added later. */
+function nameThings(root = document) {
+  const each = (sel, fn) => {
+    if (root.matches?.(sel)) fn(root);
+    for (const e of root.querySelectorAll?.(sel) || []) fn(e);
+  };
+  each("dialog:not([aria-label]):not([aria-labelledby])", (d) => {
+    const h = d.querySelector("h1, h2, h3, legend, .p-title");
+    if (!h) return;
+    if (!h.id) h.id = `dlg-title-${++nameThings.n}`;
+    d.setAttribute("aria-labelledby", h.id);
+  });
+  // table headings (Activity, the speed statistics, a job's details): what each heads
+  each("th:not([scope])", (th) => th.setAttribute("scope", th.parentElement?.parentElement?.tagName === "TBODY" && th.cellIndex === 0 && th.parentElement.cells.length > 1 && th.parentElement.cells[1].tagName === "TD" ? "row" : "col"));
+  each("button:not([aria-label]), [role=button]:not([aria-label])", (b) => {
+    if (/[\p{L}\p{N}]{2}/u.test(b.textContent || "")) return; // (it has words of its own)
+    const tip = (b.title || "").split(/:\s| \(|\.\s/)[0].trim();
+    if (tip) b.setAttribute("aria-label", tip);
+  });
+}
+nameThings.n = 0;
+new MutationObserver((changes) => {
+  for (const c of changes) for (const n of c.addedNodes) if (n.nodeType === 1) nameThings(n);
+}).observe(document.documentElement, { childList: true, subtree: true });
 
 function el(tag, className, text) {
   const e = document.createElement(tag);
@@ -144,14 +173,42 @@ function escapeHtml(text) {
 }
 
 function status(left, right) {
-  if (left !== undefined) $("status-left").textContent = left;
+  if (left !== undefined) {
+    $("status-left").textContent = left;
+    announce(left);
+  }
   if (right !== undefined) $("status-right").textContent = right;
 }
 
 function showError(what, err) {
   status(`${what}: ${err}`);
+  announce(`${what}: ${err}`, true);
   console.error(what, err);
 }
+
+/** Says something to a screen reader:
+ *  the status bar's news politely, an error at once. The same words twice in a row are said once;
+ *  a burst (progress) is said at most every 1.5 s, the latest words winning. */
+const spoken = { last: "", at: 0, timer: 0 };
+function announce(text, urgent = false) {
+  text = String(text ?? "").trim();
+  if (!text) return;
+  const say = () => {
+    const box = $(urgent ? "sr-alert" : "sr-polite");
+    if (!box) return;
+    // (cleared first, so the same region read again counts as new)
+    box.textContent = "";
+    requestAnimationFrame(() => { box.textContent = text; });
+    spoken.last = text;
+    spoken.at = Date.now();
+  };
+  if (urgent) { say(); return; }
+  if (text === spoken.last) return;
+  clearTimeout(spoken.timer);
+  const wait = Math.max(0, 1500 - (Date.now() - spoken.at));
+  if (wait === 0) say(); else spoken.timer = setTimeout(say, wait);
+}
+window.announce = announce;
 
 // ------------------------------------------------------------------ state
 
@@ -328,6 +385,13 @@ function showColumnMenu(x, y, clicked) {
     const i = columns.findIndex(([k]) => k === clicked);
     if (i > 0) items.push(button(`Move “${columnTitle(clicked) || "Attachment"}” left`, () => { const c = [...columns]; [c[i - 1], c[i]] = [c[i], c[i - 1]]; saveColumns(c); }));
     if (i >= 0 && i < columns.length - 1) items.push(button(`Move “${columnTitle(clicked) || "Attachment"}” right`, () => { const c = [...columns]; [c[i + 1], c[i]] = [c[i], c[i + 1]]; saveColumns(c); }));
+    // sizes without dragging (WCAG 2.5.7)
+    if (i >= 0) {
+      const name = columnTitle(clicked) || "Attachment";
+      items.push(button(`Make “${name}” wider`, () => announce(`${name}: ${sizeColumn(clicked, 40)} pixels wide`)));
+      items.push(button(`Make “${name}” narrower`, () => announce(`${name}: ${sizeColumn(clicked, -40)} pixels wide`)));
+      items.push(button(`“${name}” at its usual width`, () => sizeColumn(clicked, null)));
+    }
   }
   items.push(button(`Reset to the ${$("skin").selectedOptions[0]?.textContent || "look"}'s columns`, () => { store.set(`columns:${state.skin}`, null); headerCache.clear(); applySkin(); }));
   colMenu.replaceChildren(...items);
@@ -353,6 +417,67 @@ function addHeaderColumn() {
 $("col-header-add").addEventListener("click", addHeaderColumn);
 $("col-header-name").addEventListener("keydown", (e) => { if (e.key === "Enter") addHeaderColumn(); });
 $("col-header-cancel").addEventListener("click", () => $("col-header-box").close());
+
+/** The heading the keyboard is on (kept across redraws). */
+const headingAt = { key: null };
+
+/** A column's width in pixels as drawn now. */
+function columnWidthNow(key) {
+  return Math.round($("list-head").querySelector(`.cell[data-key="${CSS.escape(key)}"]`)?.getBoundingClientRect().width || 80);
+}
+
+/** Moves a column one place left (-1) or right (1). */
+function moveColumn(key, by) {
+  const columns = listColumns();
+  const i = columns.findIndex(([k]) => k === key);
+  const j = i + by;
+  if (i < 0 || j < 0 || j >= columns.length) return false;
+  [columns[i], columns[j]] = [columns[j], columns[i]];
+  saveColumns(columns);
+  return true;
+}
+
+/** Makes a column wider or narrower by `by` pixels (null: back to the look's own width). */
+function sizeColumn(key, by) {
+  const usual = (skin().columns || []).find(([k]) => k === key)?.[2] || COLUMN_CATALOG[key]?.width || "minmax(100px, 16%)";
+  const width = by === null ? null : Math.max(24, Math.min(1200, columnWidthNow(key) + by));
+  saveColumns(listColumns().map(([k, w]) => [k, k === key ? (width === null ? usual : `${width}px`) : w]));
+  return width;
+}
+
+// the headings by keyboard
+$("list-head").addEventListener("keydown", (e) => {
+  const cell = e.target.closest?.(".cell[data-key]");
+  if (!cell) return;
+  const key = cell.dataset.key;
+  const cells = [...$("list-head").querySelectorAll(".cell[data-key]")];
+  const i = cells.indexOf(cell);
+  const go = (c) => { if (!c) return; for (const x of cells) x.tabIndex = -1; c.tabIndex = 0; c.focus(); headingAt.key = c.dataset.key; };
+  const after = (what) => {
+    // (drawn again: the keyboard back on the same heading, and what happened said)
+    headingAt.key = key;
+    const again = $("list-head").querySelector(`.cell[data-key="${CSS.escape(key)}"]`);
+    if (again) { again.tabIndex = 0; again.focus(); }
+    announce(what);
+  };
+  const name = cell.getAttribute("aria-label")?.split(" column")[0] || key;
+  const arrow = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
+  if (arrow && (e.ctrlKey || e.metaKey)) {
+    if (moveColumn(key, arrow)) after(`${name} moved ${arrow < 0 ? "left" : "right"}, now column ${i + arrow + 1} of ${cells.length}`);
+  } else if (arrow && e.shiftKey) {
+    const w = sizeColumn(key, arrow * (e.altKey ? 50 : 15));
+    after(`${name}: ${w} pixels wide`);
+  } else if (arrow) go(cells[i + arrow]);
+  else if (e.key === "Home") go(cells[0]);
+  else if (e.key === "End") go(cells[cells.length - 1]);
+  else if (e.key === "Enter" || e.key === " ") { sortBy(key); }
+  else if ((e.key === "F10" && e.shiftKey) || e.key === "ContextMenu") {
+    const r = cell.getBoundingClientRect();
+    showColumnMenu(r.left + 12, r.bottom, key);
+  } else if (e.key === "ArrowDown") { $("list").focus(); }
+  else return;
+  e.preventDefault();
+});
 
 /** Column headings: drag one onto another to move it there; drag a heading's right edge to
  *  make the column wider or narrower. */
@@ -436,6 +561,11 @@ function applySkin() {
       else cell.textContent = columnTitle(key);
       const sortable = key === "who" || SORT_KEYS[key];
       cell.title = `${key.startsWith("h:") ? `The ${key.slice(2)} header` : COLUMN_CATALOG[key]?.title || key}.${sortable ? " Click to sort by it, again for the other way." : ""} Drag to move, drag the right edge to size, right-click for more columns.`;
+      // the keyboard: Tab reaches the headings, ← → go along them, Enter sorts, Ctrl+← → moves
+      // the column, Shift+← → makes it narrower / wider, Shift+F10 its menu
+      cell.tabIndex = -1;
+      cell.setAttribute("role", "button");
+      cell.setAttribute("aria-label", `${key.startsWith("h:") ? `${key.slice(2)} header` : COLUMN_CATALOG[key]?.title?.replace(/ \(.*$/, "") || columnTitle(key) || key} column${sortable ? ", Enter sorts by it" : ""}; Control and the arrows move it, Shift and the arrows size it`);
       return cell;
     }));
   } else {
@@ -443,6 +573,14 @@ function applySkin() {
     head.replaceChildren(el("div", "cell stacked-head", "By date · newest on top"));
   }
   showSortMark();
+  // (one heading in the Tab order: the one the keyboard was on, else the first)
+  const cells = [...head.querySelectorAll(".cell[data-key]")];
+  const keep = cells.find((c) => c.dataset.key === headingAt.key) || cells[0];
+  if (keep) keep.tabIndex = 0;
+  if (head.getAttribute("role") !== "toolbar") {
+    head.setAttribute("role", "toolbar");
+    head.setAttribute("aria-label", "Columns");
+  }
   rowHeight = parseFloat(getComputedStyle(document.body).getPropertyValue("--row")) || 20;
   applySizes();
   clearRows();
@@ -1146,6 +1284,7 @@ function listCount(list) {
 }
 
 function setList(list) {
+  $("list").setAttribute("aria-label", `Messages${list?.title ? `: ${list.title}` : ""}`);
   state.list = list;
   if (list.kind !== "search") $("search-help").hidden = true;
   state.selected = -1;
@@ -1756,9 +1895,41 @@ function fillLine(e, row) {
   e.append(end);
 }
 
+/** A message row as a screen reader says it: "Unread, flagged, Ann
+ *  Smith, Lunch Friday, Tue 10:42 AM, 1 attachment, replied". */
+function rowLabel(row) {
+  if (!row) return "Loading";
+  const f = row.flags || 0;
+  const p = priorityOf(f);
+  return [
+    f & UNREAD ? "Unread" : "",
+    f & FLAGGED ? "flagged" : "",
+    p && p <= 2 ? "high priority" : p >= 4 ? "low priority" : "",
+    whoOf(row) || "no sender",
+    row.subject || "no subject",
+    row.date ? fullFormat.format(new Date(row.date * 1000)) : "",
+    row.attachments ? `${row.attachments} ${row.attachments === 1 ? "attachment" : "attachments"}` : "",
+    f & REPLIED ? "replied" : f & FORWARDED ? "forwarded" : f & REDIRECTED ? "redirected" : "",
+  ].filter(Boolean).join(", ");
+}
+
+/** The list's place for a screen reader: the row with the keyboard is the active one. */
+function ariaListActive() {
+  const box = $("list");
+  const e = rowPool.get(state.selected);
+  if (e) box.setAttribute("aria-activedescendant", e.id);
+  else box.removeAttribute("aria-activedescendant");
+}
+
 function makeRow(index, row, stale = false) {
   const e = el("div", stale ? "row stale" : "row");
   e.dataset.index = index;
+  e.id = `msg-${index}`;
+  e.setAttribute("role", "option");
+  e.setAttribute("aria-posinset", String(index + 1));
+  e.setAttribute("aria-setsize", String(state.list ? listCount(state.list) : -1));
+  e.setAttribute("aria-label", rowLabel(row));
+  e.setAttribute("aria-selected", String(isSelected(index)));
   e.style.transform = `translateY(${index * rowHeight}px)`;
   const s = skin();
   if (s.stacked) fillStacked(e, row, s.stacked);
@@ -1831,6 +2002,7 @@ function renderList(force = false) {
     box.append(e);
   }
   for (const page of wanted) loadPage(page);
+  ariaListActive();
   // read ahead in the direction of scrolling: once what's on screen is here, the next pages
   // that way, one at a time, nearest first (each from the one before it: the quick keyset
   // read), then one the other way
@@ -1880,8 +2052,10 @@ function showSelection() {
   for (const e of rowPool.values()) {
     const i = Number(e.dataset.index);
     e.classList.toggle("on", isSelected(i));
+    e.setAttribute("aria-selected", String(isSelected(i)));
     e.classList.toggle("focus", i === state.selected && selectionCount() > 1);
   }
+  ariaListActive();
   const n = selectionCount();
   if (n > 1) status(`${number.format(n)} messages selected: Delete, Transfer, Copy To, Forward (as attachments) and Filter Messages work on all of them.`);
 }
@@ -2053,9 +2227,56 @@ $("list").addEventListener("keydown", (e) => {
   else if (e.key === "Home") to(0);
   else if (e.key === "End") to(count - 1);
   else if (e.key.toLowerCase() === "a" && (e.ctrlKey || e.metaKey)) selectAllMessages();
+  // classic Eudora's keys (tocview.cpp): Shift+Space read / unread, Backspace deletes; Enter
+  // goes into the message to read it
+  else if (e.key === " " && e.shiftKey) {
+    const row = state.list?.rows.get(state.selected);
+    if (row) changeStatus(row.flags & UNREAD ? "read" : "unread");
+  } else if (e.key === "Backspace" && !e.ctrlKey && !e.altKey) deleteSelected();
+  else if (e.key === "Enter" && !e.ctrlKey && !e.altKey) focusMessage();
+  // type to select (classic's, tocview.cpp FindTTS): letters typed within a second make a phrase,
+  // matched anywhere in the sender (the subject when sorted by subject), from the message after
+  // this one, round to the top
+  else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey && (e.key !== " " || Date.now() - typed.at < 1000)) typeToSelect(e.key);
   else return;
   e.preventDefault();
 });
+
+const typed = { text: "", at: 0 };
+function typeToSelect(key) {
+  const now = Date.now();
+  typed.text = now - typed.at > 1000 ? key : (typed.text + key).slice(0, 32);
+  typed.at = now;
+  const list = state.list;
+  if (!list) return;
+  const want = typed.text.toLowerCase();
+  const bySubject = state.sort?.key === "subject";
+  const text = (row) => (bySubject ? row.subject || "" : whoOf(row) || "").toLowerCase();
+  const count = listCount(list);
+  // (a phrase of one letter moves on; a longer one may stay on the message it already matches)
+  const start = typed.text.length === 1 ? state.selected + 1 : state.selected;
+  for (let n = 0; n < count; n++) {
+    const i = (Math.max(0, start) + n) % count;
+    const row = list.rows.get(i);
+    if (row && text(row).includes(want)) {
+      select(i);
+      return;
+    }
+  }
+  status(`No message ${bySubject ? "about" : "from"} “${typed.text}” among those loaded.`);
+}
+
+/** The keyboard into the message shown (Enter from the list; F6 too). */
+function focusMessage() {
+  const frame = $("m-body")?.querySelector("iframe");
+  if (frame) {
+    frame.focus();
+    try { frame.contentDocument?.body?.focus(); } catch { /* (its own document) */ }
+    return;
+  }
+  const body = $("m-body");
+  if (body) { body.tabIndex = -1; body.focus(); }
+}
 
 // ------------------------------------------------------------------ search
 
@@ -2133,8 +2354,9 @@ document.addEventListener("keydown", (e) => {
   // (Ctrl+F searches the mail, except where the look's program uses it otherwise: Outlook
   // forwards, Thunderbird finds in the message; their menus carry those)
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "f" && !["outlook", "thunderbird"].includes(state.uiMode?.menus)) {
-    $("query").focus();
-    $("query").select();
+    // (Classic: Find Messages, the advanced search window, as classic Eudora's Ctrl+F)
+    if (document.body.classList.contains("classic")) window.openAdvancedSearch?.();
+    else { $("query").focus(); $("query").select(); }
     e.preventDefault();
   } else if (e.key === "Escape" && document.body.classList.contains("showing-message") && !$("prefs").open) {
     closeMessage();
@@ -2260,9 +2482,7 @@ function fileIcon(name) {
   return holder;
 }
 
-/** The attachment chips: on the Message tab, not the pictures the message shows itself (user
- *  2026-10-19: "hide them from attachments and only show the actual attachments that are not
- *  shown"); on Text, Headers and Source every one. */
+/** The attachment chips: on the Message tab, not the pictures the message shows itself; on Text, Headers and Source every one. */
 function renderAttachments(m) {
   const list = state.view === "message" && m.html ? m.attachments.filter((a) => !a.inline) : m.attachments;
   $("m-attachments").replaceChildren(...list.map((a) => {
@@ -2411,6 +2631,7 @@ async function renderBody() {
   if (state.view === "message" && m.html) {
     const frame = document.createElement("iframe");
     frame.setAttribute("sandbox", "allow-same-origin");
+    frame.title = `Message: ${m.subject || "(no subject)"}`;
     frame.setAttribute("referrerpolicy", "no-referrer");
     frame.srcdoc = sandboxed(m.html);
     frame.addEventListener("load", () => {
@@ -2478,7 +2699,7 @@ $("m-views").addEventListener("click", (e) => {
  * list (`senders`: addresses, lowercase); `keep` = fetch every time or keep on this computer.
  * Kept in the library. Settings from before (per account, "show for every account") are
  * dropped: everything asks again. */
-const pictures = { keep: "fetch", senders: [] };
+const pictures = { keep: "fetch", senders: [], addressBook: false };
 
 async function loadPictureSettings() {
   try {
@@ -2486,6 +2707,7 @@ async function loadPictureSettings() {
     if (saved?.senders) {
       pictures.senders = saved.senders;
       pictures.keep = saved.keep || "fetch";
+      pictures.addressBook = !!saved.addressBook;
     } else if (saved?.global) {
       // the old per-account settings: keep only how pictures are kept; ask again for all
       pictures.keep = saved.global.keep || "fetch";
@@ -2503,10 +2725,14 @@ function senderOf(m) {
   return (m.from?.[0]?.address || "").toLowerCase();
 }
 
-/** Whether a message's pictures load without asking: only from a sender on the safe list. */
+/** Whether a message's pictures load without asking: from a sender on the safe list (an
+ *  address or @domain), or in the Address Book when that's ticked (the core says, as
+ *  `pictures_auto`; never for a fraud). */
 function safeSender(m) {
+  if (m.warning) return false;
   const who = senderOf(m);
-  return !!who && pictures.senders.includes(who);
+  if (!who) return false;
+  return !!m.pictures_auto || pictures.senders.includes(who) || pictures.senders.includes(`@${who.split("@")[1]}`);
 }
 
 function showPictureBar(m) {
@@ -2552,7 +2778,7 @@ $("m-pic-always").addEventListener("click", async () => {
   if (!who) return;
   if (!pictures.senders.includes(who)) pictures.senders.push(who);
   await savePictureSettings();
-  status(`Pictures from ${who} will show by themselves (Settings ▸ Mail to undo).`);
+  status(`Pictures from ${who} will show by themselves (Settings ▸ Mail ▸ Senders whose pictures always show to undo).`);
   loadPictures(current);
 });
 
@@ -2729,7 +2955,11 @@ function showSettingsPage(page) {
   if (!SETTINGS_PAGES.some(([k]) => k === page)) page = "accounts";
   store.set("settingsPage", page);
   for (const s of document.querySelectorAll("#p-pages > section")) s.hidden = s.dataset.page !== page;
-  for (const b of $("p-nav").children) b.classList.toggle("on", b.dataset.page === page);
+  for (const b of $("p-nav").children) {
+    b.classList.toggle("on", b.dataset.page === page);
+    if (b.dataset.page === page) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  }
+  $("p-pages").setAttribute("aria-label", SETTINGS_PAGES.find(([k]) => k === page)?.[1] || "Settings");
   $("p-pages").scrollTop = 0;
 }
 $("p-nav").replaceChildren(...SETTINGS_PAGES.map(([key, name, about]) => {
@@ -2765,6 +2995,7 @@ function openPrefs(page) {
   showUpdates();
   showBackground();
   showSync();
+  showSpeechChoice();
   showServerChanges();
   renderPrefLabels();
   renderPrefApi();
@@ -2772,6 +3003,11 @@ function openPrefs(page) {
   $("p-recent-hours").value = String(state.recentPrefs.hours);
   invoke("setting", { key: "keep-exchange-exports" }).then((v) => { $("p-keep-originals").checked = v !== "off"; }).catch(() => {});
   showKeep();
+  showClassicMirror();
+  invoke("setting", { key: "reply-quoting" }).then((v) => {
+    const classic = String(v || "").replace(/"/g, "") === "classic";
+    for (const r of document.querySelectorAll('input[name="p-quoting"]')) r.checked = (r.value === "classic") === classic;
+  }).catch(() => {});
   invoke("setting", { key: "gmail-idle-minutes" }).then((v) => { $("p-gmail-idle").value = v == null || v === "" ? "120" : String(v); }).catch(() => {});
   $("p-recent-monday").value = String(state.recentPrefs.monday);
   $("p-ctrl-r-all").checked = !!state.uiMode.ctrl_r_all;
@@ -2802,6 +3038,13 @@ function openPrefs(page) {
       every.dataset.address = a.address;
       pics.append(el("span", "p-note", "Check every "), every);
     }
+    // changes on the server, or kept on this computer only (`local_only`; filled in below)
+    if (a.address && ["graph", "graph-shared", "imap", "pop3", "gmail", "dav"].includes(a.kind)) {
+      const local = el("button", "p-local", "Changes on the server…");
+      local.dataset.address = a.address;
+      local.hidden = true;
+      pics.append(local);
+    }
     who.append(pics);
     row.append(who, name);
     return row;
@@ -2826,6 +3069,18 @@ function openPrefs(page) {
       });
     }
   }).catch(() => {});
+  invoke("local_only_get").then((list) => {
+    for (const b of $("p-accounts").querySelectorAll(".p-local")) {
+      const row = list.find((r) => r.address.toLowerCase() === b.dataset.address.toLowerCase());
+      if (!row) continue;
+      b.hidden = false;
+      const kept = row.services.filter((s) => row.local[s]);
+      b.textContent = kept.length ? `Kept here only: ${kept.join(", ")}…` : "Changes on the server…";
+      b.title = "Whether Eudora makes your changes to this account's mail, calendar, and contacts on the server too, or keeps them on this computer only";
+      b.setAttribute("aria-label", `${row.address}: ${kept.length ? `kept on this computer only: ${kept.join(", ")}` : "changes go to the server"}. Change…`);
+      b.onclick = async () => { if (await editLocalOnly(row, false)) openPrefs(); };
+    }
+  }).catch(() => {});
   invoke("setting", { key: "completion" }).then((json) => {
     const c = Object.assign({ sent: true, received: true }, JSON.parse(json || "{}"));
     $("p-comp-sent").checked = c.sent;
@@ -2834,31 +3089,96 @@ function openPrefs(page) {
   for (const r of document.querySelectorAll('input[name="p-pic-keep"]')) r.checked = r.value === pictures.keep;
   renderSafeSenders();
   $("p-accounts").replaceChildren(...rows);
+  renderDav();
   $("p-web-port").value = store.get("webPort", 443);
   checkFirewall();
   if (!$("prefs").open) $("prefs").showModal();
 }
 
-/** The safe senders, each with Remove (takes effect at once). */
+/** Settings ▸ Mail: how many senders are on the list, and the Address Book choice. */
 function renderSafeSenders() {
-  const list = $("p-pic-senders");
-  if (!pictures.senders.length) {
-    list.replaceChildren(el("p", "p-note", "None yet: every message asks."));
+  const n = pictures.senders.length;
+  $("p-pic-count").textContent = n ? `${number.format(n)} on the list` : "None yet: every message asks.";
+  $("p-pic-book").checked = !!pictures.addressBook;
+  if ($("pic-senders-box").open) renderPicSendersList();
+}
+
+/** The window's list, filtered by what's typed in Find; each with Remove (at once). */
+function renderPicSendersList() {
+  const find = $("ps-find").value.trim().toLowerCase();
+  const all = [...pictures.senders].sort((a, b) => a.replace(/^@/, "").localeCompare(b.replace(/^@/, "")));
+  const shown = find ? all.filter((s) => s.includes(find)) : all;
+  $("ps-count").textContent = find ? `${number.format(shown.length)} of ${number.format(all.length)}` : `${number.format(all.length)} ${all.length === 1 ? "sender" : "senders"}`;
+  if (!shown.length) {
+    const li = el("li", "ps-empty", all.length ? "None match." : "None yet: every message asks. Add one below, import a list, or use “Always show from …” on a message.");
+    $("ps-list").replaceChildren(li);
     return;
   }
-  list.replaceChildren(...[...pictures.senders].sort().map((who) => {
-    const row = el("div", "p-safe");
+  $("ps-list").replaceChildren(...shown.map((who) => {
+    const li = el("li");
     const remove = el("button", "f-small", "Remove");
-    remove.title = `Ask again before showing pictures from ${who}`;
+    remove.setAttribute("aria-label", `Remove ${who}: ask again before showing their pictures`);
     remove.addEventListener("click", async () => {
       pictures.senders = pictures.senders.filter((s) => s !== who);
       try { await savePictureSettings(); } catch (err) { showError("Saving the picture settings", err); }
       renderSafeSenders();
+      announce(`${who} removed.`);
+      ($("ps-list").querySelector("button") || $("ps-find")).focus();
     });
-    row.append(el("span", "", who), remove);
-    return row;
+    li.append(el("span", "", who), remove);
+    return li;
   }));
 }
+
+async function openPicSenders() {
+  $("ps-find").value = "";
+  $("ps-new").value = "";
+  renderPicSendersList();
+  $("pic-senders-box").showModal();
+  $("ps-find").focus();
+}
+
+$("p-pic-senders-open").addEventListener("click", openPicSenders);
+$("ps-close").addEventListener("click", () => $("pic-senders-box").close());
+$("ps-find").addEventListener("input", renderPicSendersList);
+async function addPicSender() {
+  const typed = $("ps-new").value.trim().toLowerCase().replace(/^mailto:/, "");
+  const ok = /^[^@\s]*@[^@\s]+\.[^@\s]+$/.test(typed) && !/^[^@]+@$/.test(typed);
+  if (!ok) { await tell("Add a sender", "Type an address (name@example.com), or @example.com for everyone at that domain."); $("ps-new").focus(); return; }
+  if (!pictures.senders.includes(typed)) pictures.senders.push(typed);
+  try { await savePictureSettings(); } catch (err) { showError("Saving the picture settings", err); return; }
+  $("ps-new").value = "";
+  renderSafeSenders();
+  status(`Pictures from ${typed} will show by themselves.`);
+}
+$("ps-add").addEventListener("click", addPicSender);
+$("ps-new").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addPicSender(); } });
+$("ps-import").addEventListener("click", async () => {
+  let chosen;
+  try { chosen = await invoke("pick_paths", { what: "file", title: "Import senders whose pictures always show", kind: "list" }); } catch (err) { showError("Choosing a file", err); return; }
+  if (!chosen?.length) return;
+  try {
+    const [added, total] = await invoke("picture_senders_import", { file: chosen[0] });
+    await loadPictureSettings();
+    renderSafeSenders();
+    await tell("Import", added ? `Added ${number.format(added)} ${added === 1 ? "sender" : "senders"}; ${number.format(total)} on the list now.` : `Nothing new: every address in that file is already on the list (${number.format(total)}).`);
+  } catch (err) { showError("Importing the senders", err); }
+});
+$("ps-export").addEventListener("click", async () => {
+  let chosen;
+  try { chosen = await invoke("pick_paths", { what: "folder", title: "Export the senders into this folder", kind: null }); } catch (err) { showError("Choosing a folder", err); return; }
+  if (!chosen?.length) return;
+  try {
+    const file = await invoke("picture_senders_export", { dir: chosen[0] });
+    const open = await ask({ title: "Export", text: `Saved ${number.format(pictures.senders.length)} senders to ${file}.`, buttons: [{ label: "Close", value: false }, { label: "Open Folder", value: true, primary: true }] });
+    if (open) invoke("open_folder", { path: chosen[0] }).catch((err) => showError("Opening the folder", err));
+  } catch (err) { showError("Exporting the senders", err); }
+});
+$("p-pic-book").addEventListener("change", async () => {
+  pictures.addressBook = $("p-pic-book").checked;
+  try { await savePictureSettings(); } catch (err) { showError("Saving the picture settings", err); return; }
+  status(pictures.addressBook ? "Pictures from people in your Address Book now show by themselves." : "Pictures from people in your Address Book ask first again (unless they're on the list).");
+});
 
 async function savePrefs() {
   const organize = document.querySelector('input[name="p-organize"]:checked')?.value || "folders";
@@ -3010,6 +3330,7 @@ function showWelcome() {
       dialog.close();
       status(`Signed in as ${account}. Your mail starts coming in now.`);
       invoke("check_mail").catch(() => {});
+      await askLocalOnlyForNew();
     } catch (err) {
       $("welcome-note").textContent = `Not signed in: ${err}`;
     }
@@ -3087,7 +3408,12 @@ invoke("platform").then((os) => {
 const defaultHint = () => `Passwords are kept in ${passwordStore} on this computer, never in the mail library.`;
 const DEFAULT_PORTS = { imap: { tls: 993, starttls: 143, none: 143 }, pop3: { tls: 995, starttls: 110, none: 110 }, smtp: { tls: 465, starttls: 587, none: 25 } };
 let editingImap = null; // the address of the account being changed, or null for a new one
+// What the user typed stays exactly as typed: a guess fills a box only while it's empty or
+// still holds the guess before it; switching IMAP / POP3 or the security never overwrites a
+// typed server or port.
 let serverTouched = false; // the user typed a server name: don't replace it
+let portTouched = false; // … an incoming port
+let smtpPortTouched = false; // … an outgoing port
 
 /** Who hosts the address typed ("microsoft", "google" or null): Microsoft addresses sign in
  *  with Microsoft instead of a password over IMAP (Microsoft no longer accepts those). */
@@ -3190,14 +3516,14 @@ function accountResult(text, bad) {
 }
 
 /** The usual server names for this address and protocol. */
-function guessServers(force) {
+function guessServers() {
   const address = $("a-address").value.trim();
   const domain = address.split("@")[1]?.toLowerCase() || "";
   if (!domain) return;
   // a company's domain on Google Workspace takes Gmail's servers
   const preset = SERVER_PRESETS[domain] || (addressHost === "google" ? SERVER_PRESETS["gmail.com"] : null);
   const incoming = preset ? preset[protocol()] : `${protocol() === "pop3" ? "pop" : "imap"}.${domain}`;
-  if (force || !$("a-server").value.trim() || !serverTouched) {
+  if (!$("a-server").value.trim() || !serverTouched) {
     if (incoming) $("a-server").value = incoming;
   }
   if (!$("a-smtp-server").value.trim()) {
@@ -3259,7 +3585,9 @@ async function openAccount(address) {
   showKind("server");
   // (an account being changed is the kind it is)
   $("a-kind").hidden = !!address;
-  serverTouched = false;
+  serverTouched = !!address; // (an account's own settings are the user's: kept)
+  portTouched = !!address;
+  smtpPortTouched = !!address;
   const have = address ? (await invoke("imap_accounts")).find((c) => c.address.toLowerCase() === address.toLowerCase()) : null;
   const c = Object.assign({ address: "", name: "", protocol: "imap", server: "", port: 993, security: "tls", tls_level: "high", username: "",
     smtp_server: "", smtp_port: 587, smtp_security: "starttls", smtp_tls_level: "high", smtp_username: "", smtp_auth: true }, have || {});
@@ -3292,7 +3620,7 @@ async function openAccount(address) {
   $("a-smtp-username").value = c.smtp_username;
   $("a-smtp-password").value = "";
   $("a-hint").textContent = defaultHint();
-  if (have && !c.smtp_server) guessServers(false);
+  if (have && !c.smtp_server) guessServers();
   accountResult(have && !c.smtp_server ? "Add the outgoing (SMTP) server to send from this account. Check it, then Test and Save." : "");
   $("account-box").showModal();
   (have ? $("a-smtp-server") : $("a-address")).focus();
@@ -3300,7 +3628,7 @@ async function openAccount(address) {
 
 $("a-address").addEventListener("change", async () => {
   await checkHost();
-  if (addressHost !== "microsoft") guessServers(false);
+  if (addressHost !== "microsoft") guessServers();
 });
 $("a-ms-cancel").addEventListener("click", () => $("account-box").close());
 /** An email address that can be signed in with (name@domain.tld). */
@@ -3324,13 +3652,15 @@ $("a-ms-signin").addEventListener("click", async () => {
   }
   msButton();
 });
-$("a-server").addEventListener("input", () => { serverTouched = true; });
+$("a-server").addEventListener("input", () => { serverTouched = !!$("a-server").value.trim(); });
+$("a-port").addEventListener("input", () => { portTouched = !!$("a-port").value; });
+$("a-smtp-port").addEventListener("input", () => { smtpPortTouched = !!$("a-smtp-port").value; });
 for (const r of document.querySelectorAll('input[name="a-protocol"]')) {
   r.addEventListener("change", () => {
     showProtocol();
-    $("a-port").value = DEFAULT_PORTS[protocol()][$("a-security").value];
+    if (!portTouched) $("a-port").value = DEFAULT_PORTS[protocol()][$("a-security").value];
     showPorts();
-    guessServers(true);
+    guessServers();
   });
 }
 
@@ -3347,15 +3677,15 @@ function showPorts() {
 
 /** Choosing the security moves the port to its standard one (SSL/TLS 465, STARTTLS 587 for
  *  sending: the submission ports), unless the port was set by hand to something unusual. */
-function followPort(select, port, ports) {
+function followPort(select, port, ports, typed) {
   select.addEventListener("change", () => {
-    const usual = Object.values(DEFAULT_PORTS).flatMap((p) => Object.values(p));
-    if (!$(port).value || usual.includes(Number($(port).value))) $(port).value = ports()[select.value];
+    // (a port typed by hand is the)
+    if (!$(port).value || !typed()) $(port).value = ports()[select.value];
     showPorts();
   });
 }
-followPort($("a-security"), "a-port", () => DEFAULT_PORTS[protocol()]);
-followPort($("a-smtp-security"), "a-smtp-port", () => DEFAULT_PORTS.smtp);
+followPort($("a-security"), "a-port", () => DEFAULT_PORTS[protocol()], () => portTouched);
+followPort($("a-smtp-security"), "a-smtp-port", () => DEFAULT_PORTS.smtp, () => smtpPortTouched);
 $("a-port").addEventListener("input", showPorts);
 $("a-smtp-port").addEventListener("input", showPorts);
 $("a-smtp-auth").addEventListener("change", () => {
@@ -3398,6 +3728,7 @@ $("a-save").addEventListener("click", async () => {
     $("account-box").close();
     await invoke("check_mail").catch(() => {});
     status(`${config.address} ${editingImap ? "changed" : "added"}${editingImap ? "." : ": its mail is on the way (Check Mail started)."}`);
+    await askLocalOnlyForNew();
     await loadAccounts();
     renderSidebar();
     if ($("prefs").open) openPrefs();
@@ -3408,6 +3739,73 @@ $("a-save").addEventListener("click", async () => {
 
 $("a-cancel").addEventListener("click", () => $("account-box").close());
 $("p-add-account").addEventListener("click", () => openAccount());
+$("p-add-dav").addEventListener("click", () => addDav());
+
+/** Settings ▸ Accounts: the contacts and calendars servers (CardDAV / CalDAV), each with Remove. */
+async function renderDav() {
+  const list = await invoke("dav_accounts").catch(() => []);
+  const rows = list.map((c) => {
+    const row = document.createElement("div");
+    row.className = "p-find";
+    const what = [c.contacts ? "contacts" : "", c.calendars ? "calendars" : ""].filter(Boolean).join(" and ") || "nothing found yet";
+    const label = document.createElement("span");
+    label.textContent = `${c.address}: ${what} (CardDAV / CalDAV${c.server ? ", " + c.server : ""})`;
+    const remove = document.createElement("button");
+    remove.textContent = "Remove…";
+    remove.addEventListener("click", async () => {
+      if (!(await askYesNo(`Remove ${c.address}'s contacts and calendars?`, "They leave Eudora on this computer; the server keeps them, and adding the account again brings them back.", "Remove them"))) return;
+      await invoke("dav_remove", { address: c.address }).catch((e) => tell("Couldn't remove them", String(e)));
+      renderDav();
+    });
+    row.append(label, remove);
+    return row;
+  });
+  $("p-dav").replaceChildren(...rows);
+}
+
+/** Adds an account's contacts and calendars (CardDAV / CalDAV): finds the server, then saves. */
+async function addDav(address = "") {
+  const form = document.createElement("div");
+  form.className = "ask-form";
+  const field = (label, type, value, hint) => {
+    const l = document.createElement("label");
+    l.textContent = label;
+    const input = document.createElement("input");
+    input.type = type;
+    input.value = value;
+    if (hint) input.placeholder = hint;
+    l.append(input);
+    form.append(l);
+    return input;
+  };
+  const addressIn = field("Email address", "email", address, "you@example.com");
+  const passwordIn = field("Password", "password", "", "an app password for iCloud and Fastmail; empty: your mail password");
+  const serverIn = field("Server (if it can't be found)", "text", "", "e.g. https://dav.example.com");
+  const userIn = field("User name (if not the address)", "text", "", "");
+  const go = await ask({
+    title: "Add contacts and calendars",
+    text: "Eudora finds the server from your address (iCloud, Fastmail, Yahoo, and servers that publish theirs) and brings in your address books and calendars. Changes you make in Eudora go back to the server.",
+    content: form,
+    buttons: [{ label: "Cancel", value: false }, { label: "Find and add", value: true, primary: true }],
+  });
+  if (!go) return;
+  const args = { address: addressIn.value.trim(), server: serverIn.value.trim(), user: userIn.value.trim(), password: passwordIn.value || null };
+  status(`Looking for ${args.address}'s contacts and calendars…`);
+  try {
+    const found = await invoke("dav_save", args);
+    const books = found.books.map((b) => b.name).join(", ") || "none";
+    const calendars = found.calendar_list.map((c) => c.name).join(", ") || "none";
+    await invoke("check_mail").catch(() => {});
+    status(`${args.address}: contacts and calendars added.`);
+    await tell("Contacts and calendars added", `Address books: ${books}.\n\nCalendars: ${calendars}.\n\nThey come in with the next check, in a moment.`);
+    await askLocalOnlyForNew();
+    renderDav();
+  } catch (e) {
+    status("");
+    const again = await askYesNo("Couldn't add them", String(e), "Try again");
+    if (again) addDav(args.address);
+  }
+}
 // another Microsoft account beside the ones signed in (Microsoft lets you pick which in the browser)
 $("p-add-microsoft").addEventListener("click", async () => {
   const button = $("p-add-microsoft");
@@ -3490,6 +3888,58 @@ let refreshing = false;
  * (seconds on a large library), so startup asks for them after the mail is on screen.
  */
 /** An account just added: in the sidebar at once, under Accounts (opened), and said in the status bar. */
+/** Changes on the server for one account (`row`: one of local_only_get's): mail, calendar (with
+ * To Do), and contacts, each to the server or kept on this computer only. Only
+ * the services the account has are offered (POP3 has no mail switch: nothing to write back).
+ * `asking`: the question when an account is added (Cancel keeps everything going to the server,
+ * and it isn't asked again). Resolves true when something changed. */
+function editLocalOnly(row, asking) {
+  const box = $("local-box");
+  $("local-title").textContent = `Changes on the server: ${row.address}`;
+  for (const s of ["mail", "calendar", "contacts"]) {
+    $(`local-${s}-row`).hidden = !row.services.includes(s);
+    $(`local-${s}`).checked = !!row.local[s];
+  }
+  $("local-cancel").textContent = asking ? "Keep everything in step with the server" : "Cancel";
+  $("local-save").textContent = asking ? "Save these choices" : "Save";
+  return new Promise((resolve) => {
+    const done = async (save) => {
+      box.close();
+      const choice = { mail: $("local-mail").checked, calendar: $("local-calendar").checked, contacts: $("local-contacts").checked };
+      for (const s of ["mail", "calendar", "contacts"]) if (!row.services.includes(s)) choice[s] = !!row.local[s];
+      const changed = ["mail", "calendar", "contacts"].some((s) => choice[s] !== !!row.local[s]);
+      if (!save && !asking) return resolve(false);
+      const keep = save ? choice : row.local;
+      try {
+        const dropped = await invoke("local_only_set", { address: row.address, mail: !!keep.mail, calendar: !!keep.calendar, contacts: !!keep.contacts });
+        if (save && changed) {
+          const kept = row.services.filter((s) => keep[s]);
+          status(`${row.address}: ${kept.length ? `${kept.join(", ")} kept on this computer only` : "every change goes to the server again"}${dropped ? ` (${number.format(dropped)} changes that were waiting for the server were dropped; they stay in Eudora)` : ""}.`);
+        }
+        resolve(save && changed);
+      } catch (err) {
+        showError("Changes on the server", err);
+        resolve(false);
+      }
+    };
+    $("local-save").onclick = () => done(true);
+    $("local-cancel").onclick = () => done(false);
+    box.oncancel = (e) => { e.preventDefault(); done(false); };
+    box.showModal();
+    $(row.services.includes("mail") ? "local-mail" : row.services.includes("calendar") ? "local-calendar" : "local-contacts").focus();
+  });
+}
+
+/** Asks about each account added since the last time (once per account). The first time, the
+ * accounts already here count as asked. */
+async function askLocalOnlyForNew() {
+  try {
+    for (const row of await invoke("local_only_unasked")) await editLocalOnly(row, true);
+  } catch (err) {
+    console.warn("local-only", err);
+  }
+}
+
 async function showNewAccount(address) {
   try {
     state.folders = await invoke("folders");
@@ -3500,6 +3950,7 @@ async function showNewAccount(address) {
   state.open.add("#accounts");
   renderSidebar();
   status(`Added ${address}: its mail is coming in.`);
+  await askLocalOnlyForNew();
 }
 
 async function loadAccounts(quick = false) {
@@ -3588,10 +4039,29 @@ async function showDownload() {
 
 /** Catches up with mail a download or import has added: counts, new folders and accounts,
  * the open list's rows and the search index. The list only moves when it really changed. */
+/** A rule's Play Sound: its own sound file, else the new-mail sound. */
+async function playRuleSound(file) {
+  if (!file) { playNewMailSound(true); return; }
+  try {
+    const bytes = await invoke("sound_file", { path: file });
+    const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)]));
+    const audio = new Audio(url);
+    audio.addEventListener("ended", () => URL.revokeObjectURL(url));
+    await audio.play();
+  } catch (err) { showError("Playing a rule's sound", err); }
+}
+
 /** The rules' notices (their "notify" action): shown in the status bar, and listed on a click. */
 async function showNotices() {
   let found;
   try { found = await invoke("notices"); } catch { return; }
+  if (!found.length) return;
+  // rules' Speak and Play Sound (classic Eudora's): said and played here, in order
+  for (const n of found) {
+    if (n.speak) speak(n.speak, false);
+    if (n.sound !== undefined) playRuleSound(n.sound);
+  }
+  found = found.filter((n) => n.speak === undefined && n.sound === undefined);
   if (!found.length) return;
   state.notices = [...found, ...(state.notices || [])].slice(0, 50);
   const last = found[found.length - 1];
@@ -3655,6 +4125,14 @@ async function refresh(force = false) {
       if (total !== list.total) replaceRows(list, total);
     }
     if (added) status(undefined, `${number.format(added)} new in the last ${REFRESH_EVERY / 1000} s (updated ${timeFormat.format(new Date())})`);
+    // new mail in an Inbox of the user's own (not a shared mailbox's, not an imported archive's):
+    // the new-mail sound, and the news said to a screen reader
+    const own = new Set((state.accounts?.accounts || []).filter((a) => ["graph", "gmail", "imap", "pop3"].includes(a.kind)).map((a) => a.id));
+    const inbox = folders.reduce((n, f) => n + (f.path.toLowerCase() === "inbox" && own.has(f.account_id) ? Math.max(0, f.messages - (before.get(f.id) ?? f.messages)) : 0), 0);
+    if (inbox) {
+      playNewMailSound();
+      announce(`${number.format(inbox)} new ${inbox === 1 ? "message" : "messages"}.`);
+    }
     // the tray icon shows new mail until the window is looked at again
     if (added && !document.hasFocus()) invoke("tray_set", { newMail: true }).catch(() => {});
     // new mail: the lists kept ready are read again soon, so a click shows it
@@ -3700,6 +4178,45 @@ function setupSplitters() {
       document.addEventListener("mousemove", move);
       document.addEventListener("mouseup", up);
     });
+    // by keyboard too (WCAG 2.5.7: nothing only by dragging): Tab reaches it, the arrows move it
+    // (Shift: farther), Home / End to its limits; said as a separator with its place in percent
+    bar.tabIndex = 0;
+    bar.setAttribute("role", "separator");
+    const folders = bar.dataset.split === "folders";
+    bar.setAttribute("aria-label", folders ? "Width of the Mailboxes pane" : "Size of the message list");
+    const say = () => {
+      const beside = skin().reading === "right";
+      const value = folders ? Math.round(((sizes.folders - 140) / 460) * 100) : Math.round((beside ? sizes.listBeside : sizes.list) * 100);
+      bar.setAttribute("aria-orientation", folders || skin().reading === "right" ? "vertical" : "horizontal");
+      bar.setAttribute("aria-valuemin", "0");
+      bar.setAttribute("aria-valuemax", "100");
+      bar.setAttribute("aria-valuenow", String(value));
+    };
+    say();
+    bar.addEventListener("keydown", (e) => {
+      const beside = skin().reading === "right";
+      const sideways = folders || beside;
+      const step = e.shiftKey ? 5 : 1;
+      const dir = { ArrowRight: sideways ? 1 : 0, ArrowLeft: sideways ? -1 : 0, ArrowDown: sideways ? 0 : 1, ArrowUp: sideways ? 0 : -1 }[e.key];
+      if (folders) {
+        if (dir) sizes.folders = Math.min(600, Math.max(140, sizes.folders + dir * step * 10));
+        else if (e.key === "Home") sizes.folders = 140;
+        else if (e.key === "End") sizes.folders = 600;
+        else return;
+      } else {
+        const key = beside ? "listBeside" : "list";
+        const [lo, hi] = beside ? [0.18, 0.7] : [0.12, 0.85];
+        if (dir) sizes[key] = Math.min(hi, Math.max(lo, sizes[key] + dir * step * 0.02));
+        else if (e.key === "Home") sizes[key] = lo;
+        else if (e.key === "End") sizes[key] = hi;
+        else return;
+      }
+      e.preventDefault();
+      applySizes();
+      renderList();
+      store.set("sizes", sizes);
+      say();
+    });
   }
 }
 
@@ -3722,7 +4239,17 @@ function needMessage() {
   return s;
 }
 
+/** Shift or Ctrl held while clicking Reply or Reply to All (a toolbar button, a menu item, or
+ *  the message's own button): that reply quotes the other way than Settings ▸ Mail says
+ * . Noted on the way down to the button, used once by `compose`. */
+let swapQuoting = false;
+document.addEventListener("click", (e) => {
+  swapQuoting = !!(e.shiftKey || e.ctrlKey || e.metaKey) && !!e.target.closest?.('[data-act="reply"], [data-act="reply-all"]');
+}, true);
+
 async function compose(mode) {
+  const quoting = swapQuoting && (mode === "reply" || mode === "replyAll") ? "swap" : null;
+  swapQuoting = false;
   if (mode === "forward" && selectionCount() > 1) {
     const items = await selectedItems();
     if (items.length > 100 && !(await askYesNo("Forward many messages", `Forward ${number.format(items.length)} messages, each attached to one new message?`, "Forward them"))) return;
@@ -3732,7 +4259,7 @@ async function compose(mode) {
   const s = mode === "new" ? null : needMessage();
   if (mode !== "new" && !s) return;
   if (selectionCount() > 1) status("Replying to the message shown (several are selected).");
-  openComposer(mode, s ? s.row.id : null);
+  openComposer(mode, s ? s.row.id : null, null, quoting);
 }
 
 // ------------------------------------------------------------------ where a message is written
@@ -3778,11 +4305,12 @@ window.closeCompose = (id) => {
   if (c.place === "tab") document.body.classList.remove("composing-tab");
 };
 
-function composeFrame(id, mode, messageId, ids) {
+function composeFrame(id, mode, messageId, ids, quoting) {
   const frame = document.createElement("iframe");
   frame.className = "cw-frame";
   frame.dataset.compose = id;
-  frame.src = `compose.html?mode=${mode}&id=${messageId ?? ""}&ids=${(ids || []).join(",")}&frame=${id}`;
+  frame.title = "Writing a message";
+  frame.src = `compose.html?mode=${mode}&id=${messageId ?? ""}&ids=${(ids || []).join(",")}&frame=${id}${quoting ? `&quoting=${quoting}` : ""}`;
   return frame;
 }
 
@@ -3804,24 +4332,24 @@ function composeHeader(id, place) {
   return head;
 }
 
-async function openComposer(mode, messageId, ids = null) {
+async function openComposer(mode, messageId, ids = null, quoting = null) {
   // from a message window: written where the main window writes (inside it), or in a window of
   // its own when this one stands alone
   if (READER) {
-    if (READER_FRAME && window.parent.openComposer) { window.parent.openComposer(mode, messageId, ids); return; }
-    try { await invoke("open_compose", { mode, id: messageId, ids }); } catch (err) { showError("Opening a message window", err); }
+    if (READER_FRAME && window.parent.openComposer) { window.parent.openComposer(mode, messageId, ids, quoting); return; }
+    try { await invoke("open_compose", { mode, id: messageId, ids, quoting }); } catch (err) { showError("Opening a message window", err); }
     return;
   }
   const place = composePlace(mode);
   const single = place === "pane" || place === "tab";
   const busy = single && [...composers.values()].some((c) => c.place === place);
   if (place === "window" || busy) {
-    try { await invoke("open_compose", { mode, id: messageId, ids }); } catch (err) { showError("Opening a message window", err); }
+    try { await invoke("open_compose", { mode, id: messageId, ids, quoting }); } catch (err) { showError("Opening a message window", err); }
     return;
   }
   const id = `c${++composeCount}`;
   const box = el("div", `cw cw-${place}`);
-  const frame = composeFrame(id, mode, messageId, ids);
+  const frame = composeFrame(id, mode, messageId, ids, quoting);
   box.append(composeHeader(id, place), frame);
   composers.set(id, { box, frame, place });
   if (place === "inner") {
@@ -3894,6 +4422,7 @@ function openInnerReader(id, title) {
   const frame = document.createElement("iframe");
   frame.className = "cw-frame";
   frame.dataset.reader = key;
+  frame.title = `Message: ${title || "Message"}`;
   frame.src = `index.html?message=${id}&frame=${key}`;
   const button = (text, tip, act) => {
     const b = el("button", "cw-btn", text);
@@ -4354,7 +4883,7 @@ const VERBS = [
 const DOES = [
   ["transfer", "Transfer to"], ["copy", "Copy to"], ["delete", "Delete"], ["sort", "Sort with the spam filter"], ["stop", "Skip the rest"],
   ["label", "Label"], ["priority", "Priority"], ["status", "Status"], ["junk", "Junk (spam)"],
-  ["subject", "Change subject"], ["forward", "Forward to"], ["redirect", "Redirect to"], ["reply", "Reply with"], ["notify", "Notify me"], ["plugin", "Run a plugin"],
+  ["subject", "Change subject"], ["forward", "Forward to"], ["redirect", "Redirect to"], ["reply", "Reply with"], ["notify", "Notify me"], ["speak", "Speak"], ["sound", "Play a sound"], ["plugin", "Run a plugin"],
 ];
 
 const filters = { rules: [], at: -1 };
@@ -4454,6 +4983,8 @@ function renderEditor() {
       if (["forward", "redirect"].includes(next.do)) next.to = "";
       if (next.do === "reply") next.with = "";
       if (next.do === "plugin") { next.plugin = ""; next.command = ""; }
+      if (next.do === "speak") { next.who = true; next.subject = true; }
+      if (next.do === "sound") next.file = "";
       r.actions[i] = next;
       renderEditor();
     });
@@ -4499,6 +5030,20 @@ function renderEditor() {
       text(a.to, "To (addresses)", (v) => { a.to = v; }, "Sent at once through the Out mailbox; never for automatic, bulk or list mail");
     } else if (a.do === "reply") {
       text(a.with, "Reply text, or a classic stationery file", (v) => { a.with = v; }, "At most one reply a day to the same sender; never to automatic, bulk or list mail");
+    } else if (a.do === "speak") {
+      // classic Eudora's Speak: who it's from and / or its subject, with the speech chosen in
+      // Settings ▸ General ▸ Speech
+      choose([["both", "who it's from and its subject"], ["who", "who it's from"], ["subject", "its subject"]], a.who && a.subject ? "both" : a.who ? "who" : "subject", (v) => { a.who = v !== "subject"; a.subject = v !== "who"; });
+    } else if (a.do === "sound") {
+      const b = el("button", "f-folder", a.file ? a.file.split(/[\\/]/).pop() : "The new-mail sound");
+      b.title = a.file || "The sound chosen in Settings ▸ General ▸ New mail sound; click for a sound file of your own";
+      b.addEventListener("click", async () => {
+        let chosen;
+        try { chosen = await invoke("pick_paths", { what: "file", title: "A sound for this rule", kind: "sound" }); } catch { /* (canceled) */ }
+        a.file = chosen?.[0] || "";
+        renderEditor();
+      });
+      row.append(b);
     } else if (a.do === "plugin") {
       const actions = state.plugins.flatMap((p) => p.manifest.rule_actions.map((c) => [`${p.manifest.id}|${c.id}`, `${p.manifest.name}: ${c.title}`]));
       const now = a.plugin ? `${a.plugin}|${a.command}` : "";
@@ -4695,6 +5240,7 @@ document.addEventListener("mousedown", (e) => {
 }, true);
 
 function selectAll() {
+  if (state.contactsOn && !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) { selectAllContacts(); return; }
   const writing = activeComposer();
   if (writing) { writing.contentWindow.composeAction?.("select-all"); return; }
   const f = document.activeElement;
@@ -5347,6 +5893,8 @@ function printMessage() {
   $("print-frame")?.remove();
   const frame = document.createElement("iframe");
   frame.id = "print-frame";
+  frame.setAttribute("aria-hidden", "true");
+  frame.tabIndex = -1;
   frame.setAttribute("sandbox", "allow-same-origin allow-modals");
   frame.style.cssText = "position: fixed; width: 0; height: 0; border: 0; left: -9999px";
   frame.srcdoc = m.html ? sandboxed(m.html) : `<!doctype html><meta charset="utf-8"><pre style="white-space: pre-wrap; font: 13px 'Segoe UI', sans-serif">${esc(m.text || "")}</pre>`;
@@ -5410,6 +5958,116 @@ $("im-go").addEventListener("click", async () => {
   } catch (err) { showError("Importing", err); }
 });
 
+
+// ------------------------------------------------------------------ Export to Classic Eudora
+
+/** File ▸ Export ▸ Classic Eudora…: a folder classic Eudora 7 opens (a job: only reads the library). */
+/** The mailboxes, grouped as the sidebar shows them and in name order. */
+async function openExportClassic() {
+  $("ec-progress").hidden = true;
+  const list = $("ec-accounts");
+  list.replaceChildren();
+  try { if (!state.accounts) await loadAccounts(true); } catch {}
+  const all = state.accounts?.accounts || [];
+  const name = (a) => a.label || a.address || a.name || "";
+  // (a CardDAV / CalDAV account holds no mail)
+  const mail = all.filter((a) => a.kind !== "dav");
+  const servers = ["graph", "gmail", "imap", "pop3"];
+  const groups = [
+    ["Your accounts", mail.filter((a) => servers.includes(a.kind))],
+    ["Shared mailboxes", mail.filter((a) => a.kind === "graph-shared")],
+    ["Mail imported from files", mail.filter((a) => a.kind !== "graph-shared" && !servers.includes(a.kind))],
+  ].filter(([, members]) => members.length);
+  const one = mail.length === 1;
+  for (const [title, members] of groups) {
+    const group = el("div", "ec-group");
+    group.setAttribute("role", "group");
+    const head = el("div", "ec-group-title", title);
+    head.id = `ec-g-${title.replace(/\W+/g, "-")}`;
+    group.setAttribute("aria-labelledby", head.id);
+    group.append(head);
+    for (const a of [...members].sort((x, y) => name(x).localeCompare(name(y), undefined, { sensitivity: "base" }))) {
+      const label = el("label", "p-row");
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = one;
+      box.value = String(a.id);
+      box.addEventListener("change", ecReady);
+      const shown = a.label && a.address && a.label !== a.address ? `${a.label} (${a.address})` : name(a);
+      label.append(box, ` ${shown} · ${a.kind_name}${a.messages != null ? ` · ${number.format(a.messages)} messages` : ""}`);
+      group.append(label);
+    }
+    list.append(group);
+  }
+  if (!$("ec-dest").value) {
+    try { $("ec-dest").value = (await invoke("classic_mirror")).suggested; } catch {}
+  }
+  ecReady();
+  $("export-classic-box").showModal();
+  (one ? $("ec-dest") : list.querySelector("input[type=checkbox]") || $("ec-dest")).focus();
+}
+/** Export works only once a mailbox is ticked and a folder named. */
+function ecReady() {
+  const ticked = $("ec-accounts").querySelector("input[type=checkbox]:checked");
+  $("ec-none").hidden = !!ticked;
+  $("ec-go").disabled = !ticked || !$("ec-dest").value.trim();
+}
+$("ec-dest").addEventListener("input", ecReady);
+$("ec-cancel").addEventListener("click", () => $("export-classic-box").close());
+$("ec-stop").addEventListener("click", () => invoke("job_cancel"));
+$("ec-go").addEventListener("click", async () => {
+  const boxes = [...$("ec-accounts").querySelectorAll("input[type=checkbox]")];
+  const chosen = boxes.filter((b) => b.checked).map((b) => Number(b.value));
+  if (!chosen.length) { ecReady(); return; }
+  const dest = $("ec-dest").value.trim();
+  try {
+    await invoke("export_classic", {
+      dest: $("ec-dest").value,
+      // (every account ticked = every account, including ones added later in the copy kept current)
+      accounts: chosen.length === boxes.length ? [] : chosen,
+      rules: $("ec-rules").checked,
+      contacts: $("ec-contacts").checked,
+    });
+    followJob("ec", async (j) => {
+      ecReady();
+      if (j.failed) return;
+      const open = await ask({
+        title: "Export successful",
+        text: j.result || `Exported to classic Eudora in ${dest}.`,
+        buttons: [{ label: "Close", value: false }, { label: "Open Folder", value: true, primary: true }],
+      });
+      if (open) invoke("open_folder", { path: dest }).catch((err) => showError("Opening the folder", err));
+    });
+  } catch (err) { showError("Exporting to classic Eudora", err); }
+});
+
+/** Settings ▸ Library ▸ Keep a classic Eudora copy current: how it's set. */
+async function showClassicMirror() {
+  try {
+    const v = await invoke("classic_mirror");
+    $("p-classic-on").checked = !!v.settings.on;
+    $("p-classic-folder").value = v.settings.folder || v.suggested;
+    $("p-classic-state").textContent = v.settings.on
+      ? `Kept current in ${v.settings.folder}. New mail goes there within minutes; Tools ▸ Activity shows how it's going.`
+      : "Off.";
+  } catch {}
+}
+async function saveClassicMirror() {
+  const on = $("p-classic-on").checked;
+  try {
+    const s = await invoke("classic_mirror_set", { on, folder: $("p-classic-folder").value, accounts: [] });
+    $("p-classic-state").textContent = s.on
+      ? `Kept current in ${s.folder}. The first copy is written a batch at a time in the background (Tools ▸ Activity shows how far it is). Changes made in classic Eudora don't come back.`
+      : "Off. The classic folder stays as it is.";
+    status(s.on ? "A classic Eudora copy is kept current." : "The classic Eudora copy is no longer kept current.");
+  } catch (err) {
+    $("p-classic-on").checked = false;
+    $("p-classic-state").textContent = "Off.";
+    showError("Keep a classic Eudora copy current", err);
+  }
+}
+$("p-classic-on").addEventListener("change", saveClassicMirror);
+$("p-classic-folder").addEventListener("change", () => { if ($("p-classic-on").checked) saveClassicMirror(); });
 /** File ▸ Open File: mailbox or message files, brought in under Imports (classic's Open). */
 async function openFile() {
   let chosen;
@@ -5647,6 +6305,27 @@ $("ac-grip").addEventListener("mousedown", (e) => {
   window.addEventListener("mousemove", move);
   window.addEventListener("mouseup", up);
 });
+// its height by keyboard too (WCAG 2.5.7): ↑ taller, ↓ shorter (Shift: more), Home / End
+(() => {
+  const grip = $("ac-grip");
+  grip.tabIndex = 0;
+  grip.setAttribute("role", "separator");
+  grip.setAttribute("aria-orientation", "horizontal");
+  grip.setAttribute("aria-label", "Height of the Activity panel");
+  grip.addEventListener("keydown", (e) => {
+    const dock = $("activity-box");
+    const most = window.innerHeight - 200;
+    const now = dock.offsetHeight;
+    const step = e.shiftKey ? 80 : 20;
+    const to = { ArrowUp: now + step, ArrowDown: now - step, Home: 120, End: most }[e.key];
+    if (to === undefined) return;
+    e.preventDefault();
+    const h = Math.max(120, Math.min(most, to));
+    dock.style.height = `${h}px`;
+    store.set("activityHeight", h);
+    announce(`Activity ${h} pixels tall`);
+  });
+})();
 
 // ---- a job's details
 const details = { job: null, before: null };
@@ -6334,7 +7013,7 @@ $("trash-go").addEventListener("click", async () => {
 
 // ------------------------------------------------------------------ the Address Book
 
-const ab = { rows: [], at: null, timer: 0 };
+const ab = { rows: [], at: null, timer: 0, sel: new Set(), anchor: null, dupes: false };
 const CARD_KINDS = { work: "Work", home: "Home", mobile: "Mobile", fax: "Fax", other: "" };
 
 /** Back to the mail (or another page) from Contacts. */
@@ -6370,8 +7049,7 @@ async function openAddressBook(account) {
 }
 
 /** The address book shown at once from the last copy (this session's, else the last start's),
- *  filtered here as you type; the fresh copy read in the background replaces it (user
- *  2026-10-20: "it should use the last cached copy then look for updates"). */
+ *  filtered here as you type; the fresh copy read in the background replaces it. */
 const abCache = new Map(); // account id or "all" → rows
 const abFresh = new Map(); // account id or "all" → when last read
 function abFilter(rows, query) {
@@ -6442,7 +7120,7 @@ function renderAddressBook(rows) {
   $("ab-empty").hidden = ab.rows.length > 0 || !!$("ab-find").value.trim();
   const byLast = $("ab-sort").value === "last";
   $("ab-list").replaceChildren(...ab.rows.slice(0, 3000).map((r) => {
-    const row = el("div", `ab-row${r.id === ab.at ? " on" : ""}`);
+    const row = el("div", `ab-row${ab.sel.size > 1 ? (ab.sel.has(r.id) ? " on" : "") : r.id === ab.at ? " on" : ""}`);
     row.dataset.id = r.id;
     const c = r.card;
     // the name (last name first when sorted so),
@@ -6454,17 +7132,517 @@ function renderAddressBook(rows) {
     if (job) row.append(el("div", "ab-sub", job));
     const reach = [c.emails[0]?.value, c.phones[0]?.value].filter(Boolean).join(" · ");
     if (reach) row.append(el("div", "ab-sub", reach));
+    row.id = `ab-${r.id}`;
+    row.setAttribute("role", "option");
+    row.setAttribute("aria-label", [name, job, c.emails[0]?.value, c.phones[0]?.value, r.account_address && `in ${r.account_address}`].filter(Boolean).join(", "));
     row.title = [r.shown, job, ...c.emails.map((e) => e.value), ...c.phones.map((p) => `${CARD_KINDS[p.kind] ? `${CARD_KINDS[p.kind]}: ` : ""}${p.value}`), r.account_address && `In ${r.account_address}${r.book ? ` › ${r.book}` : ""}`].filter(Boolean).join("\n");
-    row.addEventListener("click", () => showCard(r));
+    row.addEventListener("click", (e) => pickContact(r, e));
     return row;
   }));
+  // (several chosen: those still shown stay chosen)
+  const shown = new Set(ab.rows.map((r) => r.id));
+  ab.sel = new Set([...ab.sel].filter((id) => shown.has(id)));
+  if (ab.dupes) return; // (Find Duplicates stays in the pane until a contact is clicked)
+  if (ab.sel.size > 1) { showChosenContacts(); return; }
   const current = ab.rows.find((r) => r.id === ab.at) || ab.rows[0];
   if (current) showCard(current); else $("ab-card").replaceChildren(el("p", "p-note", ab.rows.length ? "Choose a contact." : ""));
+}
+
+/** A click on a contact: one (shown), Ctrl adds or takes it out, Shift a run from the last one
+ *  clicked. */
+function pickContact(r, e) {
+  ab.dupes = false;
+  if (e.ctrlKey || e.metaKey) {
+    if (!ab.sel.size && ab.at != null) ab.sel.add(ab.at);
+    if (ab.sel.has(r.id)) ab.sel.delete(r.id); else ab.sel.add(r.id);
+    ab.anchor = r.id;
+  } else if (e.shiftKey && ab.anchor != null) {
+    const ids = ab.rows.map((x) => x.id);
+    const [a, b] = [ids.indexOf(ab.anchor), ids.indexOf(r.id)].sort((x, y) => x - y);
+    if (a >= 0) ab.sel = new Set(ids.slice(a, b + 1));
+  } else {
+    ab.sel = new Set([r.id]);
+    ab.anchor = r.id;
+  }
+  for (const row of $("ab-list").children) row.classList.toggle("on", ab.sel.has(Number(row.dataset.id)));
+  abAria();
+  if (ab.sel.size > 1) showChosenContacts();
+  else if (ab.sel.size === 1) showCard(ab.rows.find((x) => x.id === [...ab.sel][0]) || r);
+  else $("ab-card").replaceChildren(el("p", "p-note", "Choose a contact."));
+}
+
+/** The contacts for a screen reader: which are chosen, which has the keyboard. */
+function abAria() {
+  const list = $("ab-list");
+  for (const row of list.children) {
+    const id = Number(row.dataset.id);
+    row.setAttribute("aria-selected", String(ab.sel.size > 1 ? ab.sel.has(id) : id === ab.at));
+  }
+  const at = ab.anchor ?? ab.at;
+  if (at != null && $(`ab-${at}`)) list.setAttribute("aria-activedescendant", `ab-${at}`);
+}
+
+// the contacts by keyboard: ↑ ↓ Home End move (Shift: choose a run), Ctrl+A all, Enter to the
+// card, Delete deletes the one shown, typing a name jumps to it
+const abTyped = { text: "", at: 0 };
+$("ab-list").addEventListener("keydown", (e) => {
+  if (!ab.rows.length) return;
+  const ids = ab.rows.map((r) => r.id);
+  const now = ids.indexOf(ab.anchor ?? ab.at ?? ids[0]);
+  const page = 10;
+  const to = { ArrowDown: now + 1, ArrowUp: now - 1, PageDown: now + page, PageUp: now - page, Home: 0, End: ids.length - 1 }[e.key];
+  if (to !== undefined) {
+    const r = ab.rows[Math.max(0, Math.min(ids.length - 1, to))];
+    pickContact(r, { shiftKey: e.shiftKey, ctrlKey: false, metaKey: false });
+    if (!e.shiftKey) ab.anchor = r.id;
+    abAria();
+    $(`ab-${r.id}`)?.scrollIntoView({ block: "nearest" });
+  } else if (e.key.toLowerCase() === "a" && (e.ctrlKey || e.metaKey)) {
+    selectAllContacts();
+  } else if (e.key === "Enter") {
+    $("ab-card").querySelector("button, a")?.focus();
+  } else if (e.key.length === 1 && /\S/.test(e.key) && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    const t = Date.now();
+    abTyped.text = t - abTyped.at > 1000 ? e.key : abTyped.text + e.key;
+    abTyped.at = t;
+    const want = abTyped.text.toLowerCase();
+    const found = ab.rows.find((r, i) => i > (abTyped.text.length === 1 ? now : now - 1) && (r.shown || "").toLowerCase().startsWith(want)) || ab.rows.find((r) => (r.shown || "").toLowerCase().startsWith(want));
+    if (found) { pickContact(found, {}); ab.anchor = found.id; abAria(); $(`ab-${found.id}`)?.scrollIntoView({ block: "nearest" }); }
+  } else return;
+  e.preventDefault();
+});
+
+/** Ctrl+A in the Address Book: every contact shown. */
+function selectAllContacts() {
+  ab.sel = new Set(ab.rows.map((r) => r.id));
+  for (const row of $("ab-list").children) row.classList.add("on");
+  if (ab.sel.size > 1) showChosenContacts();
+}
+
+/** Several contacts chosen: how many, from where, and what can be done with them. */
+function showChosenContacts() {
+  const chosen = ab.rows.filter((r) => ab.sel.has(r.id));
+  const box = $("ab-card");
+  box.replaceChildren(el("h3", "", `${number.format(chosen.length)} contacts chosen`));
+  const from = new Map();
+  for (const r of chosen) from.set(r.account_address, (from.get(r.account_address) || 0) + 1);
+  for (const [address, n] of from) box.append(el("div", "ab-what", `${number.format(n)} from ${address}`));
+  box.append(el("p", "p-note", chosen.slice(0, 12).map((r) => r.shown || "(no name)").join(", ") + (chosen.length > 12 ? `, and ${number.format(chosen.length - 12)} more` : "")));
+  const tools = el("div", "ab-tools");
+  const go = el("button", "", "Move or Copy…");
+  go.title = "Put these contacts into another account's address book";
+  go.addEventListener("click", () => moveContacts(chosen));
+  const clear = el("button", "", "Clear the choice");
+  clear.addEventListener("click", () => {
+    ab.sel.clear();
+    for (const row of $("ab-list").children) row.classList.remove("on");
+    const first = ab.rows.find((r) => r.id === ab.at) || ab.rows[0];
+    if (first) showCard(first);
+  });
+  const merge = el("button", "", "Merge…");
+  merge.title = "Make these contacts one (nothing any of them holds is lost)";
+  merge.addEventListener("click", () => mergeContacts(chosen));
+  tools.append(go, merge, clear);
+  box.append(tools, el("p", "p-note", "Ctrl+click adds or takes out one, Shift+click a run, Ctrl+A every contact shown."));
+}
+
+/** The accounts a contact can go into (empty ones too) and the one a new contact starts in. */
+async function contactTargets() {
+  return invoke("card_targets").catch(() => ({ targets: [], new_in: null }));
+}
+
+function targetLabel(t) {
+  return `${t.address} (${t.service}${t.count ? `, ${number.format(t.count)} contacts` : ", empty"})`;
+}
+
+/** Move or Copy contacts into another account's address book, asking where and how, then
+ *  confirming. */
+async function moveContacts(rows) {
+  if (!rows.length) return;
+  const { targets } = await contactTargets();
+  const fromAccounts = new Set(rows.map((r) => r.account));
+  const places = targets.filter((t) => !(fromAccounts.size === 1 && fromAccounts.has(t.account)));
+  if (!places.length) {
+    tell("No other address book", "Contacts can go into a Microsoft 365, Outlook.com, Google, or CardDAV address book. Add one in Settings ▸ Accounts.");
+    return;
+  }
+  const form = el("div", "ask-form");
+  const to = el("select");
+  for (const t of places) { const o = el("option", "", targetLabel(t)); o.value = String(t.account); to.append(o); }
+  const toLabel = el("label", "", "Into ");
+  toLabel.append(to);
+  const how = el("div");
+  const radio = (value, text, on) => {
+    const l = el("label", "");
+    const i = el("input");
+    i.type = "radio"; i.name = "ab-how"; i.value = value; i.checked = on;
+    l.append(i, ` ${text}`);
+    how.append(l, el("br"));
+    return i;
+  };
+  const moveIn = radio("move", "Move: take them out of where they are now", true);
+  radio("copy", "Copy: keep them where they are too", false);
+  const skipLabel = el("label", "");
+  const skip = el("input");
+  skip.type = "checkbox"; skip.checked = true;
+  skipLabel.append(skip, " Leave out contacts already in that account (an email address in common)");
+  form.append(toLabel, how, skipLabel);
+  const n = rows.length;
+  const what = n === 1 ? rows[0].shown || "this contact" : `${number.format(n)} contacts`;
+  const go = await ask({
+    title: `Move or copy ${what}`,
+    text: "They're added to that account's address book here at once, and on its server with the next check.",
+    content: form,
+    buttons: [{ label: "Cancel", value: false }, { label: "Continue…", value: true, primary: true }],
+  });
+  if (!go) return;
+  const target = places.find((t) => t.account === Number(to.value));
+  const moving = moveIn.checked;
+  const from = [...new Set(rows.map((r) => r.account_address))].join(", ");
+  const ok = await askYesNo(
+    `${moving ? "Move" : "Copy"} ${what} to ${target.address}?`,
+    `${moving ? "Moving" : "Copying"} ${what} from ${from} into ${target.address}'s “${target.book_name}” address book.` +
+      (moving ? ` Each is deleted from ${from} once it's copied (the server keeps deleted contacts for a while, and Eudora keeps a copy of each as it was).` : " They stay where they are too.") +
+      (skip.checked ? " Contacts already in that account are left out." : " Contacts already in that account get a second copy.") +
+      " Photos and fields Eudora doesn't edit aren't carried over.",
+    moving ? `Move ${n === 1 ? "it" : number.format(n)}` : `Copy ${n === 1 ? "it" : number.format(n)}`,
+  );
+  if (!ok) return;
+  try {
+    const done = await invoke("cards_copy", { ids: rows.map((r) => r.id), account: target.account, moveThem: moving, skipExisting: skip.checked });
+    const parts = [];
+    if (done.moved) parts.push(`${number.format(done.moved)} moved`);
+    if (done.copied) parts.push(`${number.format(done.copied)} copied`);
+    if (done.skipped) parts.push(`${number.format(done.skipped)} already there, left out`);
+    if (done.failed.length) parts.push(`${number.format(done.failed.length)} couldn't be (${done.failed[0][1]})`);
+    status(`Contacts to ${target.address}: ${parts.join(", ") || "nothing to do"}. They reach the server with the next check.`);
+    ab.sel.clear();
+    await loadAddressBook(true);
+    loadCardCounts();
+  } catch (err) { showError("Moving the contacts", err); }
+}
+
+// ---- merging duplicates
+
+/** What a merge does, account by account: which contact becomes the merged one, how many
+ *  copies are deleted. */
+function mergePlan(rows, keep) {
+  const byAccount = new Map();
+  for (const r of rows) {
+    if (!byAccount.has(r.account)) byAccount.set(r.account, []);
+    byAccount.get(r.account).push(r);
+  }
+  return [...byAccount.values()].map((here) => {
+    const keeper = here.find((r) => r.id === keep) || here[0];
+    const extra = here.length - 1;
+    return `In ${keeper.account_address}: “${keeper.shown || "(no name)"}” becomes the merged contact${extra ? `, and ${extra === 1 ? "the other copy is" : `${extra} other copies are`} deleted` : ""}.`;
+  });
+}
+
+/** The single-value fields a merge chooses between, and their names. */
+const MERGE_FIELDS = [
+  ["name", "Name shown"], ["prefix", "Before the name (Dr., Ms.)"], ["given", "First name"], ["middle", "Middle name"],
+  ["family", "Last name"], ["suffix", "After the name (Jr., PhD)"], ["nickname", "Nickname"], ["company", "Company"],
+  ["department", "Department"], ["title", "Job title"], ["birthday", "Birthday"],
+];
+const mergeSame = (s) => String(s || "").split(/\s+/).filter(Boolean).join(" ").toLowerCase();
+
+/** A field's different values among the contacts: [{value, from: [names]}], the same text in
+ *  other capitals or spacing counted once; empty values left out. */
+function mergeValues(rows, field) {
+  const out = [];
+  for (const r of rows) {
+    const v = String(r.card[field] || "").trim();
+    if (!v) continue;
+    const there = out.find((o) => mergeSame(o.value) === mergeSame(v));
+    const from = `${r.shown || "(no name)"} (${r.account_address})`;
+    if (there) there.from.push(from); else out.push({ value: v, from: [from] });
+  }
+  return out;
+}
+
+/** The fields where the contacts differ (as the core's `card_differences`). */
+function mergeDifferences(rows) {
+  return [...MERGE_FIELDS.map(([f]) => f), "notes"].filter((f) => mergeValues(rows, f).length > 1);
+}
+
+/** Merge contacts. What they share, and what only one has, merges by itself; each
+ *  field that differs offers its values to choose, with the choice editable; every address,
+ *  number, website, and category is listed ticked, to untick any not wanted. Then what happens
+ *  in each account, asked once more. Returns true when merged. */
+async function mergeContacts(rows, possible = false) {
+  if (rows.length < 2) { tell("Merge contacts", "Choose two contacts or more to merge (Ctrl+click adds one)."); return false; }
+  const ids = rows.map((r) => r.id);
+  // (chosen by hand: no email address or phone number in common = maybe not the same person)
+  if (!possible) {
+    const seen = new Set();
+    let shared = false;
+    for (const r of rows) {
+      const keys = new Set([
+        ...r.card.emails.map((e) => `e:${e.value.trim().toLowerCase()}`),
+        ...r.card.phones.map((p) => p.value.replace(/\D/g, "")).filter((d) => d.length >= 7).map((d) => `p:${d.slice(-10)}`),
+      ]);
+      for (const k of keys) { if (seen.has(k)) shared = true; }
+      for (const k of keys) seen.add(k);
+    }
+    possible = !shared;
+  }
+  // the fullest contact keeps its place in its account (and leads where nothing is chosen)
+  const filled = (c) => Object.values(c).reduce((n, v) => n + (Array.isArray(v) ? v.length : String(v || "").trim() ? 1 : 0), 0);
+  const keep = rows.reduce((best, r) => (filled(r.card) > filled(best.card) ? r : best), rows[0]).id;
+  let base;
+  try { base = await invoke("cards_merge_preview", { ids, keep }); } catch (err) { showError("Merging the contacts", err); return false; }
+  const form = el("div", "ask-form ab-mergeform");
+  if (possible) form.append(el("p", "ab-warn", "These contacts share only a name: no email address or phone number. Merge them only if you know they're the same person."));
+  const pick = {}; // field → () => the value chosen
+  const auto = [];
+  let n = 0;
+  for (const [field, label] of MERGE_FIELDS) {
+    const values = mergeValues(rows, field);
+    if (values.length === 0) { pick[field] = () => ""; continue; }
+    if (values.length === 1) { auto.push(`${label}: ${values[0].value}`); pick[field] = () => values[0].value; continue; }
+    // a choice: one radio per value (where it came from in its label), and the box to edit it
+    const set = el("fieldset", "ab-choice");
+    set.append(el("legend", "", `${label}: they differ`));
+    const box = el("input");
+    box.type = "text";
+    box.value = (values.find((v) => mergeSame(v.value) === mergeSame(base[field])) || values[0]).value;
+    const group = `ab-m-${field}`;
+    for (const v of values) {
+      const l = el("label", "ab-opt");
+      const i = el("input");
+      i.type = "radio"; i.name = group; i.checked = v.value === box.value;
+      i.addEventListener("change", () => { if (i.checked) box.value = v.value; });
+      l.append(i, ` ${v.value}`, el("span", "ab-from", ` from ${v.from.join(", ")}`));
+      set.append(l);
+    }
+    const none = el("label", "ab-opt");
+    const ni = el("input");
+    ni.type = "radio"; ni.name = group;
+    ni.addEventListener("change", () => { if (ni.checked) box.value = ""; });
+    none.append(ni, " None (leave it empty)");
+    set.append(none);
+    const edit = el("label", "ab-edit", "Keep: ");
+    box.setAttribute("aria-label", `${label} to keep (you can edit it)`);
+    edit.append(box);
+    set.append(edit);
+    form.append(set);
+    pick[field] = () => box.value.trim();
+    n++;
+  }
+  // notes: each different one ticked, all of them kept together unless unticked; editable
+  const notes = mergeValues(rows, "notes");
+  let notesOf = () => notes.map((v) => v.value).join("\n\n");
+  if (notes.length === 1) auto.push("Notes: kept");
+  if (notes.length > 1) {
+    const set = el("fieldset", "ab-choice");
+    set.append(el("legend", "", "Notes: they differ (the ones ticked are kept, one after another)"));
+    const area = el("textarea");
+    area.rows = 4;
+    area.setAttribute("aria-label", "Notes to keep (you can edit them)");
+    const ticks = notes.map((v) => {
+      const l = el("label", "ab-opt");
+      const t = el("input");
+      t.type = "checkbox"; t.checked = true;
+      l.append(t, ` ${v.value.length > 80 ? `${v.value.slice(0, 80)}…` : v.value}`, el("span", "ab-from", ` from ${v.from.join(", ")}`));
+      set.append(l);
+      return [t, v.value];
+    });
+    const fill = () => { area.value = ticks.filter(([t]) => t.checked).map(([, v]) => v).join("\n\n"); };
+    for (const [t] of ticks) t.addEventListener("change", fill);
+    fill();
+    set.append(area);
+    form.append(set);
+    notesOf = () => area.value.trim();
+    n++;
+  }
+  // lists: every value of every contact, each once, ticked
+  const lists = [
+    ["emails", "Email addresses", (e) => e.value],
+    ["phones", "Phone numbers", (p) => `${CARD_KINDS[p.kind] ? `${CARD_KINDS[p.kind]}: ` : ""}${p.value}`],
+    ["addresses", "Addresses", (a) => [a.street, a.city, a.region, a.postal_code, a.country].filter(Boolean).join(", ")],
+    ["websites", "Websites", (w) => w],
+    ["categories", "Categories", (c) => c],
+  ];
+  const kept = {};
+  const listsBox = el("fieldset", "ab-choice");
+  listsBox.append(el("legend", "", "Kept from all of them (untick any you don't want)"));
+  let anyList = false;
+  for (const [field, label, show] of lists) {
+    const items = base[field] || [];
+    if (!items.length) { kept[field] = () => []; continue; }
+    anyList = true;
+    listsBox.append(el("div", "ab-sub", label));
+    const ticks = items.map((item) => {
+      const l = el("label", "ab-opt");
+      const t = el("input");
+      t.type = "checkbox"; t.checked = true;
+      l.append(t, ` ${show(item)}`);
+      listsBox.append(l);
+      return [t, item];
+    });
+    kept[field] = () => ticks.filter(([t]) => t.checked).map(([, item]) => item);
+  }
+  if (anyList) form.append(listsBox);
+  if (auto.length) {
+    const same = el("details", "ab-auto");
+    same.append(el("summary", "", `Merged by itself (the same, or only one has it): ${auto.length} ${auto.length === 1 ? "field" : "fields"}`));
+    for (const a of auto) same.append(el("div", "ab-sub", a));
+    form.append(same);
+  }
+  const plan = mergePlan(rows, keep);
+  form.append(el("p", "p-note", plan.join(" ")));
+  const go = await ask({
+    title: `Merge ${number.format(rows.length)} contacts`,
+    text: n ? `${n === 1 ? "One field differs" : `${n} fields differ`}: choose what the merged contact keeps (and edit it if you like). Everything they have in common, and what only one of them has, is merged by itself.` : "They don't differ anywhere: everything merges by itself. Untick any address or number you don't want.",
+    content: form,
+    buttons: [{ label: "Cancel", value: false }, { label: "Merge…", value: true, primary: true }],
+  });
+  if (!go) return false;
+  const card = { ...base };
+  for (const [field] of MERGE_FIELDS) card[field] = pick[field]();
+  card.notes = notesOf();
+  for (const [field] of lists) card[field] = kept[field]();
+  if (!(await askYesNo(
+    `Merge ${number.format(rows.length)} contacts into one?`,
+    `${plan.join(" ")} The changes reach the servers with the next check. Eudora keeps every contact as it was, so Find Duplicates ▸ Recent merges can undo it.`,
+    "Merge them",
+  ))) return false;
+  try {
+    const done = await invoke("cards_merge", { ids, keep, card });
+    status(`Merged ${number.format(rows.length)} contacts: ${number.format(done.updated)} kept as the merged contact, ${number.format(done.deleted)} deleted${done.failed.length ? `, ${number.format(done.failed.length)} left as they were (${done.failed[0][1]})` : ""}. Undo it from Find Duplicates.`);
+    ab.sel.clear();
+    ab.at = keep;
+    await loadAddressBook(true);
+    loadCardCounts();
+    return true;
+  } catch (err) { showError("Merging the contacts", err); return false; }
+}
+
+/** Find Duplicates: every set of contacts that look like one person, with why, each to merge
+ *  (or every set at once), and the recent merges to undo. Shown in the contact pane. */
+async function showDuplicates() {
+  ab.dupes = true;
+  const box = $("ab-card");
+  box.replaceChildren(el("h3", "", "Duplicate contacts"), el("p", "p-note", "Looking…"));
+  const account = $("ab-account").value ? Number($("ab-account").value) : null;
+  let groups, merges;
+  try {
+    [groups, merges] = await Promise.all([invoke("card_duplicates", { account }), invoke("card_merges").catch(() => [])]);
+  } catch (err) { showError("Finding duplicate contacts", err); return; }
+  box.replaceChildren(el("h3", "", "Duplicate contacts"));
+  const sure = groups.filter((g) => !g.possible);
+  const maybe = groups.filter((g) => g.possible);
+  box.append(el("p", "p-note", sure.length
+    ? `${number.format(sure.length)} ${sure.length === 1 ? "set" : "sets"} of contacts share an email address or phone number${account ? " in this account" : ""}. Untick any that aren't the same person, then Merge.`
+    : `No duplicates${account ? " in this account" : ""}: no two contacts share an email address or a phone number.`));
+  const sets = [];
+  const easy = sure.filter((g) => !g.differences.length).length;
+  if (easy > 1) {
+    const all = el("button", "", `Merge All ${number.format(easy)} Sets That Don't Differ…`);
+    all.title = "Sets whose contacts hold no different values merge by themselves; sets that differ wait for your choices";
+    all.addEventListener("click", () => mergeAllDuplicates(sets));
+    const tools = el("div", "ab-tools");
+    tools.append(all);
+    box.append(tools);
+  }
+  for (const g of groups) {
+    if (g === maybe[0]) {
+      box.append(el("h4", "", "Maybe the same person: only the name matches"));
+      box.append(el("p", "p-note", "These contacts have the same name but no email address or phone number in common, so they may be different people. Merge one only when you know it's the same person."));
+    }
+    const set = el("div", `ab-dupe${g.possible ? " maybe" : ""}`);
+    set.setAttribute("role", "group");
+    set.setAttribute("aria-label", `${g.possible ? "Maybe the same person" : "Duplicates"}: ${g.merged.name || g.cards[0].shown || "no name"}, ${g.cards.length} contacts`);
+    set.append(el("div", "ab-name", g.merged.name || g.cards[0].shown || "(no name)"));
+    set.append(el("div", "ab-sub", `Why: ${g.why.join("; ") || "linked through each other"}`));
+    const ticks = [];
+    for (const r of g.cards) {
+      const l = el("label", "ab-dupe-card");
+      const t = el("input");
+      t.type = "checkbox"; t.checked = true;
+      ticks.push([t, r]);
+      const c = r.card;
+      l.append(t, ` ${r.shown || "(no name)"} · ${r.account_address}${r.book ? ` › ${r.book}` : ""}`);
+      const reach = [...c.emails.map((e) => e.value), ...c.phones.map((p) => p.value)].join(", ");
+      if (reach) l.append(el("div", "ab-sub", reach));
+      set.append(l);
+    }
+    const chosen = () => ticks.filter(([t]) => t.checked).map(([, r]) => r);
+    sets.push({ group: g, chosen });
+    if (g.differences.length) {
+      const names = Object.fromEntries([...MERGE_FIELDS, ["notes", "Notes"]]);
+      set.append(el("div", "ab-sub", `They differ in: ${g.differences.map((f) => names[f] || f).join(", ")} (you choose)`));
+    }
+    const tools = el("div", "ab-tools");
+    const merge = el("button", "", "Merge…");
+    merge.setAttribute("aria-label", `Merge ${g.merged.name || g.cards[0].shown || "these contacts"}…`);
+    merge.addEventListener("click", async () => { if (await mergeContacts(chosen(), g.possible)) showDuplicates(); });
+    const open = el("button", "", "Show");
+    open.title = "Show these contacts in the list";
+    open.addEventListener("click", () => {
+      ab.sel = new Set(g.cards.map((r) => r.id));
+      for (const row of $("ab-list").children) row.classList.toggle("on", ab.sel.has(Number(row.dataset.id)));
+      $("ab-list").querySelector(".ab-row.on")?.scrollIntoView({ block: "nearest" });
+    });
+    tools.append(merge, open);
+    set.append(tools);
+    box.append(set);
+  }
+  if (merges.length) {
+    box.append(el("h4", "", "Recent merges"));
+    for (const m of merges.slice(0, 20)) {
+      const line = el("div", "ab-field");
+      const when = new Date(m.at * 1000).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+      line.append(el("span", "", `${m.name || "(no name)"}: ${number.format(m.cards)} contacts, ${when} `));
+      const undo = el("button", "", "Undo");
+      undo.addEventListener("click", async () => {
+        if (!(await askYesNo(`Undo the merge of ${m.name || "this contact"}?`, "Each contact is put back as it was before the merge: the merged one changed back, the copies deleted made again (on the servers with the next check).", "Undo the merge"))) return;
+        try {
+          const n = await invoke("card_merge_undo", { merge: m.merge });
+          status(`Undid the merge: ${number.format(n)} contacts as they were.`);
+          await loadAddressBook(true);
+          loadCardCounts();
+          showDuplicates();
+        } catch (err) { showError("Undoing the merge", err); }
+      });
+      line.append(undo);
+      box.append(line);
+    }
+  }
+}
+
+/** Merge every set shown at once (the ticked contacts of each, the fullest leading), asked once. */
+async function mergeAllDuplicates(sets) {
+  // only sets sharing an address or number whose ticked contacts hold no different values:
+  // the others wait for the user's choices (and a shared name alone never merges by itself)
+  const sure = sets.filter((s) => !s.group.possible).map((s) => s.chosen()).filter((rows) => rows.length > 1);
+  const todo = sure.filter((rows) => !mergeDifferences(rows).length);
+  const waiting = sure.length - todo.length;
+  if (!todo.length) { tell("Nothing merges by itself", "Every set has a field that differs: merge them one at a time to choose what each keeps."); return; }
+  const contacts = todo.reduce((n, rows) => n + rows.length, 0);
+  if (!(await askYesNo(
+    `Merge ${number.format(todo.length)} sets of contacts?`,
+    `${number.format(contacts)} contacts become ${number.format(todo.length)}. Their contacts hold no different values, so nothing is lost or chosen: every email address, phone number, address, and note is kept, one contact stays in each account and its other copies are deleted.` +
+      (waiting ? ` ${number.format(waiting)} ${waiting === 1 ? "set differs" : "sets differ"} and ${waiting === 1 ? "waits" : "wait"} for you to merge ${waiting === 1 ? "it" : "them"} one at a time.` : "") +
+      " The changes reach the servers with the next check; each merge can be undone from Recent merges.",
+    `Merge ${number.format(todo.length)} sets`,
+  ))) return;
+  let merged = 0, failed = 0;
+  for (const [i, rows] of todo.entries()) {
+    status(`Merging contacts: set ${number.format(i + 1)} of ${number.format(todo.length)}…`);
+    try { await invoke("cards_merge", { ids: rows.map((r) => r.id), keep: null, card: null }); merged++; } catch { failed++; }
+  }
+  status(`Merged ${number.format(merged)} sets of contacts${failed ? `; ${number.format(failed)} couldn't be` : ""}. The changes reach the servers with the next check.`);
+  await loadAddressBook(true);
+  loadCardCounts();
+  showDuplicates();
 }
 
 function showCard(r) {
   ab.at = r.id;
   for (const e of $("ab-list").children) e.classList.toggle("on", Number(e.dataset.id) === r.id);
+  abAria();
   const c = r.card;
   const box = $("ab-card");
   box.replaceChildren(el("h3", "", r.shown || "(no name)"));
@@ -6496,8 +7674,8 @@ function showCard(r) {
     const when = o.updated ? new Date(o.updated * 1000).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "";
     where.textContent = `From ${o.service} · ${o.address} · address book “${o.book}”` +
       (o.waiting ? ` · ${o.waiting}${o.last_error ? ` (last try: ${o.last_error})` : ""}` : o.on_server ? ` · up to date with the server${when ? ` (${when})` : ""}` : "") +
-      (o.editable ? "" : " · change it in Google Contacts (changing Google contacts in Eudora comes later)");
-    // (Google contacts read-only for now: no Edit or Delete that couldn't reach Google)
+      (o.editable ? "" : " · its address book can't be changed from Eudora");
+    // (no Edit or Delete that couldn't reach its server; Move or Copy can still copy it)
     edit.hidden = !o.editable;
     del.hidden = !o.editable;
   }).catch(() => {});
@@ -6513,9 +7691,12 @@ function showCard(r) {
       await openComposer("draft", draft);
     } catch (err) { showError("Sharing the contact", err); }
   });
+  const move = el("button", "", "Move or Copy…");
+  move.title = "Put this contact into another account's address book";
+  move.addEventListener("click", () => moveContacts([r]));
   const del = el("button", "danger", "Delete…");
   del.addEventListener("click", () => deleteCard(r));
-  tools.append(edit, share, del);
+  tools.append(edit, share, move, del);
   box.append(tools);
 }
 
@@ -6527,7 +7708,9 @@ const CARD_KIND_CHOICES = {
 
 /** The editor: a contact's every field (`r` null: a new contact). Saved at once here; it goes to
  *  its server through the download's queue. */
-function editCard(r) {
+async function editCard(r) {
+  ab.dupes = false;
+  const targets = r ? null : await contactTargets();
   const c = r ? structuredClone(r.card) : { name: "", given: "", middle: "", family: "", prefix: "", suffix: "", nickname: "", company: "", department: "", title: "", emails: [{ kind: "work", value: "" }], phones: [], addresses: [], websites: [], birthday: "", notes: "", categories: [] };
   const box = $("ab-card");
   const form = el("form", "ab-edit");
@@ -6535,16 +7718,17 @@ function editCard(r) {
   // a new one: which address book
   let accountSel = null;
   if (!r) {
-    const books = state.cardCounts || [];
-    const accounts = [...new Map(books.map((b) => [b[0], b[1]])).entries()];
-    if (!accounts.length) { tell("No address book", "Contacts are added to a Microsoft 365 or Outlook.com address book: none has come in yet."); return; }
+    // (every account that takes contacts, empty ones too; it starts on the one used last time,
+    // else the main Microsoft account)
+    if (!targets.targets.length) { tell("No address book", "Contacts go into a Microsoft 365, Outlook.com, Google, or CardDAV address book. Add one of those accounts in Settings ▸ Accounts."); return; }
     accountSel = el("select");
-    for (const [id, address] of accounts) {
-      const o = el("option", "", address);
-      o.value = String(id);
+    for (const t of targets.targets) {
+      const o = el("option", "", targetLabel(t));
+      o.value = String(t.account);
       accountSel.append(o);
     }
-    if ($("ab-account").value) accountSel.value = $("ab-account").value;
+    const shown = $("ab-account").value;
+    accountSel.value = targets.targets.some((t) => String(t.account) === shown) ? shown : String(targets.new_in ?? targets.targets[0].account);
     form.append(labeled("Address book", accountSel));
   }
   const text = (label, key, type = "text") => {
@@ -6685,13 +7869,19 @@ async function exportAddressBook(ext) {
 }
 
 $("ab-find").addEventListener("input", () => { clearTimeout(ab.timer); ab.timer = setTimeout(loadAddressBook, 200); });
-$("ab-account").addEventListener("change", loadAddressBook);
+$("ab-account").addEventListener("change", () => { loadAddressBook(); if (ab.dupes) showDuplicates(); });
 // the order kept for next time
 try { $("ab-sort").value = store.get("abSort", "first") || "first"; } catch { /* (the default) */ }
 $("ab-sort").addEventListener("change", () => { store.set("abSort", $("ab-sort").value); loadAddressBook(); });
 $("ab-export-vcf").addEventListener("click", () => exportAddressBook("vcf"));
 $("ab-export-csv").addEventListener("click", () => exportAddressBook("csv"));
 $("ab-new").addEventListener("click", () => editCard(null));
+$("ab-dupes").addEventListener("click", showDuplicates);
+$("ab-move").addEventListener("click", () => {
+  // the contacts chosen, else every contact shown (all of them into one account)
+  const chosen = ab.rows.filter((r) => ab.sel.has(r.id));
+  moveContacts(chosen.length > 1 ? chosen : ab.rows);
+});
 
 /** Why in these Views?: every View's points for the message, each reason. */
 async function viewsWhy() {
@@ -6823,6 +8013,8 @@ const ACTIONS = {
   "find-again": () => findText(true),
   "check-spelling": checkSpellingAction,
   print: printMessage,
+  "read-aloud": readAloud,
+  "stop-reading": () => { stopSpeaking(); status("Stopped reading."); },
   signatures: settingsAt("mail", openSignatures),
   plugins: settingsAt("programs", openPlugins),
   "mailbox-in": () => openRole("in"),
@@ -6866,13 +8058,20 @@ const ACTIONS = {
   drafts: showDrafts,
   "all-mail": () => openView("all"),
   "open-mailbox": openMailbox,
-  find: () => { $("query").focus(); $("query").select(); },
+  // (classic's Find Messages is its search window: the advanced search; Modern goes to the box)
+  find: () => {
+    if (document.body.classList.contains("classic")) { window.openAdvancedSearch?.(); return; }
+    $("query").focus();
+    $("query").select();
+  },
+  "advanced-search": () => window.openAdvancedSearch?.(),
   check: checkMail,
   backup: openBackup,
   stats: () => openStats(),
   outbox: openOutbox,
   "send-queued": sendQueued,
   "old-attachments": openOldAttachments,
+  "export-classic": openExportClassic,
   restore: () => openRestore(),
   "hide-sent": toggleHideSent,
   columns: () => { const r = $("list-head").getBoundingClientRect(); showColumnMenu(r.left + 20, r.bottom, null); },
@@ -7400,6 +8599,7 @@ window.__TAURI__.webviewWindow.getCurrentWebviewWindow().listen("menu", (e) => {
 
 async function start() {
   fillIcons();
+  nameThings();
   setupSplitters();
   // every dialog closes from a × in its top-right corner (= Cancel / Close), and Esc
   for (const d of document.querySelectorAll("dialog")) {
@@ -7503,6 +8703,10 @@ The library you had opens as it was.`);
     setInterval(loadCardCounts, 10 * 60 * 1000);
     // which mailboxes search leaves out (the magnifying glasses in the tree)
     loadSearchScope();
+    // accounts added since the window last asked (on the command line, say): changes on the
+    // server or kept here (the first time, those already here count as asked)
+    if (state.accounts.accounts.length) askLocalOnlyForNew();
+    else invoke("local_only_unasked").catch(() => {});
     // the first run: no accounts yet (any kind will do)
     if (!state.accounts.accounts.length) showWelcome();
     else checkSignIns();
@@ -7592,6 +8796,16 @@ if (!READER) {
 document.addEventListener("dragover", (e) => { if ([...(e.dataTransfer?.types || [])].includes("Files")) { e.preventDefault(); e.dataTransfer.dropEffect = "none"; } });
 document.addEventListener("drop", (e) => { if (e.dataTransfer?.files?.length) e.preventDefault(); });
 
+// Settings ▸ Mail ▸ Replies (setting reply-quoting: "modern" or "classic")
+for (const r of document.querySelectorAll('input[name="p-quoting"]')) {
+  r.addEventListener("change", () => {
+    if (!r.checked) return;
+    invoke("set_setting", { key: "reply-quoting", value: r.value })
+      .then(() => status(r.value === "classic" ? "Replies now quote classic Eudora's way: “>” lines, written below." : "Replies now quote the original below, written above it."))
+      .catch((err) => showError("Saving how replies quote", err));
+  });
+}
+
 // a "More…" link to the manual (data-help = the page's id)
 document.addEventListener("click", (e) => {
   const link = e.target.closest?.("[data-help]");
@@ -7630,8 +8844,7 @@ $("p-keep-originals").addEventListener("change", async (e) => {
 // keep_check.rs); a longer period brings older mail back from the servers.
 const keepState = { current: null, chosen: false, token: 0, timer: 0 };
 
-/** Says what a slow step is doing, with the seconds so far, until `done` is called (user
- *  2026-11-06: "Nothing should ever hang without explaining what it is doing"). */
+/** Says what a slow step is doing, with the seconds so far, until `done` is called. */
 function working(el, text) {
   const started = Date.now();
   const show = () => {
@@ -7825,6 +9038,301 @@ $("p-gmail-idle").addEventListener("change", async (e) => {
     status(e.target.value === "0" ? "Gmail is checked as usual, whether or not Eudora is being used here." : `While nobody uses Eudora here, Gmail is checked every ${e.target.selectedOptions[0].textContent}.`);
   } catch (err) { showError("Saving how often Gmail is checked", err); }
 });
+
+// ---- the new-mail sound (classic Eudora: Options ▸ Getting Attention ▸ "Play a sound", on by
+// default). Kept per computer.
+
+/** The sound each look plays: Eudora's own in the Eudora looks; the system's new-mail sound where
+ *  the program it copies plays the system's (Outlook, Thunderbird); sounds of Eudora's own making
+ *  for the web-mail looks (scripts/make_sounds.py). */
+const LOOK_SOUNDS = { "eudora-classic": "eudora", eudora: "eudora", thunderbird: "system", "lookout-classic": "system", "lookout-new": "system", gmail: "chime", yahoo: "marimba" };
+const soundPlayer = { audio: null, url: null, last: 0 };
+
+async function playNewMailSound(force = false) {
+  let choice = store.get("newMailSound", "look");
+  if (choice === "look") choice = LOOK_SOUNDS[state.skin] || "eudora";
+  if (choice === "none") return;
+  // (several checks in a row: one sound)
+  if (!force && Date.now() - soundPlayer.last < 20_000) return;
+  soundPlayer.last = Date.now();
+  try {
+    if (choice === "system") {
+      if (await invoke("play_system_sound")) return;
+      choice = "ding"; // (none to ask for here: a bell of Eudora's own)
+    }
+    let src = `sounds/${choice}.wav`;
+    if (choice === "file") {
+      const path = store.get("newMailSoundFile", "");
+      if (!path) return;
+      const bytes = await invoke("sound_file", { path });
+      if (soundPlayer.url) URL.revokeObjectURL(soundPlayer.url);
+      soundPlayer.url = URL.createObjectURL(new Blob([new Uint8Array(bytes)]));
+      src = soundPlayer.url;
+    }
+    soundPlayer.audio?.pause();
+    soundPlayer.audio = new Audio(src);
+    await soundPlayer.audio.play();
+  } catch (err) {
+    if (force) showError("Playing the sound", err);
+  }
+}
+window.playNewMailSound = playNewMailSound;
+
+function showSoundChoice() {
+  $("p-sound").value = store.get("newMailSound", "look");
+  const file = store.get("newMailSoundFile", "");
+  $("p-sound-file").textContent = $("p-sound").value === "file" && file ? file : "";
+}
+$("p-sound").addEventListener("change", async () => {
+  let choice = $("p-sound").value;
+  if (choice === "file") {
+    let chosen;
+    try { chosen = await invoke("pick_paths", { what: "file", title: "A sound for new mail", kind: "sound" }); } catch (err) { showError("Choosing a sound", err); }
+    if (chosen?.length) store.set("newMailSoundFile", chosen[0]);
+    else if (!store.get("newMailSoundFile", "")) choice = store.get("newMailSound", "look");
+  }
+  store.set("newMailSound", choice);
+  showSoundChoice();
+  if (choice !== "none") playNewMailSound(true);
+});
+$("p-sound-try").addEventListener("click", () => playNewMailSound(true));
+showSoundChoice();
+
+// ---- speech. "library" = Eudora's speech library (core speech.rs, the same on every computer);
+// "system" = the window's own speech (speechSynthesis), over the system's voices. Kept per
+// computer.
+
+const speech = {
+  engine: () => store.get("speechEngine", "library"),
+  voice: (engine) => store.get(`speechVoice:${engine}`, ""),
+  speed: () => Number(store.get("speechSpeed", 1)) || 1,
+  reading: false,
+};
+
+/** The system's own voices (they arrive a moment after the page opens on some systems). */
+function systemVoices() {
+  const s = window.speechSynthesis;
+  if (!s) return Promise.resolve([]);
+  const now = s.getVoices();
+  if (now.length) return Promise.resolve(now);
+  return new Promise((resolve) => {
+    const done = () => resolve(s.getVoices());
+    s.addEventListener("voiceschanged", done, { once: true });
+    setTimeout(done, 1500);
+  });
+}
+
+/** The natural voices (Kokoro, the eudora-voice program downloaded on request): their speech
+ *  comes a sentence at a time as "voice" events and is played in order. */
+const natural = { id: 0, queue: [], playing: null, done: false, url: null, parts: 0, played: 0 };
+
+/** A natural voice that made no sound says why, once per speech. */
+function naturalProblem(text) {
+  status(`The natural voice: ${text}`);
+  invoke("voice_note", { text }).catch(() => {});
+}
+
+function naturalNext() {
+  if (natural.playing) return;
+  const wav = natural.queue.shift();
+  if (!wav) {
+    if (natural.done) speech.reading = false;
+    return;
+  }
+  const bytes = Uint8Array.from(atob(wav), (c) => c.charCodeAt(0));
+  if (natural.url) URL.revokeObjectURL(natural.url);
+  natural.url = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }));
+  const audio = new Audio(natural.url);
+  natural.playing = audio;
+  const next = () => { if (natural.playing === audio) { natural.playing = null; naturalNext(); } };
+  audio.addEventListener("ended", () => { natural.played++; next(); });
+  audio.addEventListener("error", () => { naturalProblem(`its sound couldn't be played (${audio.error?.code ?? "?"}: ${audio.error?.message || "no reason given"}).`); next(); });
+  audio.play().catch((err) => { naturalProblem(`the window wasn't allowed to play its sound (${err?.name}: ${err?.message}).`); next(); });
+}
+
+window.__TAURI__.event.listen("voice", (e) => {
+  const v = e.payload || {};
+  if (v.id !== natural.id) return; // (speech stopped or replaced)
+  // (Windows: Eudora plays the sound itself and says so piece by piece; elsewhere the window plays it)
+  if (v.native && v.part !== undefined) natural.parts++;
+  if (v.played !== undefined) natural.played++;
+  if (v.wav) { natural.parts++; natural.queue.push(v.wav); naturalNext(); }
+  if (v.error) showError("The natural voice", v.error);
+  if (v.done) {
+    natural.done = true;
+    if (!natural.parts && !v.error) naturalProblem("it made no sound for that text.");
+    if (!natural.playing && !natural.queue.length) speech.reading = false;
+  }
+});
+
+function stopNatural() {
+  natural.id = 0;
+  natural.queue = [];
+  natural.done = true;
+  natural.playing?.pause();
+  natural.playing = null;
+  invoke("voice_stop").catch(() => {});
+}
+
+/** Says `text` with the speech chosen; `interrupt` stops what's being said first. */
+async function speak(text, interrupt = true) {
+  text = String(text || "").trim();
+  if (!text) return;
+  let engine = speech.engine();
+  if (engine === "natural") {
+    if (interrupt) stopNatural();
+    natural.id = Date.now();
+    natural.done = false;
+    natural.parts = natural.played = 0;
+    // (nothing heard back in 20 seconds: say so; the model loads in about a second)
+    const asked = natural.id;
+    setTimeout(() => { if (natural.id === asked && !natural.parts && !natural.done) naturalProblem("no answer from its program in 20 seconds (the log is voice.log in Eudora's voices folder)."); }, 20_000);
+    speech.reading = true;
+    try {
+      await invoke("voice_say", { id: natural.id, text, voice: speech.voice("natural") || null, speed: speech.speed() });
+      return;
+    } catch (err) {
+      speech.reading = false;
+      status(`${err} Eudora's speech library speaks instead.`);
+      engine = "library";
+    }
+  }
+  if (engine === "system" && window.speechSynthesis) {
+    const s = window.speechSynthesis;
+    if (interrupt) s.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const id = speech.voice("system");
+    const v = id && (await systemVoices()).find((x) => x.voiceURI === id);
+    if (v) { u.voice = v; u.lang = v.lang; }
+    u.rate = speech.speed();
+    u.onend = () => { speech.reading = s.speaking; };
+    speech.reading = true;
+    s.speak(u);
+    return;
+  }
+  if (engine === "system") status("This system's speech isn't available in Eudora's window here: Eudora's speech library is used.");
+  try {
+    await invoke("speech_say", { text, voice: speech.voice("library") || null, speed: speech.speed(), volume: null, interrupt });
+    speech.reading = true;
+  } catch (err) { showError("Speaking", err); }
+}
+window.speak = speak;
+
+function stopSpeaking() {
+  window.speechSynthesis?.cancel();
+  invoke("speech_stop").catch(() => {});
+  stopNatural();
+  speech.reading = false;
+}
+
+/** Read Aloud: the message shown, from its sender and subject to its end (pressed again while
+ *  reading, it stops). Classic Eudora only spoke rule alerts; this reads the whole message. */
+function readAloud() {
+  if (speech.reading) { stopSpeaking(); status("Stopped reading."); return; }
+  const m = current;
+  if (!m) { status("Open a message first: Read Aloud reads the message shown."); return; }
+  let body = m.text || "";
+  if (!body.trim() && m.html) body = new DOMParser().parseFromString(m.html, "text/html").body?.innerText || "";
+  const when = m.date ? fullFormat.format(new Date(m.date * 1000)) : "";
+  const text = [`From ${people(m.from) || "no one named"}.`, `Subject: ${m.subject || "no subject"}.`, when && `Sent ${when}.`, m.attachments?.length ? `${m.attachments.length} ${m.attachments.length === 1 ? "attachment" : "attachments"}.` : "", body].filter(Boolean).join("\n");
+  status(`Reading aloud: ${m.subject || "(no subject)"} (Ctrl+Alt+Space again stops).`);
+  speak(text);
+}
+
+const mb = (n) => `${number.format(Math.round(n / 1048576))} MB`;
+
+/** Settings ▸ General ▸ Speech: the engine, its voices, the speed, Try it; the natural voices'
+ *  download. */
+async function showSpeechChoice(listNatural = true) {
+  const engine = speech.engine();
+  $("p-speech-engine").value = engine;
+  $("p-speech-speed").value = String(speech.speed());
+  const sel = $("p-speech-voice");
+  const note = $("p-speech-note");
+  const status_ = await invoke("voices_status", { askServer: false }).catch(() => ({ installed: false }));
+  $("p-voices-get").hidden = status_.installed;
+  $("p-voices-remove").hidden = !status_.installed;
+  $("p-voices-size").textContent = status_.installed ? `Natural voices are downloaded (${mb(status_.size)}).` : "Natural voices aren't downloaded.";
+  let voices = [];
+  note.textContent = "";
+  try {
+    if (engine === "natural") {
+      if (status_.installed && listNatural) {
+        note.textContent = "Loading the natural voices…";
+        voices = (await invoke("voice_voices")).map((v) => ({ id: v.id, name: v.name }));
+      } else {
+        note.textContent = "Download the natural voices first (below): until then, Eudora's speech library speaks.";
+      }
+    } else if (engine === "system") {
+      voices = (await systemVoices()).map((v) => ({ id: v.voiceURI, name: v.name, language: v.lang }));
+    } else {
+      voices = await invoke("speech_voices");
+    }
+  } catch (err) { note.textContent = String(err); }
+  const usual = el("option", "", engine === "natural" ? "Heart (US, female)" : "The system's usual voice");
+  usual.value = "";
+  sel.replaceChildren(usual, ...voices.filter((v) => !(engine === "natural" && v.id === "af_heart")).map((v) => { const o = el("option", "", `${v.name}${v.language ? ` (${v.language})` : ""}`); o.value = v.id; return o; }));
+  sel.value = speech.voice(engine);
+  if (sel.value !== speech.voice(engine)) sel.value = "";
+  if (engine === "system" && !window.speechSynthesis) note.textContent = "This system's speech isn't available here: Eudora's speech library is used.";
+  else if (voices.length) note.textContent = `${voices.length} ${voices.length === 1 ? "voice" : "voices"}.`;
+}
+$("p-speech-engine").addEventListener("change", () => { stopSpeaking(); store.set("speechEngine", $("p-speech-engine").value); showSpeechChoice(); });
+$("p-speech-voice").addEventListener("change", () => store.set(`speechVoice:${speech.engine()}`, $("p-speech-voice").value));
+$("p-speech-speed").addEventListener("change", () => store.set("speechSpeed", Number($("p-speech-speed").value) || 1));
+$("p-speech-try").addEventListener("click", () => speak("You have new mail from Eudora. This is how messages are read aloud."));
+
+// the natural voices' download: asked first with its size, counted in MB, stoppable
+$("p-voices-get").addEventListener("click", async () => {
+  const s = await invoke("voices_status", { askServer: true }).catch((err) => ({ unavailable: String(err) }));
+  if (s.unavailable) { tell("Natural voices", s.unavailable); return; }
+  if (!(await askYesNo(
+    "Download the natural voices?",
+    `They're ${mb(s.download)}: a speech program of Eudora's own and the Kokoro voice model. They run on this computer only: nothing you read is sent anywhere. Eudora itself stays as it is; Remove takes them away again.`,
+    "Download",
+  ))) return;
+  $("p-voices-get").hidden = true;
+  $("p-voices-stop").hidden = false;
+  try { await invoke("voices_download"); } catch (err) { showError("Downloading the natural voices", err); }
+});
+$("p-voices-stop").addEventListener("click", () => invoke("voices_download_stop"));
+window.__TAURI__.event.listen("voices-progress", (e) => {
+  const p = e.payload || {};
+  if (p.total) {
+    const text = `${p.refresh ? "Updating" : "Downloading"} the natural voices: ${mb(p.done)} of ${mb(p.total)} (${Math.floor((p.done / p.total) * 100)}%)`;
+    $("p-voices-size").textContent = text;
+    status(text);
+    return;
+  }
+  $("p-voices-stop").hidden = true;
+  if (p.finished && p.refresh) {
+    status("The natural voices were updated.");
+  } else if (p.finished) {
+    status("The natural voices are downloaded.");
+    store.set("speechEngine", "natural");
+  } else if (p.refresh && (p.canceled || p.error)) {
+    // (an update in the background that didn't finish: tried again next start, said quietly)
+    status(`The natural voices' update didn't finish${p.error ? `: ${p.error}` : ""}. Eudora tries again next time it starts.`);
+  } else if (p.canceled) {
+    status("The natural voices' download stopped: what came in is kept, and it continues next time.");
+  } else if (p.error) {
+    showError("Downloading the natural voices", p.error);
+  }
+  showSpeechChoice();
+});
+$("p-voices-remove").addEventListener("click", async () => {
+  if (!(await askYesNo("Remove the natural voices?", "They're deleted from this computer; you can download them again any time. Until then Eudora's speech library speaks.", "Remove"))) return;
+  stopSpeaking();
+  try {
+    await invoke("voices_remove");
+    if (speech.engine() === "natural") store.set("speechEngine", "library");
+    status("The natural voices were removed.");
+  } catch (err) { showError("Removing the natural voices", err); }
+  showSpeechChoice();
+});
+showSpeechChoice(false);
+// downloaded natural voices kept up to date: a minute after Eudora starts, quietly
+if (!READER) setTimeout(() => invoke("voices_refresh").catch(() => {}), 60_000);
 
 // Settings ▸ General: its hours on most days and on Mondays (the weekend's mail)
 for (const id of ["p-recent-hours", "p-recent-monday"]) {

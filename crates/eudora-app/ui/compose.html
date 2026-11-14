@@ -15,11 +15,11 @@
   <script src="icons/set.js"></script>
 </head>
 <body class="skin-eudora compose">
-  <header id="c-bar">
+  <header id="c-bar" role="toolbar" aria-label="Message commands">
     <button id="c-send" class="primary" title="Send Immediately (Ctrl+E)"><span data-icon="paper-plane"></span> Send</button>
     <button id="c-later" title="Send Later: choose when it goes (it waits in the Out mailbox)"><span data-icon="clock"></span> Send Later…</button>
     <span id="c-later-box" class="c-later" hidden>
-      <input id="c-later-at" type="datetime-local">
+      <input id="c-later-at" aria-label="Send at" type="datetime-local">
       <button id="c-later-hour">In an hour</button>
       <button id="c-later-morning">Tomorrow 8 AM</button>
       <button id="c-later-go" class="primary">Queue</button>
@@ -27,26 +27,27 @@
     <button id="c-save" title="Save Draft (Ctrl+S)"><span data-icon="file-lines"></span> Save Draft</button>
     <button id="c-attach" title="Attach File (Ctrl+H)"><span data-icon="paperclip"></span> Attach</button>
     <span class="c-sep"></span>
-    <button data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
-    <button data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
-    <button data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+    <button data-cmd="bold" aria-label="Bold" aria-pressed="false" title="Bold (Ctrl+B)"><b>B</b></button>
+    <button data-cmd="italic" aria-label="Italic" aria-pressed="false" title="Italic (Ctrl+I)"><i>I</i></button>
+    <button data-cmd="underline" aria-label="Underline" aria-pressed="false" title="Underline (Ctrl+U)"><u>U</u></button>
+    <button data-cmd="strikeThrough" aria-label="Strikethrough" aria-pressed="false" title="Strikethrough (Ctrl+Shift+X)"><s>S</s></button>
+    <button id="c-highlight" aria-label="Highlight" aria-pressed="false" title="Highlight (Ctrl+Shift+H)"><span class="c-hl-mark">H</span></button>
     <button data-cmd="insertUnorderedList" title="Bulleted list">• List</button>
     <button id="c-link" title="Make Hyperlink">Link</button>
-    <select id="c-format" title="Format: formatted (HTML: bold, links, pictures in the text) or plain text">
-      <option value="html">HTML</option>
-      <option value="plain">Plain text</option>
-    </select>
-    <select id="c-priority" title="Priority">
+    <span id="c-format" class="c-toggle" role="radiogroup" aria-label="Format" title="Format: HTML (bold, links, lists, pictures in the text) or plain text (words only)">
+      <button type="button" role="radio" data-format="html" aria-checked="true">HTML</button><button type="button" role="radio" data-format="plain" aria-checked="false">Plain Text</button>
+    </span>
+    <select id="c-priority" aria-label="Priority" title="Priority">
       <option value="3">Normal priority</option>
       <option value="1">Highest</option>
       <option value="2">High</option>
       <option value="4">Low</option>
       <option value="5">Lowest</option>
     </select>
-    <select id="c-signature" title="Signature (Tools ▸ Signatures)"><option value="">No signature</option></select>
+    <select id="c-signature" aria-label="Signature" title="Signature (Tools ▸ Signatures)"><option value="">No signature</option></select>
     <button id="c-spell" title="Check Spelling (Ctrl+6)">Spelling</button>
-    <button id="c-dictate" title="Dictate: talk and it types where the cursor is (the system's voice typing, Windows+H)">🎤</button>
-    <span id="c-status"></span>
+    <button id="c-dictate" aria-label="Dictate" title="Dictate: talk and it types where the cursor is (the system's voice typing, Windows+H)">🎤</button>
+    <span id="c-status" role="status" aria-live="polite"></span>
     <button id="c-popout" title="Pop out: in a window of its own" hidden>⇱ Pop out</button>
   </header>
   <section id="c-head">
@@ -57,14 +58,14 @@
     <label class="c-row"><span>Subject</span><input id="c-subject" type="text"></label>
     <div id="c-files"></div>
   </section>
-  <div id="c-find" class="find-bar" hidden><input id="c-find-text" type="search" placeholder="Find in this message" spellcheck="false"><span id="c-find-count"></span><button id="c-find-prev" title="Previous (Shift+Enter)">↑</button><button id="c-find-next" title="Next (Enter, F3)">↓</button><button id="c-find-close" title="Close (Esc)">✕</button></div>
-  <div id="c-body" contenteditable="true" spellcheck="true"></div>
+  <div id="c-find" class="find-bar" hidden><input id="c-find-text" aria-label="Find in this message" type="search" placeholder="Find in this message" spellcheck="false"><span id="c-find-count"></span><button id="c-find-prev" title="Previous (Shift+Enter)">↑</button><button id="c-find-next" title="Next (Enter, F3)">↓</button><button id="c-find-close" title="Close (Esc)">✕</button></div>
+  <div id="c-body" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true" aria-label="Message text"></div>
   <dialog id="c-spell-box">
     <h2>Check Spelling</h2>
     <p id="c-spell-word" class="spell-word"></p>
     <p id="c-spell-context" class="spell-context"></p>
     <label>Change to <input id="c-spell-to" type="text" spellcheck="false"></label>
-    <select id="c-spell-list" size="6"></select>
+    <select id="c-spell-list" aria-label="Suggestions" size="6"></select>
     <div class="p-buttons">
       <button id="c-spell-change">Change</button>
       <button id="c-spell-ignore">Ignore</button>
@@ -73,9 +74,11 @@
       <button id="c-spell-done">Done</button>
     </div>
   </dialog>
-  <input id="c-file" type="file" multiple hidden>
+  <input id="c-file" aria-label="Attach files" type="file" multiple hidden>
+  <script src="zoom.js"></script>
   <script src="ask.js"></script>
   <script src="find.js"></script>
+  <div id="c-menu" class="popup-menu" role="menu" aria-label="Text" hidden></div>
   <script src="compose.js"></script>
 </body>
 </html>

@@ -240,6 +240,10 @@ impl Library {
         // events with a change of the user's still on its way keep it (an answer isn't undone, a
         // deletion isn't brought back by the server's older copy)
         let waiting = self.events_waiting(account)?;
+        // a calendar kept local (`local_only`): only events new to it come in (never one deleted
+        // here); those here keep their own version, and nothing the server removed leaves
+        let local = self.local_only_account(account, crate::local_only::Service::Calendar)?;
+        let deleted_here = if local { self.local_deleted(account, "events")? } else { Default::default() };
         self.in_transaction(|| {
             let mut kept_calendars = Vec::new();
             for (cal, events) in calendars {
@@ -263,6 +267,13 @@ impl Library {
                     if waiting.contains(id) {
                         continue;
                     }
+                    if local {
+                        let series = v["seriesMasterId"].as_str().unwrap_or("");
+                        let here: bool = self.conn.query_row("SELECT EXISTS (SELECT 1 FROM events WHERE calendar = ?1 AND server_id = ?2)", params![calendar, id], |r| r.get(0))?;
+                        if here || deleted_here.contains(id) || (!series.is_empty() && deleted_here.contains(series)) {
+                            continue;
+                        }
+                    }
                     let version = v["changeKey"].as_str();
                     let e = from_graph(v);
                     let json = serde_json::to_string(&e)?;
@@ -283,7 +294,7 @@ impl Library {
                     }
                 }
                 for (server_id, (id, _)) in &known {
-                    if !seen.contains(server_id) && !waiting.contains(server_id) {
+                    if !local && !seen.contains(server_id) && !waiting.contains(server_id) {
                         self.conn.execute("DELETE FROM events WHERE id = ?1", params![id])?;
                         done.removed += 1;
                     }
@@ -294,7 +305,7 @@ impl Library {
                 let mut stmt = self.conn.prepare("SELECT id FROM calendars WHERE account = ?1")?;
                 stmt.query_map(params![account], |r| r.get(0))?.collect::<rusqlite::Result<Vec<i64>>>()?.into_iter().filter(|id| !kept_calendars.contains(id)).collect()
             };
-            for id in gone {
+            for id in gone.into_iter().filter(|_| !local) {
                 done.removed += self.conn.execute("DELETE FROM events WHERE calendar = ?1", params![id])? as u64;
                 self.conn.execute("DELETE FROM calendars WHERE id = ?1", params![id])?;
             }
@@ -450,6 +461,19 @@ impl Library {
     /// Queues an event change; the calendar it's in goes with it (Google's calls name the
     /// calendar, and the event may be gone here by the time the change is made).
     pub(crate) fn queue_event_change(&self, mut payload: serde_json::Value) -> Result<()> {
+        // a calendar kept local (`local_only`): the change stays here; an event deleted or
+        // declined is remembered, so the server's copy isn't brought back
+        if let Some(account) = payload["account"].as_i64() {
+            if self.local_only_account(account, crate::local_only::Service::Calendar)? {
+                let gone = matches!(payload["action"].as_str(), Some("delete") | Some("cancel")) || payload["answer"].as_str() == Some("decline");
+                if gone {
+                    if let Some(sid) = payload["server_id"].as_str() {
+                        self.remember_local_delete(account, "events", sid)?;
+                    }
+                }
+                return Ok(());
+            }
+        }
         if payload["calendar"].is_null() {
             if let Some(event) = payload["event"].as_i64() {
                 let calendar: Option<String> = self.conn.query_row("SELECT c.server_id FROM events e JOIN calendars c ON c.id = e.calendar WHERE e.id = ?1", params![event], |r| r.get(0)).optional()?;
@@ -621,6 +645,9 @@ impl Library {
     /// can't be answered). Meetings already over are left as they are (nothing years old is
     /// deleted at once). Returns how many.
     pub fn remove_canceled_meetings(&self, account: i64) -> Result<u64> {
+        if self.local_only_account(account, crate::local_only::Service::Calendar)? {
+            return Ok(0); // (a calendar kept local: the server's cancellations don't change it)
+        }
         let mut stmt = self.conn.prepare(
             "SELECT e.id FROM events e JOIN calendars c ON c.id = e.calendar
              WHERE c.account = ?1 AND c.can_edit AND e.kind <> 'seriesMaster' AND e.end > ?2

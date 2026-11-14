@@ -1,4 +1,4 @@
-//! Plugins (user decision 2026-10-16: WebAssembly): a plugin is one WebAssembly file that adds
+//! Plugins (WebAssembly, decided 2026-10-16): a plugin is one WebAssembly file that adds
 //! commands to Eudora's menus (and actions to its rules). It runs inside Eudora in a sandbox
 //! (wasmtime) that gives it **nothing but Eudora's API, with only the permissions the user
 //! granted it** (the same grant window, limits and log as any program): no files, no network,

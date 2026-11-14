@@ -81,6 +81,10 @@ pub struct MessageView {
     pub account: Option<i64>,
     /// Pictures from the web its HTML names (as written there).
     pub web_pictures: Vec<String>,
+    /// Whether they load by themselves: its sender is on Settings ▸ Mail's list (address or
+    /// @domain), or in the Address Book when that's ticked (`picture_senders::show_for`). Never
+    /// for a fraud.
+    pub pictures_auto: bool,
     /// A fraud warning, shown above the message (`phishing::warning`).
     pub warning: Option<String>,
 }
@@ -132,12 +136,7 @@ impl SenderTrust {
         let mut own_domains: Vec<String> = crate::library::own_addresses_in(conn)?.iter().filter_map(|a| a.split('@').nth(1).map(str::to_lowercase)).collect();
         own_domains.sort();
         own_domains.dedup();
-        let pictures: Option<String> = rusqlite::OptionalExtension::optional(conn.query_row("SELECT value FROM settings_items WHERE key = 'pictures'", [], |r| r.get(0)))?;
-        let show_pictures = !from.is_empty()
-            && pictures
-                .and_then(|j| serde_json::from_str::<serde_json::Value>(&j).ok())
-                .and_then(|v| v["senders"].as_array().map(|a| a.iter().any(|s| s.as_str().is_some_and(|s| s.eq_ignore_ascii_case(from)))))
-                .unwrap_or(false);
+        let show_pictures = crate::picture_senders::show_for(conn, from)?;
         Ok(SenderTrust { trusted, own_domains, show_pictures })
     }
 
@@ -202,6 +201,7 @@ pub fn file_message_view(id: i64, raw: &[u8], trust: &SenderTrust) -> MessageVie
         problems: p.problems.into_iter().map(|p| p.detail).collect(),
         copies: Vec::new(),
         account: None,
+        pictures_auto: trust.show_pictures && warning.is_none() && !web_pictures.is_empty(),
         web_pictures,
         warning,
     }
@@ -277,6 +277,7 @@ impl Library {
             problems: p.problems.into_iter().map(|p| p.detail).collect(),
             copies,
             account: self.message_account(id)?,
+            pictures_auto: warning.is_none() && !web_pictures.is_empty() && crate::picture_senders::show_for(&self.conn, &sender_of(&raw))?,
             web_pictures,
             warning,
             linked: self.links_of(id)?,
@@ -332,11 +333,19 @@ impl Library {
     /// What a new message (`mode` "new"), reply ("reply" / "replyAll"), forward ("forward") or
     /// forward of several messages, each attached ("forwardMany", `ids`) starts with.
     pub fn compose_start(&self, mode: &str, id: Option<i64>, ids: &[i64]) -> Result<ComposeStart> {
+        self.compose_start_quoting(mode, id, ids, None)
+    }
+
+    /// As `compose_start`; a reply quotes the original as `quoting` asks ("classic", "modern", or
+    /// "swap": the other way, for Shift or Ctrl on Reply), else as Settings ▸ Mail says
+    /// (`Quoting::SETTING`).
+    pub fn compose_start_quoting(&self, mode: &str, id: Option<i64>, ids: &[i64], quoting: Option<&str>) -> Result<ComposeStart> {
+        let quoting = compose::Quoting::resolve(quoting, self.setting(compose::Quoting::SETTING)?.as_deref());
         let identities = self.identities()?;
         let mine: Vec<String> = identities.iter().map(|i| i.address.clone()).collect();
         let seed = match (mode, id) {
-            ("reply", Some(id)) => compose::reply(&self.raw_message(id)?, false, &mine),
-            ("replyAll", Some(id)) => compose::reply(&self.raw_message(id)?, true, &mine),
+            ("reply", Some(id)) => compose::reply_as(&self.raw_message(id)?, false, &mine, quoting),
+            ("replyAll", Some(id)) => compose::reply_as(&self.raw_message(id)?, true, &mine, quoting),
             ("forward", Some(id)) => compose::forward(id, &self.raw_message(id)?, &mine),
             ("redirect", Some(id)) => compose::redirect(id, &self.raw_message(id)?, &mine),
             ("again", Some(id)) => compose::again(id, &self.raw_message(id)?, &mine),
@@ -371,12 +380,15 @@ impl Library {
                 .imap_accounts()?
                 .into_iter()
                 .find(|c| c.address.eq_ignore_ascii_case(&identity.address))
-                .ok_or_else(|| Error::Other(format!("{} has no settings: open Tools ▸ Personalities ▸ Change…", identity.address)))?;
+                .ok_or_else(|| Error::Other(format!("{} has no settings: open Settings ▸ Accounts ▸ Change… (Classic: Tools ▸ Personalities)", identity.address)))?;
             let account = self.imap_account_id(&identity.address)?.ok_or_else(|| Error::Other(format!("{} isn't an account in this library", identity.address)))?;
             Some((config, account, self.root.clone()))
         } else {
             None
         };
+        // a name corrected in To, Cc, or Bcc is the one completion offers next time (never stops
+        // the message: it's only a suggestion)
+        let _ = self.remember_names(&[&draft.to, &draft.cc, &draft.bcc]);
         Ok(Outgoing { draft, identity, forwarded, server })
     }
 }

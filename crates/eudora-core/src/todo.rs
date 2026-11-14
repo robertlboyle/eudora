@@ -182,6 +182,11 @@ impl Library {
     }
 
     fn queue_todo(&self, todo: i64, action: &str) -> Result<()> {
+        // To Do kept local (it follows the calendar switch of the Microsoft account it syncs
+        // through: `local_only`): the change stays here
+        if self.todo_local_only()? {
+            return Ok(());
+        }
         // one waiting change per task (the latest state goes); a deletion replaces it
         self.conn.execute("DELETE FROM pending_ops WHERE kind = 'todo-change' AND json_extract(payload, '$.todo') = ?1 AND json_extract(payload, '$.action') = 'update'", params![todo])?;
         let creating: bool = self.conn.query_row(
@@ -370,7 +375,9 @@ impl Library {
     /// task carrying a Message-ID matched to that message on this computer. Tasks with a change
     /// of their own waiting keep it.
     pub fn record_todos(&self, account: i64, lists: &[(Value, Vec<Value>)]) -> Result<TodoRecorded> {
-        let _ = account;
+        // To Do kept local (the calendar switch of the account it syncs through, `local_only`):
+        // only tasks new here come in; those here keep their own version, none leaves
+        let local = self.local_only_account(account, crate::local_only::Service::Calendar)?;
         let mut done = TodoRecorded::default();
         let waiting: HashSet<i64> = {
             let mut stmt = self.conn.prepare("SELECT json_extract(payload, '$.todo') FROM pending_ops WHERE kind = 'todo-change'")?;
@@ -414,6 +421,7 @@ impl Library {
                         None => (!external.is_empty() && external.contains('@')).then(|| external.to_string()),
                     };
                     match known.get(sid) {
+                        Some(_) if local => {}
                         Some((id, _)) if waiting.contains(id) => {}
                         Some((id, v)) if *v == version => {
                             // unchanged there; its message, when found only now, is filled in
@@ -470,7 +478,7 @@ impl Library {
             }
             // tasks gone from Microsoft To Do (deleted in Outlook or the app)
             for (sid, (id, _)) in &known {
-                if !seen.contains(sid) && !waiting.contains(id) {
+                if !local && !seen.contains(sid) && !waiting.contains(id) {
                     let flagged: Option<i64> = self.conn.query_row("SELECT message FROM todos WHERE id = ?1 AND list_name = 'Flagged email'", params![id], |r| r.get(0)).optional()?.flatten();
                     if let Some(m) = flagged {
                         self.conn.execute("UPDATE messages SET flags = flags & ~?2 WHERE id = ?1", params![m, crate::marks::FLAGGED])?;

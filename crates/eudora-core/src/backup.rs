@@ -174,13 +174,17 @@ pub fn sizes(root: &Path) -> Result<Sizes> {
 
 /// The secrets a backup carries: each IMAP / POP3 account's password and SMTP password, the sync
 /// key, and the keys the user typed in (the Spamhaus key, the Google Maps key, their Zoom app,
-/// the Twos token: added 2026-10-26, "We have added a lot. Does the backup and restore still
-/// work?"). Never this computer's device name, never a sign-in (Microsoft 365, Google, Zoom: signed
+/// the Twos token: added 2026-10-26, when backups were checked against
+/// everything added since). Never this computer's device name, never a sign-in (Microsoft 365, Google, Zoom: signed
 /// in again on the new computer). A secret not on this computer is simply not there.
 pub(crate) fn secret_names(conn: &rusqlite::Connection) -> Result<Vec<String>> {
     let mut stmt = conn.prepare("SELECT lower(address) FROM accounts WHERE kind IN ('imap', 'pop3') AND address IS NOT NULL")?;
     let addresses: Vec<String> = stmt.query_map([], |r| r.get(0))?.collect::<rusqlite::Result<_>>()?;
     let mut names: Vec<String> = addresses.iter().flat_map(|a| [format!("imap:{a}"), format!("smtp:{a}")]).collect();
+    // contacts and calendars servers' passwords
+    let mut stmt = conn.prepare("SELECT substr(key, 13) FROM settings_items WHERE key LIKE 'dav-account:%'")?;
+    let dav: Vec<String> = stmt.query_map([], |r| r.get(0))?.collect::<rusqlite::Result<_>>()?;
+    names.extend(dav.iter().map(|a| format!("dav:{}", a.to_lowercase())));
     names.push("sync-key".into());
     names.extend(["spamhaus-dqs", "maps:google", "zoom:app"].map(String::from));
     let twos: Option<String> = conn.query_row("SELECT value FROM settings_items WHERE key = 'twos-user'", [], |r| r.get(0)).ok();
@@ -195,7 +199,7 @@ pub(crate) fn secret_names(conn: &rusqlite::Connection) -> Result<Vec<String>> {
 fn secret_allowed(name: &str) -> bool {
     let address = |rest: &str| !rest.is_empty() && rest.len() <= 320 && rest.contains('@') && !rest.chars().any(|c| c.is_control() || c.is_whitespace());
     matches!(name, "sync-key" | "spamhaus-dqs" | "maps:google" | "zoom:app")
-        || ["imap:", "smtp:"].iter().any(|p| name.strip_prefix(p).is_some_and(address))
+        || ["imap:", "smtp:", "dav:"].iter().any(|p| name.strip_prefix(p).is_some_and(address))
         || name.strip_prefix("twos:").is_some_and(|u| !u.is_empty() && u.len() <= 200 && !u.chars().any(char::is_control))
 }
 

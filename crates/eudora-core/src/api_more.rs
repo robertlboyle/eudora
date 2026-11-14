@@ -61,6 +61,9 @@ pub const MORE: &[Method] = &[
     m("v1.library.restore", P::LibraryManage, true, "{path, dest?, password?, replace?: bool}", "Restores a backup into an empty folder (else the usual place), or in place of the Eudora library there (replace); it becomes the library Eudora opens from then on; never inside Dropbox, OneDrive or another sync folder"),
     m("v1.library.import", P::LibraryManage, true, "{paths: [..], into?, account?, merge?: bool}", "Imports mailbox files, messages or a classic Eudora folder"),
     m("v1.library.optimize", P::LibraryManage, true, "{vacuum?: bool}", "Optimize Library: gives back the space of deleted mail"),
+    m("v1.library.export_classic", P::LibraryManage, true, "{dest, accounts?: [ids], folders?: [ids], rules?: bool, contacts?: bool}", "Export to Classic Eudora: a folder classic Eudora 7 opens as its mail folder (.mbx / .toc mailboxes, descmap.pce, Filters.pce, NNdbase.txt, eudora.ini, Attach); an earlier export there is brought up to date. A report of what was left out is written beside the mail"),
+    m("v1.library.classic_mirror", P::StatusRead, false, "{}", "The classic Eudora copy kept current: on or off, its folder and accounts"),
+    m("v1.library.classic_mirror_set", P::LibraryManage, true, "{on: bool, folder?, accounts?: [ids], rules?: bool, contacts?: bool}", "Keeps a classic Eudora copy current (one way: changes made in classic Eudora don't come back), or stops"),
     m("v1.library.old_attachments", P::LibraryManage, true, "{folders?: [..]}", "Finds classic Eudora's attachment files still missing"),
     m("v1.sync.setup", P::LibraryManage, true, "{}", "Starts sync on this computer (its recovery phrase is shown only in the window)"),
     m("v1.sync.join", P::LibraryManage, true, "{phrase}", "Joins sync with the recovery phrase from another computer"),
@@ -78,6 +81,8 @@ pub const MORE: &[Method] = &[
     m("v1.accounts.missing_sign_ins", P::AccountsRead, false, "{}", "Accounts this computer has no sign-in or password for yet (after a restore): [{address, kind: microsoft | google | password, kind_name}]"),
     m("v1.accounts.check_every", P::AccountsRead, false, "{}", "How often each account is checked for new mail: {accounts: {address: minutes} (those not at the default), default, choices}"),
     m("v1.accounts.check_every_set", P::AccountsManage, true, "{address, minutes}", "How often an account is checked for new mail (1, 5, 10, 15, 30 or 60 minutes)"),
+    m("v1.accounts.local_only", P::AccountsManage, false, "{}", "Which accounts keep their mail, calendar (with To Do), or contacts on this computer only, never changing the server: [{account, address, kind, services, local: {mail, calendar, contacts}}]"),
+    m("v1.accounts.local_only_set", P::AccountsManage, true, "{address, mail?, calendar?, contacts?}", "Keeps an account's mail, calendar (with To Do), or contacts local (true) or sends Eudora's changes to the server again (false); a field left out stays as it is. Turning one local drops the changes still waiting for the server: {dropped}. Changes made while local are never sent later"),
     m("v1.accounts.download_period", P::AccountsRead, false, "{}", "How much mail is downloaded from the servers: {chosen, days, mb} (a period in days, or a space in megabytes; both null = everything; chosen false = never asked, everything)"),
     m("v1.accounts.download_period_set", P::AccountsManage, true, "{days, mb}", "How much mail to download from the servers and keep on this computer: the last N days (any number), or up to N megabytes of space (newest first), or both null for everything. Older mail then leaves this computer once its server confirms it still has it; mail only here (POP3, imported files, classic Eudora) always stays"),
     m("v1.accounts.keep_preview", P::AccountsRead, false, "{days}", "What keeping only the last N days on this computer would mean, changing nothing: {before, older, older_bytes, removable, removable_bytes, only_here, flagged_or_waiting, messages, library_bytes}"),
@@ -87,6 +92,9 @@ pub const MORE: &[Method] = &[
     m("v1.accounts.mail_host", P::AccountsRead, false, "{address}", "Who hosts an address's mail: microsoft (sign in with Microsoft), google, or null"),
     m("v1.accounts.imap_test", P::AccountsManage, true, "{config, password, smtp_password?}", "Signs in to a mail server with these settings (nothing saved)"),
     m("v1.accounts.imap_save", P::AccountsManage, true, "{config, password?, smtp_password?}", "Adds or changes an IMAP / POP3 account"),
+    m("v1.accounts.dav_list", P::AccountsRead, false, "{}", "Accounts with a contacts and calendars server (CardDAV / CalDAV): address, user name, where (no passwords)"),
+    m("v1.accounts.dav_save", P::AccountsManage, true, "{address, server?, user?, password?}", "Finds an address's CardDAV / CalDAV server (from the address, or the server given) and adds it: its address books and calendars come in with the download"),
+    m("v1.accounts.dav_remove", P::AccountsManage, true, "{address}", "Removes an account's CardDAV / CalDAV contacts and calendars from this library (the server keeps them)"),
     m("v1.accounts.find_shared", P::AccountsManage, false, "{}", "Microsoft 365 mailboxes the user can open"),
     m("v1.accounts.add_shared", P::AccountsManage, true, "{addresses: [..]}", "Adds shared mailboxes as accounts"),
     m("v1.accounts.microsoft_sign_in", P::AccountsManage, true, "{address?}", "Opens Microsoft's sign-in in the browser (the user signs in there); `address`: the account meant"),
@@ -113,6 +121,13 @@ pub const MORE: &[Method] = &[
     m("v1.contacts.origin", P::ContactsRead, false, "{id}", "Where a contact came from (account, service, address book) and whether a change of yours is still on its way to the server"),
     m("v1.contacts.update", P::ContactsWrite, true, "{id, card}", "Changes a contact (here at once, on its server through the queue)"),
     m("v1.contacts.create", P::ContactsWrite, true, "{account, book?, card}", "Adds a contact to an account's address book (book: its server id; none = the default one)"),
+    m("v1.contacts.targets", P::ContactsRead, false, "{}", "Every account a contact can be added to (Microsoft 365, Google, CardDAV), empty ones too, with the address book it goes into and the one a new contact starts in"),
+    m("v1.contacts.duplicates", P::ContactsRead, false, "{account?}", "Contacts that look like one person (the same email address, phone number, or full name), in one account or across accounts, each set with why and what merging it makes"),
+    m("v1.contacts.merge_preview", P::ContactsRead, false, "{ids, keep?}", "What merging these contacts would make (keep: the one whose values come first), changing nothing"),
+    m("v1.contacts.merge", P::ContactsWrite, true, "{ids, keep?, card?}", "Merges contacts into one, on their servers too: one per account becomes the merged contact (card: as edited, else the merge's), the account's other copies are deleted; everything kept for merge_undo"),
+    m("v1.contacts.merges", P::ContactsRead, false, "{}", "The merges of the last 30 days, newest first, each with its mark for merge_undo"),
+    m("v1.contacts.merge_undo", P::ContactsWrite, true, "{merge}", "Takes a merge back: each contact changed back, each one deleted made again (needs every account)"),
+    m("v1.contacts.copy", P::ContactsWrite, true, "{ids, account, move?: bool, skip_existing?: bool}", "Copies contacts into another account's address book, or moves them (copied, then deleted where they were; kept in the history); skip_existing leaves out those already there (an email address in common)"),
     m("v1.contacts.delete", P::ContactsWrite, true, "{id}", "Deletes a contact (here at once, on its server through the queue; kept in the history)"),
     m("v1.contacts.share", P::ContactsRead, true, "{id}", "A draft with the contact attached as a vCard, to address and send; returns the draft's id"),
     m("v1.contacts.counts", P::ContactsRead, false, "{}", "How many contacts each account's address books hold"),
@@ -168,7 +183,7 @@ pub const MORE: &[Method] = &[
     m("v1.rules.run_items", P::Change, true, "{items: [[id, folder]..], dry_run?: bool}", "Runs the rules on messages from several folders"),
     m("v1.trash.empty", P::Delete, true, "{accounts: [..]}", "Empty Trash (Microsoft 365: deleted on the server too)"),
     // writing mail
-    m("v1.compose.start", P::Compose, false, "{mode: new | reply | replyAll | forward | redirect | again | forwardMany, id?, ids?}", "What a new message, reply, forward… starts with"),
+    m("v1.compose.start", P::Compose, false, "{mode: new | reply | replyAll | forward | redirect | again | forwardMany, id?, ids?, quoting?: classic | modern | swap}", "What a new message, reply, forward… starts with"),
     m("v1.compose.spell", P::Compose, false, "{texts: [..]}", "Spelling mistakes in these texts, with suggestions"),
     m("v1.compose.spell_add", P::Compose, true, "{word}", "Adds a word to the user's dictionary"),
     m("v1.compose.directory", P::Compose, false, "{typed}", "People in the organization's directory (Microsoft 365) whose name or address starts with what's typed"),
@@ -494,6 +509,38 @@ impl Library {
                 })?;
                 (r, format!("imported {shown}"))
             }
+            "v1.library.export_classic" => {
+                whole()?;
+                let dest = PathBuf::from(p.str("dest")?.trim());
+                let options = crate::classic_export::ClassicOptions {
+                    accounts: p.opt_ids("accounts").unwrap_or_default(),
+                    folders: p.opt_ids("folders").unwrap_or_default(),
+                    no_rules: !p.bool("rules", true),
+                    no_contacts: !p.bool("contacts", true),
+                };
+                let r = crate::classic_export::export(self, &dest, &options, &crate::Silent)?;
+                let said = crate::classic_export::said(&r);
+                (to(r)?, format!("exported to classic Eudora in {}: {said}", dest.display()))
+            }
+            "v1.library.classic_mirror" => (to(self.classic_mirror_saved()?)?, "classic Eudora copy settings".into()),
+            "v1.library.classic_mirror_set" => {
+                whole()?;
+                if p.bool("on", false) {
+                    let saved = self.classic_mirror_saved()?;
+                    let settings = crate::classic_export::MirrorSettings {
+                        on: true,
+                        folder: p.opt_str("folder").unwrap_or(saved.folder),
+                        accounts: p.opt_ids("accounts").unwrap_or(saved.accounts),
+                        no_rules: !p.bool("rules", !saved.no_rules),
+                        no_contacts: !p.bool("contacts", !saved.no_contacts),
+                    };
+                    self.set_classic_mirror(Some(&settings))?;
+                    (to(settings)?, "classic Eudora copy kept current".into())
+                } else {
+                    self.set_classic_mirror(None)?;
+                    (to(self.classic_mirror_saved()?)?, "classic Eudora copy no longer kept current".into())
+                }
+            }
             "v1.library.optimize" => {
                 let vacuum = p.bool("vacuum", false);
                 let r = host.exclusive(&mut || {
@@ -587,6 +634,21 @@ impl Library {
                 crate::graph_sync::set_check_minutes(self, &address, minutes)?;
                 (json!({}), format!("{address} checked every {minutes} minutes"))
             }
+            "v1.accounts.local_only" => (to(self.local_only_list()?)?, "local-only choices".into()),
+            "v1.accounts.local_only_set" => {
+                whole()?;
+                let address = p.str("address")?;
+                let mut choice = self.local_only(&address)?;
+                for (name, slot) in [("mail", &mut choice.mail), ("calendar", &mut choice.calendar), ("contacts", &mut choice.contacts)] {
+                    match p.0.get(name) {
+                        None | Some(serde_json::Value::Null) => {}
+                        Some(v) => *slot = v.as_bool().ok_or_else(|| bad(format!("{name}: true (local only) or false (changes go to the server)")))?,
+                    }
+                }
+                let dropped = self.set_local_only(&address, choice)?;
+                let said = |b: bool| if b { "local only" } else { "to the server" };
+                (json!({ "dropped": dropped, "local": choice }), format!("{address}: mail {}, calendar {}, contacts {}", said(choice.mail), said(choice.calendar), said(choice.contacts)))
+            }
             "v1.accounts.download_period" => {
                 let chosen = crate::graph_sync::download_period(self);
                 (json!({ "chosen": chosen.is_some(), "days": chosen.flatten(), "mb": crate::graph_sync::download_space_mb(self) }), "download period".into())
@@ -640,6 +702,19 @@ impl Library {
                 let config: crate::imap_sync::ImapConfig = p.de("config")?;
                 let id = self.save_imap_account(&config, p.opt_str("password").as_deref(), p.opt_str("smtp_password").as_deref())?;
                 (json!({ "account": id }), format!("saved account {}", config.address))
+            }
+            "v1.accounts.dav_list" => (to(self.dav_accounts()?)?, "contacts and calendars servers".into()),
+            "v1.accounts.dav_save" => {
+                let config = crate::dav::DavConfig { address: p.str("address")?, user: p.opt_str("user").unwrap_or_default(), server: p.opt_str("server").unwrap_or_default(), contacts: None, calendars: None };
+                let password = p.opt_str("password");
+                let found = crate::dav::find_dav(&config, password.as_deref(), self.dav_imap_host(&config.address).as_deref())?;
+                let id = self.add_dav_account(&config, &found, password.as_deref())?;
+                (json!({ "account": id, "found": found }), format!("contacts and calendars of {} added", config.address))
+            }
+            "v1.accounts.dav_remove" => {
+                let address = p.str("address")?;
+                self.remove_dav_account(&address)?;
+                (json!({ "removed": address }), format!("contacts and calendars of {address} removed"))
             }
             "v1.accounts.find_shared" => {
                 let mut client = crate::graph::GraphClient::resume(None, crate::graph::ALL_SCOPES)?;
@@ -1052,6 +1127,55 @@ impl Library {
                 let id = self.create_card(account, &p.opt_str("book").unwrap_or_default(), &card)?;
                 (json!({ "id": id }), format!("added contact {id}"))
             }
+            "v1.contacts.targets" => {
+                let list: Vec<_> = self.contact_targets()?.into_iter().filter(|t| scope.account_id_ok(t.account)).collect();
+                (json!({ "targets": list, "new_in": self.new_contact_account()? }), "accounts that take contacts".into())
+            }
+            "v1.contacts.copy" => {
+                let account = p.i64("account")?;
+                let ids = p.ids("ids")?;
+                let mut accounts = vec![account];
+                for id in &ids {
+                    accounts.push(self.card(*id)?.account);
+                }
+                accounts_ok(&accounts)?;
+                let moving = p.bool("move", false);
+                let done = self.copy_cards(&ids, account, moving, p.bool("skip_existing", true))?;
+                let said = format!("{} contacts {} to account {account}", done.copied + done.moved, if moving { "moved" } else { "copied" });
+                (to(done)?, said)
+            }
+            "v1.contacts.duplicates" => {
+                let account = p.0["account"].as_i64();
+                if let Some(a) = account {
+                    accounts_ok(&[a])?;
+                }
+                let list: Vec<_> = self.contact_duplicates(account)?.into_iter().filter(|g| g.cards.iter().all(|c| scope.account_id_ok(c.account))).collect();
+                let said = format!("{} sets of duplicate contacts", list.len());
+                (to(list)?, said)
+            }
+            "v1.contacts.merge_preview" | "v1.contacts.merge" => {
+                let ids = p.ids("ids")?;
+                let accounts = ids.iter().map(|id| self.card(*id).map(|r| r.account)).collect::<crate::error::Result<Vec<_>>>()?;
+                accounts_ok(&accounts)?;
+                let keep = p.0["keep"].as_i64();
+                if method == "v1.contacts.merge_preview" {
+                    (to(self.merge_preview(&ids, keep)?)?, format!("what merging {} contacts makes", ids.len()))
+                } else {
+                    let card: Option<crate::cards::Card> = if p.0["card"].is_object() { Some(p.de("card")?) } else { None };
+                    let done = self.merge_cards(&ids, keep, card.as_ref())?;
+                    let said = format!("merged {} contacts ({} kept, {} deleted)", ids.len(), done.updated, done.deleted);
+                    (to(done)?, said)
+                }
+            }
+            "v1.contacts.merges" => (to(self.recent_merges()?)?, "recent merges".into()),
+            "v1.contacts.merge_undo" => {
+                if !scope.whole() {
+                    return Err(denied("undoing a merge needs access to every account"));
+                }
+                let merge = p.str("merge")?;
+                let n = self.undo_merge(&merge)?;
+                (json!({ "restored": n }), format!("undid merge {merge}"))
+            }
             "v1.contacts.counts" => {
                 let list: Vec<_> = self.card_counts()?.into_iter().filter(|(account, ..)| scope.account_id_ok(*account)).collect();
                 (to(list)?, "address book counts".into())
@@ -1189,7 +1313,8 @@ impl Library {
                     }
                     messages(&quoted)?;
                 }
-                (to(self.compose_start(&mode, id, &ids)?)?, format!("started a {mode}"))
+                let quoting = p.opt_str("quoting");
+                (to(self.compose_start_quoting(&mode, id, &ids, quoting.as_deref())?)?, format!("started a {mode}"))
             }
             "v1.compose.spell" => {
                 let texts = p.strings("texts");

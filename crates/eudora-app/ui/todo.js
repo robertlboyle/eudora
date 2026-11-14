@@ -153,9 +153,12 @@ function todoRow(t, today) {
   tick.type = "checkbox";
   tick.checked = t.done;
   tick.title = t.done ? "Not done yet" : "Done";
+  tick.setAttribute("aria-label", `Done: ${t.title}`);
   tick.addEventListener("change", () => todoChange(t.id, { done: tick.checked }, tick.checked ? `Done: ${t.title}` : `Open again: ${t.title}`));
   const star = el("button", `todo-star${t.important ? " on" : ""}`, t.important ? "★" : "☆");
   star.title = t.important ? "Not important" : "Important";
+  star.setAttribute("aria-label", `Important: ${t.title}`);
+  star.setAttribute("aria-pressed", String(!!t.important));
   star.addEventListener("click", () => todoChange(t.id, { important: !t.important }));
   const main = el("div", "todo-main");
   main.append(el("div", "todo-title", t.title));
@@ -184,6 +187,17 @@ function todoRow(t, today) {
   main.append(meta);
   row.append(tick, star, main);
   row.addEventListener("dblclick", () => (t.message ? openInnerReader(t.message, t.title) : todoEdit(t)));
+  // the keyboard and screen readers: Tab reaches each task, read with its due day and list;
+  // Enter opens it (its message, else the editor), Shift+F10 / the Menu key its menu
+  row.tabIndex = 0;
+  row.setAttribute("role", "group");
+  row.setAttribute("aria-label", [t.title, t.done ? "done" : "", t.important ? "important" : "", t.due != null ? `due ${todoDay.format(todoLocal(t.due))}` : "", t.list && t.list !== "Tasks" ? t.list : "", t.message ? "about an email" : ""].filter(Boolean).join(", "));
+  row.addEventListener("keydown", (e) => {
+    if (e.target !== row) return;
+    if (e.key === "Enter") { e.preventDefault(); t.message ? openInnerReader(t.message, t.title) : todoEdit(t); }
+    else if (e.key === " ") { e.preventDefault(); tick.click(); }
+    else if ((e.key === "F10" && e.shiftKey) || e.key === "ContextMenu") { e.preventDefault(); window.openContextMenu?.(row); }
+  });
   return row;
 }
 

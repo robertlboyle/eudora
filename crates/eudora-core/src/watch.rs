@@ -60,7 +60,7 @@ fn resume_all(w: &Watch) -> Vec<GraphClient> {
 pub fn sign_ins(library: &Library, w: &Watch, progress: &dyn Progress) -> Result<Vec<GraphClient>> {
     let o = &w.options;
     // (o.imap: the mail servers are in this run, i.e. neither --no-imap nor --archive-only)
-    let mail_servers = |library: &Library| -> Result<bool> { Ok((!library.imap_accounts()?.is_empty() || w.google()) && o.imap) };
+    let mail_servers = |library: &Library| -> Result<bool> { Ok((!library.imap_accounts()?.is_empty() || w.google() || !library.dav_accounts()?.is_empty()) && o.imap) };
     let mut servers = mail_servers(library)?;
     let has_microsoft = library.accounts_counted(false)?.iter().any(|a| a.kind.starts_with("graph"));
     if w.every.is_some() && !servers && !w.imap_only {

@@ -116,7 +116,7 @@ fn history_key(address: &str) -> String {
 
 /// Whether `every` seconds have passed since `key` was last done (kept on disk: a restart
 /// doesn't start every Gmail job over), noting it as done now when they have.
-fn due_and_noted(key: &str, every: i64) -> bool {
+pub(crate) fn due_and_noted(key: &str, every: i64) -> bool {
     let now = crate::library::now();
     if crate::google::schedule_get(key).is_some_and(|last| now - last < every && last <= now) {
         return false;
@@ -149,7 +149,7 @@ pub struct HistoryFetched {
 /// The range of an account's calendars due to be read again, if any: everything daily, the near
 /// weeks every 15 minutes (every few hours while nobody uses Eudora here); remembered on disk, so
 /// a restart doesn't read every calendar since 2000 again.
-fn calendars_due(address: &str, near_minutes: u32) -> Option<(i64, i64)> {
+pub(crate) fn calendars_due(address: &str, near_minutes: u32) -> Option<(i64, i64)> {
     let now = crate::library::now();
     let a = address.to_lowercase();
     if due_and_noted(&format!("calendars-all:{a}"), 86_400) {
@@ -483,7 +483,7 @@ pub fn carry_out(work: &[GmailWork]) -> BatchResult {
         }
         if w.contacts {
             let books = client.contacts().map(|people| vec![(None, "Google Contacts".to_string(), people)]).map_err(|e| e.to_string());
-            result.contacts.push(crate::cards::ContactsFetched { account: w.account, books, google: true });
+            result.contacts.push(crate::cards::ContactsFetched { account: w.account, books, source: crate::cards::Source::Google });
         }
         if let Some((from, to)) = w.calendars {
             let calendars = client
@@ -628,7 +628,8 @@ pub fn record_history(library: &Library, h: &HistoryFetched) -> Result<u64> {
     if let Some(next) = &h.next {
         library.set_setting(&history_key(&h.address), next)?;
     }
-    if h.changes.is_empty() {
+    // mail kept local (`local_only`): what changed in Gmail stays there
+    if h.changes.is_empty() || library.local_only_account(h.account, crate::local_only::Service::Mail)? {
         return Ok(0);
     }
     // the account's folders by label id, and its All Mail and Trash

@@ -282,7 +282,7 @@ impl Library {
                     .tls_config(tls)
                     .http_status_as_error(false)
                     .timeout_global(Some(std::time::Duration::from_secs(30)))
-                    .user_agent(concat!("Eudora/27 (eudora-core ", env!("CARGO_PKG_VERSION"), ")"))
+                    .user_agent(concat!("Eudora/", env!("CARGO_PKG_VERSION")))
                     .build()
                     .new_agent();
                 let response = agent

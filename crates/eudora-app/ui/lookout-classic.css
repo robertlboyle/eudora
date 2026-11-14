@@ -29,7 +29,7 @@ body.skin-lookout-classic {
   --button: #ffffff;
   --hover: #e6f2fa;
   --line: #e1e1e1;
-  --line-strong: #c8c8c8;
+  --line-strong: #909090;
   --row-line: #ececec;
   --accent: #0072c6;
   --accent-soft: #0072c633;
@@ -63,6 +63,7 @@ body.skin-lookout-classic #m-views button.on { border-bottom-color: #0072c6; }
 
 @media (prefers-color-scheme: dark) {
   body.skin-lookout-classic {
+    --accent: #4095d4;
     --text: #f0f0f0;
     --muted: #a8a8a8;
     --window: #1f1f1f;
@@ -77,7 +78,7 @@ body.skin-lookout-classic #m-views button.on { border-bottom-color: #0072c6; }
     --button: #333333;
     --hover: #2f3a45;
     --line: #3a3a3a;
-    --line-strong: #4d4d4d;
+    --line-strong: #818181;
     --row-line: #303030;
     --selected: #284b6b;
     --selected-text: #ffffff;
@@ -89,3 +90,9 @@ body.skin-lookout-classic #m-views button.on { border-bottom-color: #0072c6; }
   body.skin-lookout-classic #toolbar { background: #0f4a7a; }
   body.skin-lookout-classic .row.on { box-shadow: none; }
 }
+
+/* Advanced Search: classic Outlook's Advanced Find (square, the blue default button) */
+body.skin-lookout-classic dialog.adv-search { border-radius: 2px; }
+body.skin-lookout-classic .adv-search button, body.skin-lookout-classic .adv-search input,
+body.skin-lookout-classic .adv-search select, body.skin-lookout-classic .adv-search textarea { border-radius: 2px; }
+body.skin-lookout-classic .adv-search .primary { background: #0072c6; border-color: #0072c6; }

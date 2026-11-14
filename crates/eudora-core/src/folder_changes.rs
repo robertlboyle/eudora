@@ -86,6 +86,11 @@ impl Library {
         if !on_server(account_kind) {
             return Ok(());
         }
+        // an account whose mail is kept local (`local_only`): the folder changes here only
+        let account: i64 = self.conn.query_row("SELECT account FROM folders WHERE id = ?1", params![folder], |r| r.get(0))?;
+        if self.local_only_account(account, crate::local_only::Service::Mail)? {
+            return Ok(());
+        }
         let has_server_id: bool = self.conn.query_row("SELECT server_id IS NOT NULL FROM folders WHERE id = ?1", params![folder], |r| r.get(0))?;
         let waiting_create: Option<i64> = self
             .conn

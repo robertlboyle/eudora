@@ -18,11 +18,49 @@
 # Before 1.0.0 the window was eudora27.exe and the command line eudora.exe, in Programs\Eudora 27;
 # now the window is eudora.exe and the command line eudora-cli.exe, in Programs\Eudora. The old
 # folder and its registrations are removed here, as the installer does.
+#
+# Never inside another app's container: run from a packaged app, Windows quietly redirects every
+# write to %LOCALAPPDATA% into that app's own private copy, and the Eudora it starts would use a
+# library nobody else sees. So when this script finds itself in a package's context it starts
+# itself again outside (through Windows' management service, in the user's own session), waits,
+# and shows what that run printed.
 param(
     [string]$Library = '',
-    [switch]$NoStart
+    [switch]$NoStart,
+    [string]$OutsideLog = ''
 )
 $ErrorActionPreference = 'Stop'
+
+# (a probe file: Windows' own "am I in a package" answer can say no while writes are redirected;
+# a redirected file lands in that app's LocalCache, where it shows)
+$probe = "eudora-redirect-probe-$PID.tmp"
+Set-Content (Join-Path $env:LOCALAPPDATA $probe) 'x'
+$redirected = [bool](Get-ChildItem (Join-Path $env:LOCALAPPDATA "Packages\*\LocalCache\Local\$probe") -ErrorAction SilentlyContinue)
+Remove-Item (Join-Path $env:LOCALAPPDATA $probe) -ErrorAction SilentlyContinue
+if ($redirected) {
+    $log = Join-Path (Split-Path $PSScriptRoot) 'target\install-dev-outside.log'
+    Remove-Item $log -ErrorAction SilentlyContinue
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -OutsideLog `"$log`""
+    if ($Library) { $arguments += " -Library `"$Library`"" }
+    if ($NoStart) { $arguments += ' -NoStart' }
+    Write-Output 'Running inside another app''s container (its AppData is redirected): installing from outside it instead.'
+    $started = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = "powershell $arguments" }
+    if ($started.ReturnValue -ne 0) { throw "Couldn't start the install outside the container (Windows answered $($started.ReturnValue))." }
+    $deadline = (Get-Date).AddMinutes(3)
+    while (-not ((Test-Path $log) -and ((Get-Content $log -Raw) -match '(?m)^(END|FAILED)'))) {
+        if ((Get-Date) -gt $deadline) { throw "The install outside the container didn't finish within 3 minutes (see $log)." }
+        Start-Sleep -Milliseconds 500
+    }
+    $text = Get-Content $log
+    $text | Where-Object { $_ -notmatch '^(END|FAILED)' } | Write-Output
+    if ($text -match '^FAILED') { throw ($text | Where-Object { $_ -match '^FAILED' } | Select-Object -First 1) }
+    return
+}
+if ($OutsideLog) {
+    Start-Transcript -Path "$OutsideLog.transcript" -Force | Out-Null
+    trap { "FAILED: $_" | Add-Content $OutsideLog; Stop-Transcript | Out-Null; exit 1 }
+}
+function Say($text) { Write-Output $text; if ($OutsideLog) { $text | Add-Content $OutsideLog } }
 
 $build = Join-Path (Split-Path $PSScriptRoot) 'target\release'
 $dest = Join-Path $env:LOCALAPPDATA 'Programs\Eudora'
@@ -55,7 +93,7 @@ $shortcut.Save()
 # (the shortcut was "Eudora 27" before 2026-10-25: that one goes)
 $old = Join-Path ([Environment]::GetFolderPath('Programs')) 'Eudora 27.lnk'
 if (Test-Path $old) { Remove-Item $old -Force }
-Write-Output "Installed in $dest; Start Menu shortcut: $link"
+Say "Installed in $dest; Start Menu shortcut: $link"
 
 # .eml, .msg (in the message viewer), and .ics open with Eudora (as the installer registers them,
 # for this user): listed under
@@ -109,12 +147,13 @@ if (-not $NoStart) {
 # the old program folder (before 1.0.0), once nothing runs from it
 if (Test-Path $oldDest) {
     Remove-Item $oldDest -Recurse -Force -ErrorAction SilentlyContinue
-    if (Test-Path $oldDest) { Write-Output "Couldn't remove $oldDest yet (something still runs from it): it goes next time." }
-    else { Write-Output "Removed the old program folder $oldDest" }
+    if (Test-Path $oldDest) { Say "Couldn't remove $oldDest yet (something still runs from it): it goes next time." }
+    else { Say "Removed the old program folder $oldDest" }
 }
 if (-not $NoStart) {
     if ($Library) { Start-Process $exe -ArgumentList "`"$Library`"" -WorkingDirectory $dest } else { Start-Process $exe -WorkingDirectory $dest }
     Start-Sleep -Seconds 6
     $running = Get-Process eudora -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe }
-    if ($running) { Write-Output "Eudora is running from $exe (process $($running.Id -join ', '))." } else { throw 'Eudora did not start.' }
+    if ($running) { Say "Eudora is running from $exe (process $($running.Id -join ', '))." } else { throw 'Eudora did not start.' }
 }
+if ($OutsideLog) { 'END' | Add-Content $OutsideLog; Stop-Transcript | Out-Null }

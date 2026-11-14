@@ -1,8 +1,7 @@
 //! OCR where the system has none (Linux, a Windows without OCR languages, the Mac until Vision
 //! is written): `ocrs`, a Rust OCR engine (code MIT / Apache-2.0). Its two models (text
-//! detection and recognition, about 10 MB) are **CC-BY-SA 4.0** (trained on HierText): the user
-//! accepted them as the fallback (2026-10-14: "Fall back to [ocrs] if the system doesn't have
-//! OCR"); they're downloaded on first use, never shipped, and credited in the notices.
+//! detection and recognition, about 10 MB) are **CC-BY-SA 4.0** (trained on HierText): accepted
+//! as the fallback when the system has no OCR (2026-10-14); they're downloaded on first use, never shipped, and credited in the notices.
 
 use std::path::PathBuf;
 use std::sync::OnceLock;

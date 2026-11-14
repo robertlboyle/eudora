@@ -11,7 +11,7 @@
 <p>The people in Bcc receive the message, but their addresses aren't in what's sent.</p>
 </section>
 
-<section id="reply-forward" data-title="Replying, forwarding, redirecting" data-index="reply; reply to all; forward; redirect; send again; quoting; Ctrl+R; Ctrl+Shift+R; forward as attachment; forward several">
+<section id="reply-forward" data-title="Replying, forwarding, redirecting" data-index="reply; reply to all; forward; redirect; send again; quoting; Ctrl+R; Ctrl+Shift+R; forward as attachment; forward several; bottom posting; top posting; > quoting; classic quoting; Shift Reply; Ctrl Reply">
 <h1>Replying, forwarding, redirecting</h1>
 <table>
 <tr><th>Reply</th><td><kbd>Ctrl</kbd>+<kbd>R</kbd></td><td>To the sender (or the address they asked replies to go to), with the original quoted under "At 05:29 PM 12/31/1999, Ann Smith wrote:". The reply comes from the address the message was sent to.</td></tr>
@@ -20,7 +20,15 @@
 <tr><th>Redirect</th><td></td><td>Sends the message on as it is, from you "by way of" the original sender; replies go to the original sender.</td></tr>
 <tr><th>Send Again</th><td></td><td>A new message with the same recipients, subject, text, and attachments, for a message of yours that needs sending again.</td></tr>
 </table>
-<p>Once sent, the original is marked replied, forwarded, or redirected (and on the server too).</p>
+<p>Once sent, the original is marked replied, forwarded, or redirected, on the server too (Outlook and your phone show it). Mail you answer in Outlook, on your phone, or in webmail is marked in Eudora too: Microsoft 365 is asked about its newest messages every few minutes, an IMAP server about each folder it checks. (Gmail keeps no such mark.)</p>
+<h2 id="quoting">How replies quote the original</h2>
+<p><span class="ui">Settings ▸ Mail ▸ Replies</span> chooses one of two ways:</p>
+<ul>
+<li><b>Write above the original</b> (the usual way): the original is quoted below, with a line down its side, and the cursor waits above it. Your signature goes between your words and the original.</li>
+<li><b>Classic Eudora</b>: the reply is plain text, with "&gt; " before each line of the original ("&gt;&gt; " for lines it had quoted already, long lines wrapped first), and you write <b>below</b> it (bottom posting). The cursor waits under the quote, and your signature goes at the end.</li>
+</ul>
+<p><b>Just this once the other way:</b> hold <kbd>Shift</kbd> or <kbd>Ctrl</kbd> while you click <b>Reply</b> or <b>Reply to All</b> (on the toolbar, in the right-click menu, or on the message). The keyboard shortcuts always use the way chosen in Settings.</p>
+<p>A classic reply is plain text. Switch it to HTML with the message window's <a href="#formatting">HTML / Plain Text</a> switch if you want to format it: the "&gt;" lines stay as they are.</p>
 <p>In <span class="ui">Settings ▸ General ▸ Look</span> you can map <kbd>Ctrl</kbd>+<kbd>R</kbd> to Reply to All, as classic Eudora allowed.</p>
 <p>In the Gmail-style look, replies and forwards are written in the message's place rather than in a window.</p>
 </section>
@@ -32,7 +40,7 @@
 <p><span class="ui">File ▸ Accounts…</span> (Classic: <span class="ui">Tools ▸ Personalities…</span>) opens Settings at its Accounts page, where each account's address and name are set.</p>
 </section>
 
-<section id="completion" data-title="Address completion" data-index="autocomplete; address completion; suggestions; directory; address book; recent senders">
+<section id="completion" data-title="Address completion" data-index="autocomplete; address completion; suggestions; correct a name; wrong name; remembered name; directory; address book; recent senders">
 <h1>Address completion</h1>
 <p>After two letters in To, Cc, or Bcc, Eudora suggests people. Use <kbd>↑</kbd> / <kbd>↓</kbd>, then <kbd>Enter</kbd> or <kbd>Tab</kbd> to pick one; <kbd>Esc</kbd> closes the list. Suggestions come from:</p>
 <ol>
@@ -41,11 +49,27 @@
 <li>your organization's Microsoft 365 directory, added a moment later when it answers.</li>
 </ol>
 <p><span class="ui">Settings ▸ General ▸ Address completion</span> turns the first two sources on or off. Your own addresses are never suggested.</p>
+<p><b>Correcting a name:</b> if a suggestion has someone's name wrong (say "Mikee Jones &lt;mike@jones.com&gt;"), fix it in To, Cc, or Bcc ("Mike Jones &lt;mike@jones.com&gt;") and send the message. From then on Eudora suggests the name as you wrote it. The correction stays even when Eudora rereads your mail for its suggestions, and travels to your other computers with your settings. A bare address with no name changes nothing. (The Address Book itself isn't changed: edit the contact there to change it everywhere.)</p>
 </section>
 
-<section id="formatting" data-title="Formatting, plain text, and pictures" data-index="HTML; plain text; format; bold; italic; link; list; paste picture; screenshot; inline image; priority">
+<section id="formatting" data-title="Formatting, plain text, and pictures" data-index="HTML; plain text; format; strikethrough; highlight; Ctrl+Shift+X; Ctrl+Shift+H; right-click formatting; remove formatting; HTML / Plain Text switch; lose formatting; bold; italic; link; list; paste picture; screenshot; inline image; priority">
 <h1>Formatting, plain text, and pictures</h1>
-<p>The message window's <b>Format</b> chooses <b>HTML</b> (formatted: bold, italic, underline, lists, links) or <b>Plain text</b>. A reply to a plain-text message starts as plain text. Switching to plain text removes the formatting (Eudora asks first if the message has pictures in it).</p>
+<p>The <b>HTML / Plain Text</b> switch on the message window's toolbar chooses how the message is sent, any time before you send it. The half in use is filled in. With the keyboard, <kbd>Tab</kbd> to it and use the arrow keys.</p>
+<ul>
+<li><b>HTML</b>: formatted, with bold, italic, underline, strikethrough, highlight, lists, links, and pictures in the text. Each message goes with a plain-text copy for mail programs that show only text.</li>
+<li><b>Plain Text</b>: words only, which every mail program shows the same way. The formatting buttons rest while it's chosen.</li>
+</ul>
+<p><b>Formatting text:</b> choose the words, then use the toolbar's buttons, the keys, or the right-click menu:</p>
+<table>
+<tr><th>Bold</th><td><kbd>Ctrl</kbd>+<kbd>B</kbd></td></tr>
+<tr><th>Italic</th><td><kbd>Ctrl</kbd>+<kbd>I</kbd></td></tr>
+<tr><th>Underline</th><td><kbd>Ctrl</kbd>+<kbd>U</kbd></td></tr>
+<tr><th>Strikethrough</th><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd></td></tr>
+<tr><th>Highlight</th><td><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> (yellow; the same again takes it off)</td></tr>
+</table>
+<p>Each button shows whether its formatting is on where the cursor is. <b>Right-click</b> in the text (or press <kbd>Shift</kbd>+<kbd>F10</kbd> or the Menu key) for Cut, Copy, Paste, every formatting above, Bulleted and Numbered List, Make Hyperlink…, Remove Formatting, Select All, and Check Spelling. In a plain-text message the formatting items are grayed, with <b>Switch to HTML to format…</b> below them.</p>
+<p><b>Switching to plain text loses the formatting, so Eudora warns first.</b> It lists exactly what would go (bold, italic, or underlined text; fonts, sizes, and colors; lists; tables; pictures in the text; clickable links) and lets you keep HTML. Quoted parts become "&gt; " lines, and each link's address is kept in the text after its words. Switching back to HTML doesn't bring the lost formatting back. A message with nothing but words switches without asking.</p>
+<p>A reply to a plain-text message starts as plain text, as does a reply quoted <a href="#reply-forward">classic Eudora's way</a>.</p>
 <p><b>Pasting a picture</b> (a screenshot, say): in an HTML message it goes in where the cursor is. In a plain-text message Eudora asks whether to switch to HTML and paste it, or attach it as a file. Pictures in the text are sent as parts of the message, which every mail program shows.</p>
 <p><b>Priority</b> marks the message highest to lowest for the people who receive it.</p>
 </section>

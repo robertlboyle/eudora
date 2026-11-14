@@ -1511,6 +1511,9 @@ impl Library {
         let before = done.len();
         let mut queued = 0;
         for (key, status, booking, details, event, account) in rows {
+            if self.local_only_account(account, crate::local_only::Service::Calendar)? {
+                continue; // (a calendar kept local: nothing goes to its server)
+            }
             let emails = std::iter::once(booking).chain(sources.get(&key).into_iter().flatten().copied());
             for message in emails {
                 let mark = format!("{key}:{message}");

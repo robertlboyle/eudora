@@ -411,6 +411,9 @@ pub struct ReconcileResult {
     pub unread: std::result::Result<Vec<String>, String>,
     /// For each label asked about, the ids carrying it (labels whose lookup failed are left out).
     pub labels: Vec<(String, Vec<String>)>,
+    /// The newest messages answered in Outlook, on a phone, anywhere: (id, Exchange's last verb:
+    /// 102 replied, 103 replied to all, 104 forwarded). Empty when it couldn't be asked.
+    pub answered: Vec<(String, i64)>,
 }
 
 /// Everything the download's change thread does in one go.
@@ -706,6 +709,8 @@ pub struct BatchRecorded {
     /// From the server: messages now unread / read, labels given / taken off.
     pub turned_unread: u64,
     pub turned_read: u64,
+    /// Replied / forwarded marks brought in from the server.
+    pub turned_answered: u64,
     pub labels_changed: u64,
     /// Address books read: cards added, changed, removed; why one couldn't be read.
     pub cards: crate::cards::CardsRecorded,
@@ -809,6 +814,15 @@ pub fn plan_batch(library: &Library, account: &str, limit: usize, reconcile: Opt
         });
         if let Some(p) = crate::marks::priority_of(flags) {
             patch["importance"] = crate::marks::importance(Some(p)).into();
+        }
+        // replied / forwarded in Eudora: Outlook and phones show it too (Exchange's last action,
+        // PidTagLastVerbExecuted, and the icon Outlook draws from it, PidTagIconIndex)
+        let verb = if flags & crate::marks::FORWARDED != 0 { Some((104, 262)) } else if flags & crate::marks::REPLIED != 0 { Some((102, 261)) } else { None };
+        if let Some((verb, icon)) = verb {
+            patch["singleValueExtendedProperties"] = serde_json::json!([
+                { "id": "Integer 0x1081", "value": verb.to_string() },
+                { "id": "Integer 0x1080", "value": icon.to_string() },
+            ]);
         }
         // Outlook's flag (a To Do): only when it was flagged or unflagged in Eudora
         if flag {
@@ -949,14 +963,17 @@ pub fn carry_out_batch(client: &mut GraphClient, batch: &Batch) -> BatchResult {
         let asked = std::time::Instant::now();
         let unread = client.unread_ids(job.inbox_only).map_err(|e| e.to_string());
         let mut labels = Vec::new();
+        let mut answered = Vec::new();
         if unread.is_ok() {
             for name in &job.labels {
                 if let Ok(ids) = client.ids_with_category(name) {
                     labels.push((name.clone(), ids));
                 }
             }
+            // replied / forwarded elsewhere: the newest messages' last action
+            answered = client.last_verbs(job.inbox_only, if job.inbox_only { 500 } else { 2000 }).unwrap_or_default();
         }
-        result.reconcile.push(ReconcileResult { job: job.clone(), asked, unread, labels });
+        result.reconcile.push(ReconcileResult { job: job.clone(), asked, unread, labels, answered });
     }
     part = crate::speed::Timer::new("Round: contact changes");
     for job in &batch.cards {
@@ -1053,7 +1070,7 @@ pub fn carry_out_batch(client: &mut GraphClient, batch: &Batch) -> BatchResult {
     for job in &batch.contacts {
         client.set_mailbox(job.mailbox.clone());
         let books = client.address_books().map_err(|e| e.to_string());
-        result.contacts.push(crate::cards::ContactsFetched { account: job.account, books, google: false });
+        result.contacts.push(crate::cards::ContactsFetched { account: job.account, books, source: crate::cards::Source::Graph });
     }
     part = crate::speed::Timer::new("Round: calendars");
     for job in &batch.calendars {
@@ -1104,6 +1121,7 @@ pub fn record_batch(library: &Library, result: &BatchResult) -> Result<BatchReco
         for r in &result.reconcile {
             let Ok(unread) = &r.unread else { continue };
             let (unread_now, read_now, labels) = apply_reconcile(library, &r.job, unread, &r.labels, &sent_since(library, r.asked))?;
+            done.turned_answered += apply_answered(library, &r.job, &r.answered)?;
             done.turned_unread += unread_now;
             done.turned_read += read_now;
             done.labels_changed += labels;
@@ -1204,10 +1222,10 @@ pub fn record_batch(library: &Library, result: &BatchResult) -> Result<BatchReco
     for fetched in &result.contacts {
         match &fetched.books {
             Ok(books) => {
-                let r = if fetched.google {
-                    library.record_google_contacts(fetched.account, books.first().map(|b| b.2.as_slice()).unwrap_or(&[]))?
-                } else {
-                    library.record_contacts(fetched.account, books)?
+                let r = match fetched.source {
+                    crate::cards::Source::Google => library.record_google_contacts(fetched.account, books.first().map(|b| b.2.as_slice()).unwrap_or(&[]))?,
+                    crate::cards::Source::Dav => library.record_dav_contacts(fetched.account, books)?,
+                    crate::cards::Source::Graph => library.record_contacts(fetched.account, books)?,
                 };
                 done.cards.added += r.added;
                 done.cards.changed += r.changed;
@@ -1242,7 +1260,11 @@ fn sent_since(library: &Library, asked: std::time::Instant) -> Vec<i64> {
     SENT.lock().unwrap_or_else(|e| e.into_inner()).iter().filter(|(at, root, _)| *at >= asked && *root == library.root).map(|(_, _, m)| *m).collect()
 }
 
-fn apply_reconcile(library: &Library, job: &ReconcileJob, unread: &[String], labels: &[(String, Vec<String>)], newer: &[i64]) -> Result<(u64, u64, u64)> {
+pub(crate) fn apply_reconcile(library: &Library, job: &ReconcileJob, unread: &[String], labels: &[(String, Vec<String>)], newer: &[i64]) -> Result<(u64, u64, u64)> {
+    // mail kept local (`local_only`): read / unread and labels set on the server stay there
+    if library.local_only_account(job.account, crate::local_only::Service::Mail)? {
+        return Ok((0, 0, 0));
+    }
     let conn = &library.conn;
     conn.execute_batch("CREATE TEMP TABLE IF NOT EXISTS reconcile_ids (server_id TEXT PRIMARY KEY); DELETE FROM temp.reconcile_ids;")?;
     let fill = |ids: &[String]| -> Result<()> {
@@ -1294,6 +1316,62 @@ fn apply_reconcile(library: &Library, job: &ReconcileJob, unread: &[String], lab
     Ok((turned_unread as u64, turned_read as u64, changed as u64))
 }
 
+/// Replied / forwarded on the server (Outlook, a phone, the web) marked here too: the mark is
+/// added, never taken off (Exchange keeps only the last action, and one done here stays), and a
+/// message with its own change still waiting keeps it. Returns how many were marked.
+fn apply_answered(library: &Library, job: &ReconcileJob, answered: &[(String, i64)]) -> Result<u64> {
+    if answered.is_empty() || library.local_only_account(job.account, crate::local_only::Service::Mail)? {
+        return Ok(0);
+    }
+    let conn = &library.conn;
+    let mut done = 0;
+    for (bit, verbs) in [(crate::marks::REPLIED, [102, 103]), (crate::marks::FORWARDED, [104, 104])] {
+        let ids: Vec<&String> = answered.iter().filter(|(_, v)| verbs.contains(v)).map(|(id, _)| id).collect();
+        if ids.is_empty() {
+            continue;
+        }
+        conn.execute_batch("CREATE TEMP TABLE IF NOT EXISTS answered_ids (server_id TEXT PRIMARY KEY); DELETE FROM temp.answered_ids;")?;
+        {
+            let mut insert = conn.prepare_cached("INSERT OR IGNORE INTO temp.answered_ids (server_id) VALUES (?1)")?;
+            for id in ids {
+                insert.execute(params![id])?;
+            }
+        }
+        done += conn.execute(
+            "UPDATE messages SET flags = flags | ?2 WHERE flags & ?2 = 0 AND id IN (
+                 SELECT l.message FROM locations l JOIN folders f ON f.id = l.folder
+                 WHERE f.account = ?1 AND l.server_id IN (SELECT server_id FROM temp.answered_ids))
+               AND id NOT IN (SELECT json_extract(payload, '$.message') FROM pending_ops WHERE kind IN ('mark', 'imap-mark'))",
+            params![job.account, bit],
+        )? as u64;
+    }
+    Ok(done)
+}
+
+/// IMAP's replied / forwarded marks for one folder's messages (`Chunk::Answered`), added the same
+/// way: never taken off, a message's own waiting change kept.
+pub fn mark_answered_in(library: &Library, folder: i64, ids: &[(String, i64)]) -> Result<u64> {
+    let conn = &library.conn;
+    let account: Option<i64> = conn.query_row("SELECT account FROM folders WHERE id = ?1", params![folder], |r| r.get(0)).optional()?;
+    if let Some(a) = account {
+        if library.local_only_account(a, crate::local_only::Service::Mail)? {
+            return Ok(0); // (mail kept local: the server's marks stay there)
+        }
+    }
+    let mut done = 0;
+    for bit in [crate::marks::REPLIED, crate::marks::FORWARDED] {
+        let mut stmt = conn.prepare_cached(
+            "UPDATE messages SET flags = flags | ?3 WHERE flags & ?3 = 0
+               AND id IN (SELECT message FROM locations WHERE folder = ?1 AND server_id = ?2)
+               AND id NOT IN (SELECT json_extract(payload, '$.message') FROM pending_ops WHERE kind IN ('mark', 'imap-mark'))",
+        )?;
+        for (id, b) in ids.iter().filter(|(_, b)| *b == bit) {
+            done += stmt.execute(params![folder, id, b])? as u64;
+        }
+    }
+    Ok(done)
+}
+
 /// The marks and deletes waiting for the server: (waiting, given up).
 pub fn waiting_marks(library: &Library) -> Result<(u64, u64)> {
     let (waiting, given_up): (i64, i64) = library.conn.query_row(
@@ -1336,7 +1414,7 @@ mod tests {
 
     #[test]
     fn status_labels_and_priority_go_to_the_server_and_come_back() {
-        use crate::marks::{Status, UNREAD};
+        use crate::marks::{REPLIED, Status, UNREAD};
         let (_dir, library, id, [inbox, _, _, _]) = mailbox();
         let account: i64 = library.conn.query_row("SELECT account FROM folders WHERE id = ?1", [inbox], |r| r.get(0)).unwrap();
         library.set_status(&[id], Status::Unread).unwrap();
@@ -1357,7 +1435,7 @@ mod tests {
 
         // read in Outlook, the label taken off on the phone: comes back
         let job = ReconcileJob { account, mailbox: None, inbox_only: false, labels: vec!["Prospects".into()] };
-        let back = BatchResult { reconcile: vec![ReconcileResult { job: job.clone(), asked: std::time::Instant::now(), unread: Ok(vec![]), labels: vec![("Prospects".into(), vec![])] }], ..Default::default() };
+        let back = BatchResult { reconcile: vec![ReconcileResult { job: job.clone(), asked: std::time::Instant::now(), unread: Ok(vec![]), labels: vec![("Prospects".into(), vec![])], answered: vec![] }], ..Default::default() };
         let r = record_batch(&library, &back).unwrap();
         assert_eq!((r.turned_read, r.labels_changed), (1, 1));
         assert_eq!(library.flags_of(id).unwrap() & UNREAD, 0);
@@ -1365,10 +1443,10 @@ mod tests {
 
         // unread there again; meanwhile read here and not yet sent: the change made here wins
         library.set_status(&[id], Status::Read).unwrap(); // (already read: nothing queued)
-        let back = BatchResult { reconcile: vec![ReconcileResult { job: job.clone(), asked: std::time::Instant::now(), unread: Ok(vec!["item-1".into()]), labels: vec![] }], ..Default::default() };
+        let back = BatchResult { reconcile: vec![ReconcileResult { job: job.clone(), asked: std::time::Instant::now(), unread: Ok(vec!["item-1".into()]), labels: vec![], answered: vec![] }], ..Default::default() };
         assert_eq!(record_batch(&library, &back).unwrap().turned_unread, 1);
         library.set_status(&[id], Status::Read).unwrap();
-        let back = BatchResult { reconcile: vec![ReconcileResult { job, asked: std::time::Instant::now(), unread: Ok(vec!["item-1".into()]), labels: vec![] }], ..Default::default() };
+        let back = BatchResult { reconcile: vec![ReconcileResult { job, asked: std::time::Instant::now(), unread: Ok(vec!["item-1".into()]), labels: vec![], answered: vec![] }], ..Default::default() };
         assert_eq!(record_batch(&library, &back).unwrap().turned_unread, 0, "waiting to go to the server: kept");
         assert_eq!(library.flags_of(id).unwrap() & UNREAD, 0);
 
@@ -1378,10 +1456,19 @@ mod tests {
         record_batch(&library, &BatchResult { marks: vec![(op, Outcome::Moved(String::new()))], ..Default::default() }).unwrap();
         assert!(library.pending_changes().unwrap().is_empty());
         let job = ReconcileJob { account, mailbox: None, inbox_only: false, labels: vec![] };
-        let late = BatchResult { reconcile: vec![ReconcileResult { job: job.clone(), asked, unread: Ok(vec!["item-1".into()]), labels: vec![] }], ..Default::default() };
+        let late = BatchResult { reconcile: vec![ReconcileResult { job: job.clone(), asked, unread: Ok(vec!["item-1".into()]), labels: vec![], answered: vec![] }], ..Default::default() };
         assert_eq!(record_batch(&library, &late).unwrap().turned_unread, 0, "a read-back older than the change doesn't undo it");
-        let fresh = BatchResult { reconcile: vec![ReconcileResult { job, asked: std::time::Instant::now(), unread: Ok(vec!["item-1".into()]), labels: vec![] }], ..Default::default() };
+        let fresh = BatchResult { reconcile: vec![ReconcileResult { job, asked: std::time::Instant::now(), unread: Ok(vec!["item-1".into()]), labels: vec![], answered: vec![] }], ..Default::default() };
         assert_eq!(record_batch(&library, &fresh).unwrap().turned_unread, 1, "a newer one counts");
+
+        // replied in Outlook, then forwarded on the phone: both marks here, and they stay
+        let job = ReconcileJob { account, mailbox: None, inbox_only: true, labels: vec![] };
+        let answered = |verb: i64| BatchResult { reconcile: vec![ReconcileResult { job: job.clone(), asked: std::time::Instant::now(), unread: Ok(vec!["item-1".into()]), labels: vec![], answered: vec![("item-1".into(), verb)] }], ..Default::default() };
+        assert_eq!(record_batch(&library, &answered(102)).unwrap().turned_answered, 1);
+        assert_eq!(library.flags_of(id).unwrap() & REPLIED, REPLIED);
+        assert_eq!(record_batch(&library, &answered(102)).unwrap().turned_answered, 0, "already marked");
+        assert_eq!(record_batch(&library, &answered(104)).unwrap().turned_answered, 1);
+        assert_eq!(library.flags_of(id).unwrap() & (REPLIED | crate::marks::FORWARDED), REPLIED | crate::marks::FORWARDED);
     }
 
     #[test]

@@ -5,23 +5,32 @@
  * Asks a question. `buttons`: [{ label, value, primary? }], the first primary one answers Enter;
  * Esc or the × answers `null`. Returns the chosen button's value. `content`: an element shown above the buttons.
  */
+let askCount = 0;
 function ask({ title, text, buttons, detail, content }) {
   return new Promise((resolve) => {
     const dialog = document.createElement("dialog");
     dialog.className = "ask";
+    // (named by its title and described by its text, so a screen reader reads both as it opens)
+    const key = `ask-${++askCount}`;
     const h = document.createElement("h2");
+    h.id = `${key}-title`;
     h.textContent = title;
     dialog.append(h);
-    for (const para of String(text || "").split("\n\n")) {
+    dialog.setAttribute("aria-labelledby", h.id);
+    const said = document.createElement("div");
+    said.id = `${key}-text`;
+    dialog.append(said);
+    dialog.setAttribute("aria-describedby", said.id);
+    for (const para of String(text || "").split("\n\n").filter((p) => p.trim())) {
       const p = document.createElement("p");
       p.textContent = para;
-      dialog.append(p);
+      said.append(p);
     }
     if (detail) {
       const p = document.createElement("p");
       p.className = "ask-detail";
       p.textContent = detail;
-      dialog.append(p);
+      said.append(p);
     }
     if (content) dialog.append(content); // (an element of the caller's: ticks, a list…)
     const row = document.createElement("div");
@@ -40,6 +49,7 @@ function ask({ title, text, buttons, detail, content }) {
     x.className = "dlg-x";
     x.type = "button";
     x.title = "Close";
+    x.setAttribute("aria-label", "Close");
     x.textContent = "✕";
     x.addEventListener("click", () => dialog.close());
     dialog.prepend(x);

@@ -16,7 +16,7 @@ ENV DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates curl wget file xz-utils build-essential pkg-config patchelf git \
         libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev \
-        libssl-dev libxdo-dev libdbus-1-dev \
+        libssl-dev libxdo-dev libdbus-1-dev libspeechd-dev libclang-dev \
         python3 squashfs-tools rpm dpkg-dev apt-utils createrepo-c gnupg desktop-file-utils \
         xvfb xauth \
     && rm -rf /var/lib/apt/lists/*

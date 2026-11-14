@@ -1,0 +1,64 @@
+<section id="access" data-title="Accessibility: screen readers, keyboard, and low vision" data-index="accessibility; screen reader; NVDA; JAWS; Narrator; VoiceOver; TalkBack; blind; low vision; keyboard only; high contrast; contrast themes; reduced motion; focus; announcements; text size; large buttons; BossWatch; speak recipients; columns; move column; column width; contrast; target size; roomier rows; rule speak; play sound; zoom; Humongous; Read Aloud; speech; text to speech; voice; Ctrl+Alt+Space; new mail sound; natural voices; Kokoro; download voices">
+<h1>Accessibility</h1>
+<p>Classic Eudora was known for working well for blind and visually impaired people. This Eudora aims to do everything it did, and more: every feature usable with a screen reader (NVDA, JAWS, and Narrator on Windows, VoiceOver on the Mac and iPhone, TalkBack on Android) and with the keyboard alone. This work is under way. This page says what works now and what is coming, and changes as each part is finished.</p>
+<h2 id="access-now">What works now</h2>
+<ul>
+<li><b>Menus and shortcuts.</b> The menu bar is the system's own, so every screen reader reads it, and every command has a shortcut. See <a href="#ref-shortcuts">Keyboard shortcuts</a>.</li>
+<li><b>Eudora tells your screen reader what happens.</b> What the status bar says (new mail, a message sent, a search's count, a long task's progress) is read politely, without interrupting; errors are read at once. Progress is read at most every second and a half, so you aren't flooded.</li>
+<li><b>Named areas.</b> The window's parts are named for screen readers: the toolbar (Mail commands), Mailboxes, Messages, Message, and Status, so you can jump between them with your screen reader's region or landmark keys.</li>
+<li><b>Messages.</b> The text of a message is named “Message:” and its subject, in the window and in the message viewer.</li>
+<li><b>Questions and notices.</b> Every question Eudora asks is read with its title and its text when it opens. The keyboard starts on the button that answers it; <kbd>Esc</kbd> closes it, and the keyboard goes back where it was.</li>
+<li><b>Buttons with only a picture</b> are named in words (Settings, Dark mode, Fewer headers…).</li>
+<li><b>Writing.</b> The message text is a labeled, multi-line text box; the message window's status line is read as it changes.</li>
+<li><b>Where the keyboard is</b> is always shown by a clear ring.</li>
+<li><b>Readable colors in every look.</b> Every look, light and dark, meets the usual standard for contrast (WCAG 2.2 AA): text at least 4.5 to 1 against its background, the borders of fields and buttons and the keyboard's ring at least 3 to 1.</li>
+<li><b>High contrast.</b> In Windows' contrast themes (Settings ▸ Accessibility ▸ Contrast themes) Eudora uses the theme's own colors, as classic Eudora did; icons stay visible and chosen messages and folders show in the theme's highlight color.</li>
+<li><b>Less movement.</b> When your system is set to reduce motion (Windows: Settings ▸ Accessibility ▸ Visual effects ▸ Animation effects off; Mac: Reduce motion), nothing in Eudora spins or pulses.</li>
+<li><b>New mail is spoken and heard.</b> When new mail arrives in one of your Inboxes, your screen reader says how many messages came, and Eudora plays its new-mail sound (see below).</li>
+<li><b>Text size.</b> <span class="ui">Settings ▸ General ▸ Text size and buttons</span> makes everything in every Eudora window bigger or smaller, from 80% to 300% (“Humongous” is 250%, as in classic Eudora); the lists' rows grow with their text. <kbd>Ctrl</kbd>+<kbd>+</kbd> and <kbd>Ctrl</kbd>+<kbd>−</kbd> change it anywhere, <kbd>Ctrl</kbd>+<kbd>0</kbd> goes back to the usual size; the size is said aloud. <b>Large toolbar buttons</b>, with their names, are there too.</li>
+<li><b>Things to click are big enough.</b> Small icons (a folder's arrow, its search magnifier, the buttons on inner windows) take clicks across at least 24 by 24 pixels. The Eudora look keeps classic Eudora's close rows; <span class="ui">Settings ▸ General ▸ Roomier rows</span> makes them 24 pixels tall.</li>
+</ul>
+<h2 id="access-keys">The keyboard, pane by pane</h2>
+<table>
+<tr><th><kbd>F6</kbd>, <kbd>Shift</kbd>+<kbd>F6</kbd></th><td>From pane to pane, as in classic Eudora: Mailboxes, Messages, the message, the toolbar, the search box. Your screen reader says which.</td></tr>
+<tr><th>Mailboxes</th><td>A tree, read with each mailbox's name, how many messages it holds, and how many are unread. <kbd>↑</kbd> <kbd>↓</kbd> move; <kbd>→</kbd> opens a folder (again: goes into it), <kbd>←</kbd> closes it (again: goes up to the one above); <kbd>Home</kbd> / <kbd>End</kbd>; <kbd>Enter</kbd> or <kbd>Space</kbd> opens the mailbox; typing a name jumps to it.</td></tr>
+<tr><th>Messages</th><td>Each message is read as one line: “Unread, flagged, Ann Smith, Lunch Friday, Tuesday, November 12, 10:42 AM, 1 attachment, replied”, with its place in the list. <kbd>↑</kbd> <kbd>↓</kbd> <kbd>Page Up</kbd> <kbd>Page Down</kbd> <kbd>Home</kbd> <kbd>End</kbd> move (with <kbd>Shift</kbd>: choose several); <kbd>Enter</kbd> goes into the message to read it; <kbd>Shift</kbd>+<kbd>Space</kbd> marks it read or unread; <kbd>Delete</kbd> or <kbd>Backspace</kbd> deletes; <kbd>Insert</kbd> flags it. <b>Typing a name</b> jumps to the next message from that person (from its subject when the list is sorted by subject), as classic Eudora did.</td></tr>
+<tr><th>Writing</th><td>To, Cc, and Bcc suggest addresses as you type; your screen reader says how many and reads each as you move to it with <kbd>↑</kbd> <kbd>↓</kbd>; <kbd>Enter</kbd> or <kbd>Tab</kbd> takes it. Bold, Italic, and Underline say whether they're on where the cursor is.</td></tr>
+<tr><th>The message's views</th><td>Message, Text, Headers, and Source are tabs: <kbd>←</kbd> <kbd>→</kbd> move between them.</td></tr>
+<tr><th>Calendar</th><td><kbd>Tab</kbd> reaches each event, read with its day, time, place, and whether you've answered; <kbd>Enter</kbd> or <kbd>Space</kbd> opens it, <kbd>Shift</kbd>+<kbd>F10</kbd> its menu. <kbd>←</kbd> <kbd>→</kbd> move by day, week, or month, <kbd>T</kbd> today, <kbd>D</kbd> <kbd>W</kbd> <kbd>M</kbd> <kbd>A</kbd> <kbd>I</kbd> <kbd>R</kbd> the views, <kbd>N</kbd> a new appointment.</td></tr>
+<tr><th>To Do</th><td><kbd>Tab</kbd> reaches each task, read with its due day and list; <kbd>Enter</kbd> opens it (its email, if it has one), <kbd>Space</kbd> ticks it done.</td></tr>
+<tr><th>Contacts</th><td>A list: <kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd> move (with <kbd>Shift</kbd>: choose several), <kbd>Ctrl</kbd>+<kbd>A</kbd> all, typing a name jumps to it, <kbd>Enter</kbd> goes to the contact's card.</td></tr>
+<tr><th>Columns</th><td>The column headings above the list can be reached with <kbd>Tab</kbd> (<kbd>Shift</kbd>+<kbd>Tab</kbd> from the list): <kbd>←</kbd> <kbd>→</kbd> go along them, <kbd>Enter</kbd> sorts by one (again: the other way), <kbd>Ctrl</kbd>+<kbd>←</kbd> / <kbd>→</kbd> moves it, <kbd>Shift</kbd>+<kbd>←</kbd> / <kbd>→</kbd> makes it narrower or wider (with <kbd>Alt</kbd> too: by more), <kbd>Shift</kbd>+<kbd>F10</kbd> its menu (which columns to show, Make wider / narrower, its usual width); <kbd>↓</kbd> goes back to the messages. What changed is said aloud.</td></tr>
+<tr><th>Pane sizes</th><td>The bars between the panes, and the top edge of the Activity panel, can be reached with <kbd>Tab</kbd>: the arrow keys move them (with <kbd>Shift</kbd>: farther), <kbd>Home</kbd> / <kbd>End</kbd> to their limits.</td></tr>
+<tr><th>Right-click menus</th><td><kbd>Shift</kbd>+<kbd>F10</kbd> or the Menu key opens the menu of the message or mailbox the keyboard is on. <kbd>↑</kbd> <kbd>↓</kbd> choose, a letter jumps to an item, <kbd>Enter</kbd> does it, <kbd>Esc</kbd> goes back.</td></tr>
+</table>
+<h2 id="access-manual">This manual</h2>
+<p>The manual's window works the same way: the search box and the contents are named, the page you're on is marked in the contents, and opening a page or searching says where you are (“Adding an IMAP or POP3 account”, “3 pages found”) and moves the keyboard to the top of it. <kbd>Ctrl</kbd>+<kbd>+</kbd> and <kbd>Ctrl</kbd>+<kbd>−</kbd> change its text size too.</p>
+<h2 id="access-sound">The new-mail sound</h2>
+<p>When new mail arrives in an Inbox of your own (not a shared mailbox's), Eudora plays a sound, as classic Eudora did. Several checks in a row play it once. Choose it in <span class="ui">Settings ▸ General ▸ New mail sound</span> (this computer only); <span class="ui">Play it</span> plays it.</p>
+<table>
+<tr><th>Follow the look</th><td>At first. Eudora Classic and Eudora Modern play classic Eudora's own new-mail sound. The Lookout and Thunderbird-style looks play this computer's new-mail sound, as Outlook and Thunderbird do (on Windows, “New Mail Notification” in Settings ▸ System ▸ Sound ▸ More sound settings ▸ Sounds; where there's none, a bell). Gmail-style plays a chime and Yahoo-style a marimba, both Eudora's own.</td></tr>
+<tr><th>Eudora, Eudora (older)</th><td>Classic Eudora 7.1's new-mail sound, and the one from older versions.</td></tr>
+<tr><th>Chime, Marimba, Bell</th><td>Eudora's own sounds.</td></tr>
+<tr><th>This computer's new-mail sound</th><td>Whatever your system plays for new mail.</td></tr>
+<tr><th>A sound file of my own…</th><td>Any sound file (.wav, .mp3, .ogg, .m4a, .aac, .flac, .opus) up to 5 MB.</td></tr>
+<tr><th>No sound</th><td>Silence.</td></tr>
+</table>
+<h2 id="access-speech">Read Aloud and speech</h2>
+<p><span class="ui">Message ▸ Read Aloud</span> (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Space</kbd>, as in Outlook, in every look) reads the message shown: who it's from, its subject, when it was sent, how many attachments it has, then its text. Press the keys again, or choose <span class="ui">Stop Reading</span>, to stop. This is Eudora's own voice, apart from your screen reader, which keeps working as usual.</p>
+<p>Choose how Eudora speaks in <span class="ui">Settings ▸ General ▸ Speech</span> (this computer only):</p>
+<table>
+<tr><th>Eudora's speech library</th><td>At first. Speaks the same way on Windows, the Mac, and Linux, with the voices your system has (on Linux through speech-dispatcher).</td></tr>
+<tr><th>This system's own speech</th><td>The speech built into the system's web view, with the system's voices. Some systems offer more voices this way. Where it isn't available, Eudora's library speaks instead.</td></tr>
+<tr><th>Natural voices</th><td>Much more natural speech: the Kokoro voices (28 English voices, American and British, women and men), made on this computer, so nothing you read is sent anywhere. They're a download of their own, about 385 MB, so Eudora itself stays small: <span class="ui">Download Natural Voices…</span> says the size and asks first, counts the download in MB, and can be stopped (it continues where it stopped next time); <span class="ui">Remove Natural Voices…</span> deletes them. Names, companies, and unusual words are said too, from a dictionary of 135,000 words and English spelling rules. Until they're downloaded, Eudora's speech library speaks. Once downloaded they keep themselves up to date: a minute after Eudora starts it checks for newer voices and fetches only what changed (usually just the small speech program), saying so on the status bar.</td></tr>
+<tr><th>Voice, Speed</th><td>Any voice the chosen speech has, and six speeds from slowest to fastest. <span class="ui">Try it</span> says a sample.</td></tr>
+</table>
+<p>On Android, Eudora's speech library isn't available yet.</p>
+<h2 id="access-alerts">Spoken alerts</h2>
+<p>As in classic Eudora:</p>
+<ul>
+<li><b>Rules that speak or play a sound.</b> A rule's <b>Speak</b> action says who a message is from and / or its subject (“From: Ann Smith. Lunch Friday”, Re: and Fwd: left out) as it arrives; <b>Play a sound</b> plays the new-mail sound or a sound file of your own. So you can hear which mail came without looking: a rule per person or mailing list, each with its own words or sound. See <a href="#filters">Rules (Filters)</a>. Classic Eudora's own Speak and Play Sound actions come in with its filters.</li>
+<li><b>Who it goes to, before it goes</b> (classic Eudora's BossWatch). <span class="ui">Settings ▸ General ▸ Speech ▸ Before sending, say who it goes to</span>: on a Reply to All, when a message goes to more than a number of people you choose, both, or always. Eudora says the names aloud and asks “Send to 12 people?” once more, so a reply meant for one person doesn't reach everyone.</li>
+</ul>
+<p>If something in Eudora doesn't work with your screen reader or keyboard, please tell us: <a href="mailto:software@planet.net">software@planet.net</a>.</p>
+</section>

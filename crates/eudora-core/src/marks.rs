@@ -62,11 +62,12 @@ impl Status {
     /// A status by name (the menu's, the rules', classic Eudora's).
     pub fn parse(name: &str) -> Option<Status> {
         Some(match name.trim().to_ascii_lowercase().as_str() {
-            "unread" | "new" => Status::Unread,
-            "read" => Status::Read,
-            "replied" => Status::Replied,
-            "forwarded" => Status::Forwarded,
-            "redirected" | "redirect" => Status::Redirected,
+            // (classic Eudora's Filters.pce names them by number: summary.h MS_UNREAD … MS_REDIRECT)
+            "unread" | "new" | "0" => Status::Unread,
+            "read" | "1" => Status::Read,
+            "replied" | "2" => Status::Replied,
+            "forwarded" | "3" => Status::Forwarded,
+            "redirected" | "redirect" | "4" => Status::Redirected,
             _ => return None,
         })
     }
@@ -323,6 +324,8 @@ impl Library {
     /// its own). One entry per message and side.
     pub(crate) fn queue_marks(&self, ids: &[i64]) -> Result<()> {
         let imap = self.imap_writable()?;
+        // accounts whose mail is kept local (`local_only`): their marks stay here
+        let local = self.local_only_accounts(crate::local_only::Service::Mail)?;
         let mut accounts = self.conn.prepare_cached(
             "SELECT a.id, a.kind FROM locations l JOIN folders f ON f.id = l.folder JOIN accounts a ON a.id = f.account
              WHERE l.message = ?1 AND l.server_id IS NOT NULL AND (a.kind LIKE 'graph%' OR a.kind IN ('imap', 'gmail')) AND f.path NOT LIKE 'Online Archive/%'",
@@ -335,7 +338,7 @@ impl Library {
         };
         let mut queue = self.conn.prepare_cached("INSERT INTO pending_ops (created, kind, payload) VALUES (?1, ?2, ?3)")?;
         for id in ids {
-            let rows: Vec<(i64, String)> = accounts.query_map(params![id], |r| Ok((r.get(0)?, r.get(1)?)))?.collect::<rusqlite::Result<_>>()?;
+            let rows: Vec<(i64, String)> = accounts.query_map(params![id], |r| Ok((r.get(0)?, r.get(1)?)))?.collect::<rusqlite::Result<Vec<_>>>()?.into_iter().filter(|(a, _)| !local.contains(a)).collect();
             let sides = [("mark", rows.iter().any(|(_, kind)| kind.starts_with("graph"))), ("imap-mark", rows.iter().any(|(a, kind)| kind == "imap" && imap.contains(a))), ("gmail-mark", rows.iter().any(|(_, kind)| kind == "gmail"))];
             for (kind, on_server) in sides {
                 let waiting = waiting_now.contains(&(kind.to_string(), *id));

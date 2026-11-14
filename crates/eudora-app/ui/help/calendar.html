@@ -1,6 +1,6 @@
 <section id="calendar" data-title="The calendar" data-index="calendar; Day; Week; Month; Agenda; business hours; calendars; show hide calendar; week starts; keys; today">
 <h1>The calendar</h1>
-<p>Click <b>Calendar</b> in the sidebar. Your calendars from Microsoft 365, Outlook.com, and Google are listed under it, each in its color; click one to show or hide it.</p>
+<p>Click <b>Calendar</b> in the sidebar. Your calendars from Microsoft 365, Outlook.com, Google, and CalDAV servers (see <a href="#add-dav">Adding contacts and calendars</a>) are listed under it, each in its color; click one to show or hide it.</p>
 <h2>Views</h2>
 <table>
 <tr><th>Day, Week</th><td>The hours of each day. With <b>Business hours</b> on, the business day fills the window so events are easy to read; events outside it are counted at the top or bottom of the day. <b>Full day</b> shows all 24 hours.</td></tr>
@@ -71,9 +71,9 @@
 <p><b>Tickets travel with the event.</b> Boarding passes, PDF tickets, Wallet passes, and QR or bar codes in the booking email, or in a later email about the same trip, are attached to the calendar event (on Microsoft calendars), so you have them on your phone when you open the event.</p>
 </section>
 
-<section id="contacts" data-title="Contacts (Address Book)" data-index="contacts; address book; Ctrl+L; edit contact; new contact; delete contact; export vCard; export CSV; Google contacts; Outlook contacts">
+<section id="contacts" data-title="Contacts (Address Book)" data-index="contacts; address book; Ctrl+L; edit contact; new contact; delete contact; export vCard; export CSV; Google contacts; Outlook contacts; move contacts; copy contacts; contacts to one account; where new contacts go; duplicate contacts; merge contacts; Find Duplicates; undo merge">
 <h1>Contacts (Address Book)</h1>
-<p>Click <b>Contacts</b> in the sidebar or on the toolbar, or choose <span class="ui">Tools ▸ Address Book</span> (<kbd>Ctrl</kbd>+<kbd>L</kbd>). Your address books from Microsoft 365, Outlook.com, and Google are shown together. It opens at once with what Eudora last had, then catches up.</p>
+<p>Click <b>Contacts</b> in the sidebar or on the toolbar, or choose <span class="ui">Tools ▸ Address Book</span> (<kbd>Ctrl</kbd>+<kbd>L</kbd>). Your address books from Microsoft 365, Outlook.com, Google, and CardDAV servers (see <a href="#add-dav">Adding contacts and calendars</a>) are shown together. It opens at once with what Eudora last had, then catches up.</p>
 <ul>
 <li><b>Find</b>: type any part of a name, address, or company. Choose an account to see only its contacts.</li>
 <li><b>Sort by</b> first name, last name, or company.</li>
@@ -82,6 +82,28 @@
 <li><b>Edit</b>, <b>New Contact</b>, and <b>Delete…</b> (asks first): the change is made on the server too.</li>
 <li><b>Export vCard…</b> and <b>Export CSV…</b> (Outlook's and Google's column names) save the contacts shown.</li>
 </ul>
+<h2 id="contacts-new">Where a new contact goes</h2>
+<p>Each contact lives in one account's address book. <b>New Contact</b> asks which: every Microsoft 365, Outlook.com, Google, and CardDAV account is offered, empty ones too, with how many contacts each holds. It starts on the account you used last time, else your main (first) Microsoft account, or the account the Address Book is showing. The contact goes into that account's main address book (the one holding most of its contacts) and is made on its server with the next check.</p>
+<h2 id="contacts-move">Moving or copying contacts to another account</h2>
+<p>To keep your contacts in one place, move them into one account:</p>
+<ul>
+<li><b>One contact</b>: open it and choose <span class="ui">Move or Copy…</span>.</li>
+<li><b>Several</b>: <kbd>Ctrl</kbd>+click adds or takes out a contact, <kbd>Shift</kbd>+click chooses a run, <kbd>Ctrl</kbd>+<kbd>A</kbd> chooses every contact shown; then <span class="ui">Move or Copy…</span>.</li>
+<li><b>All of them</b>: with none or one chosen, <span class="ui">Move or Copy…</span> at the bottom takes every contact shown (choose an account or type in Find first to narrow it).</li>
+</ul>
+<p>Choose the account they go into, then <b>Move</b> (taken out of where they are now) or <b>Copy</b> (kept there too). <b>Leave out contacts already in that account</b> (on at first) skips a contact sharing an email address with one already there, so you don't get two. Eudora then says exactly what it's about to do and asks once more. Each contact is added there at once and on the server with the next check; a moved one is deleted from its old account (the server keeps deleted contacts for a while, and Eudora keeps a copy of each as it was). Photos and fields Eudora doesn't edit aren't carried over. To make two contacts of the same person one, see <a href="#contacts-merge">Merging duplicates</a>.</p>
+<h2 id="contacts-merge">Merging duplicate contacts</h2>
+<p>The same person often ends up in your address books more than once: twice in one account, or once in Outlook and once in Gmail. To make them one:</p>
+<ul>
+<li><span class="ui">Find Duplicates…</span> at the bottom of the Address Book lists every set of contacts that are the same person: they share an <b>email address</b> or a <b>phone number</b> (its last ten digits, however it’s written). Each set says why, and which fields differ. Choose an account first to see only sets with one of its contacts.</li>
+<li><b>The same name alone isn’t enough:</b> two people can share a name. Contacts with the same full name and no email address or phone number in common are listed apart, under <b>Maybe the same person</b>. Merge one only when you know it’s the same person; Eudora warns you when you do.</li>
+<li>Untick a contact that isn’t the same person, then <span class="ui">Merge…</span>. <span class="ui">Show</span> picks the set out in the list.</li>
+<li>Or choose the contacts yourself (<kbd>Ctrl</kbd>+click) and choose <span class="ui">Merge…</span>.</li>
+<li><span class="ui">Merge All Sets That Don’t Differ…</span> merges, asked once, every set whose contacts hold no different values (nothing to choose). Sets that differ, and the “maybe” sets, wait for you to merge them one at a time.</li>
+</ul>
+<p><b>What’s the same merges by itself; you choose where they differ.</b> A value the contacts share (in any capitals or spacing), or one only some of them have, goes into the merged contact by itself. For each field where they hold different values (the name, first or last name, company, job title, birthday, and so on), the merge window lists each value with the contact it came from: choose one, or <b>None</b>, and edit it in the <b>Keep</b> box if you like. Different notes are listed ticked and kept one after another; untick any, or edit the text. Every email address, phone number, address, website, and category is listed once, ticked: untick any you don’t want. Eudora then says what happens in each account and asks once more.</p>
+<p><b>Merges happen on the servers too.</b> In each account, one of the contacts becomes the merged contact and its other copies there are deleted. A person in both Outlook and Gmail stays in both, as the same merged contact. The changes reach the servers with the next check.</p>
+<p><b>Undo:</b> Eudora keeps every contact as it was. <span class="ui">Find Duplicates…</span> lists the merges of the last 30 days under <b>Recent merges</b>; <span class="ui">Undo</span> puts each contact back (the copies deleted are made again).</p>
 </section>
 
 <section id="todo" data-title="To Do and flagged messages" data-index="To Do; tasks; To Do lists; shared lists; hide a list; flag; Flag as To Do; Ctrl+Shift+G; Insert key; Microsoft To Do; due date; important; Twos">

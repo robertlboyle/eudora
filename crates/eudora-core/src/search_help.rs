@@ -27,14 +27,16 @@ pub struct Help {
 }
 
 /// The words before a colon that mean something to Eudora (fields, Outlook's and Gmail's words).
-const KEYWORDS: [&str; 24] = [
+const KEYWORDS: [&str; 32] = [
     "from", "to", "cc", "bcc", "subject", "body", "attachment", "attachments", "hasattachment", "hasattachments", "received", "sent", "date", "size",
     "messagesize", "participants", "recipient", "recipients", "sender", "folder", "in", "has", "title", "filename",
+    // the library's own (search_marks.rs)
+    "is", "isread", "isflagged", "priority", "label", "category", "account", "personality",
 ];
 
 /// Headers often searched, so `name:` isn't taken for a misspelled keyword.
 const HEADERS: [&str; 16] = [
-    "list-id", "reply-to", "return-path", "message-id", "importance", "priority", "user-agent", "delivered-to", "content-type", "in-reply-to",
+    "list-id", "reply-to", "return-path", "message-id", "importance", "x-priority", "user-agent", "delivered-to", "content-type", "in-reply-to",
     "references", "organization", "thread-topic", "authentication-results", "mailer", "precedence",
 ];
 

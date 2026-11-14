@@ -156,7 +156,7 @@ pub fn split_query(query: &str) -> (String, Vec<Clause>) {
     (rest.split_whitespace().collect::<Vec<_>>().join(" "), clauses)
 }
 
-fn header_clause(term: &str) -> Option<Clause> {
+pub(crate) fn header_clause(term: &str) -> Option<Clause> {
     let (negate, term) = match term.strip_prefix('-') {
         Some(t) => (true, t),
         None => (false, term),

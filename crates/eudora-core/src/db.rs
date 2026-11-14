@@ -488,6 +488,7 @@ pub fn kind_name(kind: &str) -> &'static str {
         "graph-shared" => "Microsoft 365 (shared)",
         "gmail" => "Gmail",
         "imap" => "IMAP",
+        "dav" => "Contacts and calendars (CardDAV / CalDAV)",
         "pop3" => "POP3",
         "eudora" => "classic Eudora",
         "mbox" => "mailbox files",

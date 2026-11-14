@@ -28,7 +28,7 @@ body.skin-thunderbird {
   --button: #ffffff;
   --hover: #e5ecf7;
   --line: #e0e0e6;
-  --line-strong: #cfcfd8;
+  --line-strong: #8f8f95;
   --row-line: transparent;
   --accent: #0061e0;
   --accent-soft: #0061e033;
@@ -66,7 +66,7 @@ body.skin-thunderbird #m-subject { font-size: 1.35em; }
     --button: #2b2a33;
     --hover: #343441;
     --line: #3a3944;
-    --line-strong: #52525e;
+    --line-strong: #767680;
     --accent: #3d8ce8;
     --accent-soft: #3d8ce844;
     --selected: #2c64b0;
@@ -78,3 +78,7 @@ body.skin-thunderbird #m-subject { font-size: 1.35em; }
     --quote3: #7ed98a;
   }
 }
+
+/* Advanced Search: Thunderbird's Search Messages window */
+body.skin-thunderbird .as-rows { background: var(--window); }
+body.skin-thunderbird .adv-search button { border-radius: 4px; }

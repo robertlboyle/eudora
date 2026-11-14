@@ -51,6 +51,18 @@ pub const PERSONAL_SCOPES: &str = "offline_access User.Read Mail.Read Mail.Send 
 /// later are asked for only at sign-in, then Microsoft puts them in every token).
 pub const PERSONAL_RENEW_SCOPES: &str = "offline_access User.Read Mail.Read Mail.Send Mail.ReadWrite MailboxSettings.ReadWrite";
 pub const GRAPH_BETA: &str = "https://graph.microsoft.com/beta";
+/// Exchange's own folders that hold no mail, though Exchange doesn't mark them hidden:
+/// PersonMetadata (the People app's data about contacts), ExternalContacts (contacts shared
+/// from elsewhere), and Yammer Root (Viva Engage's feeds). Never downloaded nor shown, nor
+/// anything inside them.
+pub const SYSTEM_FOLDERS: &[&str] = &["PersonMetadata", "ExternalContacts", "Yammer Root"];
+
+/// Whether a Microsoft 365 folder's path is in one of `SYSTEM_FOLDERS` (the Online Archive's
+/// copies too).
+pub fn is_system_folder(path: &str) -> bool {
+    path.split('/').any(|part| SYSTEM_FOLDERS.iter().any(|s| part.eq_ignore_ascii_case(s)))
+}
+
 /// The hidden folder in each mailbox where Eudora keeps its sync envelopes (never downloaded
 /// as mail).
 pub const SYNC_FOLDER: &str = "Eudora Sync";
@@ -219,7 +231,7 @@ pub(crate) fn agent() -> ureq::Agent {
         // a dead Wi-Fi shows up as a connection that never opens or an answer that never comes
         .timeout_connect(Some(Duration::from_secs(20)))
         .timeout_recv_response(Some(Duration::from_secs(90)))
-        .user_agent(concat!("Eudora/27 (eudora-core ", env!("CARGO_PKG_VERSION"), ")"))
+        .user_agent(concat!("Eudora/", env!("CARGO_PKG_VERSION")))
         .tls_config(tls)
         .build();
     ureq::Agent::new_with_config(config)
@@ -1232,6 +1244,45 @@ impl GraphClient {
         Ok(self.all(&url)?.iter().filter_map(|m| m["id"].as_str().map(str::to_string)).collect())
     }
 
+    /// The ids of the messages whose last action was `verb` (Exchange's PidTagLastVerbExecuted,
+    /// 0x1081, what Outlook draws its replied / forwarded icons from: 102 replied, 103 replied
+    /// to all, 104 forwarded), in the Inbox (`inbox_only`) or the whole mailbox. Answered in
+    /// Outlook, on a phone, or in Outlook on the web, so Eudora shows it too.
+    ///
+    /// Asked of the newest `newest` messages, each with that property (a search by it times out
+    /// on a big Inbox: Microsoft answers 502): replies are to recent mail. Returns (id, verb) for
+    /// those answered.
+    pub fn last_verbs(&mut self, inbox_only: bool, newest: usize) -> Result<Vec<(String, i64)>> {
+        let place = if inbox_only { "mailFolders/inbox/messages" } else { "messages" };
+        // (written out by hand: spaces as %20, the parentheses and quotes as they are; encoded as
+        // a form ("+" for a space, %28 for "("), Exchange answers 502 Bad Gateway)
+        let url = format!(
+            "{}/{place}?$select=id&$orderby=receivedDateTime%20desc&$top=500&$expand=singleValueExtendedProperties($filter=id%20eq%20'Integer%200x1081')",
+            self.me()
+        );
+        let mut out = Vec::new();
+        let mut seen = 0;
+        let mut next = Some(url);
+        while let Some(page_url) = next.take() {
+            let page = self.get_json(&page_url)?;
+            for m in page["value"].as_array().into_iter().flatten() {
+                seen += 1;
+                let verb = m["singleValueExtendedProperties"]
+                    .as_array()
+                    .and_then(|ps| ps.iter().find_map(|p| p["value"].as_str().and_then(|v| v.parse::<i64>().ok())));
+                if let (Some(id), Some(verb)) = (m["id"].as_str(), verb) {
+                    if (102..=104).contains(&verb) {
+                        out.push((id.to_string(), verb));
+                    }
+                }
+            }
+            if seen < newest {
+                next = page["@odata.nextLink"].as_str().map(str::to_string);
+            }
+        }
+        Ok(out)
+    }
+
     /// The ids of the messages carrying this category, in the whole mailbox.
     pub fn ids_with_category(&mut self, category: &str) -> Result<Vec<String>> {
         let filter = format!("categories/any(c:c eq '{}')", category.replace('\'', "''"));
@@ -1855,6 +1906,16 @@ pub fn outlook_preset(color: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn exchange_system_folders_are_known_wherever_they_are() {
+        assert!(is_system_folder("PersonMetadata"));
+        assert!(is_system_folder("Online Archive/personmetadata"));
+        assert!(is_system_folder("Yammer Root/Feeds"));
+        assert!(!is_system_folder("Inbox"));
+        assert!(!is_system_folder("Inbox/People"));
+        assert!(!is_system_folder("Conversation History"), "Teams chats are real mail");
+    }
 
     fn offline_client() -> GraphClient {
         let tokens = Tokens { access: "test".into(), refresh: "test".into(), expires: Instant::now() + Duration::from_secs(3600) };

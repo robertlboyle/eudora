@@ -68,11 +68,13 @@ pub struct ImapBatch {
     pub accounts: Vec<ImapWork>,
     /// Gmail accounts' changes (`gmail_changes`), on the same thread.
     pub gmail: Vec<crate::gmail_changes::GmailWork>,
+    /// Contacts and calendars on CardDAV / CalDAV servers (`dav`), on the same thread.
+    pub dav: Vec<crate::dav::DavWork>,
 }
 
 impl ImapBatch {
     pub fn is_empty(&self) -> bool {
-        self.accounts.is_empty() && self.gmail.iter().all(|g| g.is_empty())
+        self.accounts.is_empty() && self.gmail.iter().all(|g| g.is_empty()) && self.dav.iter().all(|d| d.is_empty())
     }
 }
 
@@ -105,9 +107,10 @@ fn flags_for(state: i64, labels: &[String], every_label: &[String]) -> (Vec<Stri
 pub fn plan(library: &Library, limit: usize) -> Result<ImapBatch> {
     let conn = &library.conn;
     let gmail = crate::gmail_changes::plan(library, limit)?;
+    let dav = crate::dav::plan(library, limit)?;
     let writable = library.imap_writable()?;
     if writable.is_empty() {
-        return Ok(ImapBatch { accounts: Vec::new(), gmail });
+        return Ok(ImapBatch { accounts: Vec::new(), gmail, dav });
     }
     let configs: HashMap<i64, ImapConfig> = library
         .imap_accounts()?
@@ -253,7 +256,7 @@ pub fn plan(library: &Library, limit: usize) -> Result<ImapBatch> {
     }
     let mut accounts: Vec<ImapWork> = work.into_values().collect();
     accounts.sort_by(|a, b| a.config.address.cmp(&b.config.address));
-    Ok(ImapBatch { accounts, gmail })
+    Ok(ImapBatch { accounts, gmail, dav })
 }
 
 /// "<UIDVALIDITY>:<UID>" → (validity, uid).
@@ -359,6 +362,12 @@ pub fn carry_out(batch: &ImapBatch) -> BatchResult {
     result.gmail_history.extend(gmail.gmail_history);
     result.cards_done.extend(gmail.cards_done);
     result.events_done.extend(gmail.events_done);
+    // contacts and calendars on CardDAV / CalDAV servers
+    let dav = crate::dav::carry_out(&batch.dav);
+    result.contacts.extend(dav.contacts);
+    result.calendars.extend(dav.calendars);
+    result.cards_done.extend(dav.cards_done);
+    result.events_done.extend(dav.events_done);
     result
 }
 

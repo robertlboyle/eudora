@@ -137,7 +137,9 @@ pub fn run(context: tauri::Context<tauri::Wry>, path: PathBuf) {
             msgview_save_eml,
             msgview_answer,
             msgview_file_icon,
-            msgview_theme
+            msgview_theme,
+            zoom_this,
+            zoom_all
         ])
         .setup(move |app| {
             note(started, "setup");
@@ -339,4 +341,17 @@ mod tests {
         assert_eq!(msgs, [PathBuf::from("a.MSG"), PathBuf::from("c.eml")]);
         assert_eq!(rest, [PathBuf::from("b.ics"), PathBuf::from("mailto:x@example.com")]);
     }
+}
+
+/// Text size (zoom.js, as in the main window): this viewer drawn at `scale`.
+#[tauri::command]
+fn zoom_this(window: tauri::WebviewWindow, scale: f64) -> Reply<()> {
+    window.set_zoom(scale.clamp(0.5, 3.0)).map_err(|e| e.to_string())
+}
+
+/// Text size from the viewer's keys: this viewer (other windows take it from the shared storage
+/// as they open).
+#[tauri::command]
+fn zoom_all(window: tauri::WebviewWindow, scale: f64) -> Reply<()> {
+    window.set_zoom(scale.clamp(0.5, 3.0)).map_err(|e| e.to_string())
 }

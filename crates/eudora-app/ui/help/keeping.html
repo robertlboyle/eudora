@@ -22,6 +22,72 @@
 <p class="warn">A backup made on a <b>phone</b> isn't complete: it holds only the mail that phone kept, and none of your rules. Eudora warns before restoring one. Use it only when no backup from a Mac, PC, or Linux computer is at hand.</p>
 </section>
 
+<section id="classic-export" data-title="Going back to classic Eudora" data-index="classic Eudora; go back to classic Eudora; switch back; legacy Eudora; Eudora 7; Export to Classic Eudora; export; mbx; toc; descmap; Filters.pce; NNdbase.txt; nicknames; eudora.ini; Attach folder; Attachment Converted; export-classic; v1.library.export_classic; 2 GB; big mailbox; In (2)">
+<h1>Going back to classic Eudora</h1>
+<p>If you'd rather use classic Eudora (version 7) again, or want your mail where it can open it, <span class="ui">File ▸ Export ▸ Classic Eudora…</span> writes a folder that classic Eudora opens as its mail folder. It's also under <span class="ui">Settings ▸ Library</span>, and in the Lookout, Thunderbird-style, Gmail-style, and Yahoo-style looks as <span class="ui">Export to Classic Eudora…</span> in their File, Tools, or Settings menu.</p>
+<h2>Exporting</h2>
+<ol>
+<li>Choose an <b>empty folder</b> (Eudora suggests <code>Documents\Classic Eudora</code>). It can't be inside Dropbox, OneDrive, or another sync service's folder (their file locking damages mailboxes classic Eudora has open), or inside Eudora's library.</li>
+<li>Tick the <b>mailboxes to export</b>. They're listed as the sidebar groups them (your accounts, shared mailboxes, and mail imported from files), each with its address and how many messages it holds. When there's only one it's ticked for you; otherwise none are, and <b>Export</b> stays grayed until you tick at least one. Tick or untick the rules and the address book.</li>
+<li>Click <b>Export</b>. The dialog and the status bar count the messages as they're written ("writing message 120,000 of 1,412,000"). <b>Stop</b> ends it; exporting again into the same folder carries on where it stopped. When it's done, Eudora says the export was successful and offers <b>Open Folder</b>, which shows the folder in Explorer (the Finder on the Mac).</li>
+</ol>
+<p>Eudora only reads your library while it exports: your mail stays as it is, and downloading carries on. Exporting again into the same folder later brings it up to date (new messages added, moved and deleted ones taken out). To keep it up to date by itself, see <a href="#classic-copy">Keeping a classic Eudora copy current</a>.</p>
+<h2>What's in the folder</h2>
+<table>
+<tr><th>In.mbx, Out.mbx, Trash.mbx, Junk.mbx</th><td>Classic Eudora's own mailboxes. Every account's Inbox goes into In, every Sent folder into Out, every Trash or Deleted Items into Trash, and every Junk or Spam folder into Junk: classic Eudora has one of each, however many personalities you have.</td></tr>
+<tr><th>Your other folders</th><td>Each folder of mail becomes a mailbox (<code>.mbx</code>), and folders that hold other folders become classic folders (<code>.fol</code>). When you export one account, they're at the top, as in Eudora; when you export several, each account's are inside a folder named for the account. Online Archive folders join the mailbox's own, as Eudora shows them.</td></tr>
+<tr><th>.toc files</th><td>Each mailbox's table of contents: where each message is, its date, sender, subject, status (unread, read, replied, forwarded, redirected, or sent), priority, and label, so classic Eudora shows them as Eudora does.</td></tr>
+<tr><th>descmap.pce</th><td>The names of the mailboxes and folders in each folder.</td></tr>
+<tr><th>Attach</th><td>Every attachment, as a file, once per content. Each message lists its attachments with classic Eudora's <code>Attachment Converted:</code> lines.</td></tr>
+<tr><th>Filters.pce</th><td>Your rules, as classic Eudora's filters.</td></tr>
+<tr><th>NNdbase.txt</th><td>Your address book, as classic Eudora's nicknames: each contact's address, name, phone numbers, postal addresses, company, title, and notes.</td></tr>
+<tr><th>eudora.ini</th><td>A first settings file: your return address and name, your other addresses as personalities, and your labels. Written once: classic Eudora keeps its own settings in it from then on. Set up your mail servers in classic Eudora (Tools ▸ Personalities) if you want it to check mail.</td></tr>
+<tr><th>Eudora export report.txt</th><td>What was written, and everything left out, with why.</td></tr>
+<tr><th>Eudora export.db, Eudora export.lock</th><td>Eudora's record of what it wrote, so the next export or the copy kept current writes only what changed. Classic Eudora ignores them.</td></tr>
+</table>
+<h2>How messages are written</h2>
+<p>Classic Eudora doesn't take messages apart when it shows them: it stores them already taken apart, and so does the export, the way classic Eudora's own importer does. Each message keeps its original headers. Its text is written in classic Eudora's character set (Windows-1252); an HTML message is written between classic Eudora's <code>&lt;x-html&gt;</code> marks. A plain-text message with characters that character set lacks (Greek, Chinese, emoji…) is written as HTML so every character still shows. Pictures shown inside an HTML message are written as attachments, so they're in <code>Attach</code> rather than in the message. A message Eudora can't read is written whole, as stored. Lines are written with Windows line endings, and a line starting with "From " gets a "&gt;" before it, as mail programs expect.</p>
+<p class="note"><b>Big mailboxes:</b> classic Eudora can't read past 2 GB of a mailbox (it keeps each message's place as a 32-bit number). So when a mailbox would grow past 1.8 GB, the export carries on in a mailbox beside it, "In (2)", then "In (3)", and so on (the parts of Out keep their mail marked as sent). The room left under 2 GB is for mail classic Eudora fetches or moves itself. A single message bigger than 2 GB can't be read by classic Eudora at all; it isn't written, and the report names it.</p>
+<h2>Rules classic Eudora can't do</h2>
+<p>Classic Eudora's filters have two tests and up to five actions. A rule that doesn't fit is <b>left out, and the report names it and says why</b>; nothing is left out silently. These are left out:</p>
+<ul>
+<li>rules with more than two tests, or more than five actions;</li>
+<li>rules that start with an "unless" test, or mix "any of the tests" with "unless";</li>
+<li>rules that run the spam filter (<span class="ui">Sort with the spam filter</span>) or a plugin, which classic Eudora doesn't have;</li>
+<li>rules that file mail into a folder you didn't export, or give a label beyond classic Eudora's seven;</li>
+<li>rules whose reply is words of their own (classic Eudora replies with a stationery file);</li>
+<li>rules switched off in Eudora (classic Eudora has no off switch, so they would run).</li>
+</ul>
+<h2>From the command line and other programs</h2>
+<p><code>eudora-cli export-classic FOLDER</code> exports every account; <code>--accounts 2,pat@example.com</code> only those (numbers from <code>eudora-cli accounts</code>, or addresses), <code>--no-rules</code> and <code>--no-contacts</code> leave those out, and <code>--json</code> prints the report as JSON. It ends with exit code 3 when classic Eudora has the folder open. Programs use <code>v1.library.export_classic</code> with the <b>Manage the library</b> permission. See <a href="#command-line">The command line</a>.</p>
+</section>
+
+<section id="classic-copy" data-title="Keeping a classic Eudora copy current" data-index="classic Eudora copy; keep classic Eudora current; mirror; one way; classic-mirror; OWNER.LOK; changed in classic Eudora; compact; Keep a classic Eudora copy current; v1.library.classic_mirror_set">
+<h1>Keeping a classic Eudora copy current</h1>
+<p>For going back to classic Eudora, or using it now and then, Eudora can keep a classic Eudora folder up to date by itself. <b>It's off unless you turn it on.</b></p>
+<h2>Turning it on</h2>
+<p>In <span class="ui">Settings ▸ Library</span>, choose a folder (empty, or one you exported to before), then tick <b>Keep a classic Eudora copy current in this folder</b>. The same rules apply as for exporting: not inside Dropbox, OneDrive, or another sync folder, and not inside Eudora's library. Untick it to stop; the folder stays as it is.</p>
+<h2>What it does</h2>
+<p>The background download (the part of Eudora that checks mail) writes the copy, the way <a href="#classic-export">Export to Classic Eudora</a> writes it:</p>
+<ul>
+<li>new messages are added to the right mailbox as they arrive (the first copy is written 500 messages at a time, so mail keeps coming in meanwhile);</li>
+<li>messages moved or deleted in Eudora are taken out of their classic mailbox, and moved ones added where they went;</li>
+<li>status, priority, and label changes are written to the .toc files;</li>
+<li>a mailbox is compacted (rewritten without the space of messages taken out) when more than a quarter of it is unused;</li>
+<li>new folders get their mailboxes, and a folder deleted in Eudora takes its mailbox away;</li>
+<li>changed rules are written to Filters.pce again, and the address book to NNdbase.txt.</li>
+</ul>
+<p>It looks for changes every 5 minutes, and every few seconds while messages are still waiting to be written. <span class="ui">Tools ▸ Activity</span> lists it as <b>Keeping the classic Eudora copy current</b>, with how many it wrote and how many still wait, and its <b>Pause</b> button holds it.</p>
+<h2>One way only</h2>
+<p><b>Changes made in classic Eudora don't come back to Eudora.</b> The copy follows Eudora: what you mark, move, or delete in classic Eudora is replaced by Eudora's view the next time the copy is updated. So that nothing is lost:</p>
+<ul>
+<li>a mailbox classic Eudora changed (mail it checked itself, messages moved into or out of it) is <b>kept beside</b>, renamed "<i>name</i> (changed in classic Eudora <i>date</i>)", and Eudora writes its own again. The renamed one stays in classic Eudora's list of mailboxes;</li>
+<li><b>nothing is written while classic Eudora has the folder open.</b> Classic Eudora leaves a file named <code>OWNER.LOK</code> in its folder while it runs; Eudora waits until it's gone and catches up then, and Activity says it's waiting. If classic Eudora stopped without closing properly, the file names a window that no longer exists, and Eudora carries on.</li>
+</ul>
+<h2>From the command line and other programs</h2>
+<p><code>eudora-cli classic-mirror --on FOLDER</code> turns it on (<code>--accounts</code> chooses accounts), <code>eudora-cli classic-mirror --off</code> turns it off, and <code>eudora-cli classic-mirror</code> says how it's set. Programs use <code>v1.library.classic_mirror</code> and <code>v1.library.classic_mirror_set</code>. The choice is kept for this computer only: sync between your computers doesn't carry it.</p>
+</section>
+
 <section id="sync" data-title="Sync between your computers" data-index="sync; settings sync; recovery phrase; sync key; join; several computers; filing sync; Sync now; Repair">
 <h1>Sync between your computers</h1>
 <p>Your mail is already on your servers. Sync carries what the servers can't hold: your rules, spam filter rules, labels, signatures, Views choices, other settings, and how you filed mail that the server doesn't know about (such as Online Archive mail you sorted).</p>
@@ -108,11 +174,11 @@
 <p><span class="ui">Help ▸ Statistics…</span> (<span class="ui">Tools ▸ Statistics…</span> in Classic mode): mail received and sent in the last 30 days, the last 12 months, and ever; your 10 busiest days and the year by weekday; what kinds of mail you get (people, notifications, marketing, spam); and how much space the library takes. It shows the figures counted in the background (once an hour) at once; <b>Count now</b> counts again.</p>
 </section>
 
-<section id="updates" data-title="Updates" data-index="update; updates; new version; Check for Updates; automatic update; signature; Linux updates; AppImage; apt repository; dnf repository">
+<section id="updates" data-title="Updates" data-index="update; updates; upgrade; upgrading; new version; Check for Updates; automatic update; signature; Linux updates; AppImage; apt repository; dnf repository">
 <h1>Updates</h1>
 <p>Eudora looks for a newer version on software.planet.net when it starts and then every 14 days, downloads it in the background, and checks its signature. Then it asks: <b>Restart Now</b>, <b>When I Close Eudora</b>, or <b>Skip This Version</b>. <span class="ui">Help ▸ Check for Updates…</span> looks at any time.</p>
 <p>Looking sends nothing about you: only Eudora's name and version. <span class="ui">Settings ▸ Updates</span> sets how often to look, or never.</p>
-<p>On Windows, Eudora installed by its Setup program updates itself. On the Mac, Eudora updates itself when it's in a folder you can write to (such as Applications); the new version must carry Planet Networks' signature and Apple's approval, or the old one is kept. On Linux, Eudora updates itself the way you installed it: an AppImage replaces its own file as Eudora closes; a .deb or .rpm asks for an administrator's password, then checks the update's signature again before installing it. Installing the .deb or .rpm also adds Eudora's package repository, so the system's own updates (Software Updater, <code>apt</code>, <code>dnf</code>) offer new versions too; delete <code>/etc/apt/sources.list.d/eudora.sources</code> or <code>/etc/yum.repos.d/eudora.repo</code> to stop that.</p>
+<p>On Windows, Eudora installed by its Setup program updates itself. Running a newer Setup by hand over an installed Eudora upgrades it where it is: Setup lists each copy installed on the computer (for you only, or for everyone), marks the one you use, and offers to upgrade it there, keeping your mail, accounts, and settings. Choose another folder only to install somewhere new.On the Mac, Eudora updates itself when it's in a folder you can write to (such as Applications); the new version must carry Planet Networks' signature and Apple's approval, or the old one is kept. On Linux, Eudora updates itself the way you installed it: an AppImage replaces its own file as Eudora closes; a .deb or .rpm asks for an administrator's password, then checks the update's signature again before installing it. Installing the .deb or .rpm also adds Eudora's package repository, so the system's own updates (Software Updater, <code>apt</code>, <code>dnf</code>) offer new versions too; delete <code>/etc/apt/sources.list.d/eudora.sources</code> or <code>/etc/yum.repos.d/eudora.repo</code> to stop that.</p>
 </section>
 
 <section id="forget-signins" data-title="Forget Sign-ins" data-index="Forget Sign-ins; Forget Passwords; sign out; remove passwords; shared computer">

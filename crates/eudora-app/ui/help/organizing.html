@@ -34,7 +34,7 @@
 <p>Programs and scripts can save messages the same way: <code>eudora-cli call v1.mail.save_as '{"ids": [123, 456], "dir": "C:/Evidence", "format": "eml"}'</code> (format <code>msg</code> or <code>eml</code>). See <a href="#api">the local API</a>.</p>
 </section>
 
-<section id="mailboxes" data-title="Making, renaming, and deleting mailboxes" data-index="new mailbox; new folder; rename folder; delete folder; mailbox; subfolder; Mailbox New">
+<section id="mailboxes" data-title="Making, renaming, and deleting mailboxes" data-index="new mailbox; new folder; rename folder; delete folder; mailbox; subfolder; Mailbox New; PersonMetadata; ExternalContacts; Yammer Root; system folders">
 <h1>Making, renaming, and deleting mailboxes</h1>
 <ul>
 <li><b>Make one</b>: <span class="ui">Mailbox ▸ New Mailbox…</span>, or right-click an account (<span class="ui">New Mailbox…</span>) or a folder (<span class="ui">New Mailbox Inside…</span>). Type "/" in the name for levels, such as <code>Projects/2026</code>.</li>
@@ -42,6 +42,7 @@
 <li><b>Delete</b>: right-click the folder, <span class="ui">Delete…</span>. The folder, its mail, and its folders go into Deleted Items (or Trash), as Outlook does. A folder already in the Trash is removed only when it's empty.</li>
 </ul>
 <p>Each change is made on the server too (Microsoft 365, IMAP, Gmail labels). The server's own folders (Inbox, Sent, Drafts, Deleted Items, Junk, Archive) and the Online Archive's can't be renamed or deleted. A folder renamed in Outlook or on your phone takes its new name in Eudora too.</p>
+<p class="note">Some folders Microsoft 365 keeps for itself hold no mail: <b>PersonMetadata</b> (the People app's data about your contacts), <b>ExternalContacts</b>, and <b>Yammer Root</b> (Viva Engage). Eudora neither downloads nor shows them. Outlook on the web may still list them.</p>
 </section>
 
 <section id="marks" data-title="Status, priority, and labels" data-index="status; read; unread; replied; forwarded; priority; labels; categories; colors; Change Label; Outlook categories; edit labels">

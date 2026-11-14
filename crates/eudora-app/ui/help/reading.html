@@ -81,7 +81,7 @@
 <p>Pictures shown inside the message (logos, photos placed in the text) aren't listed as attachments on the Message tab; the Text, Headers, and Source tabs list everything.</p>
 </section>
 
-<section id="pictures" data-title="Pictures from the web" data-index="images; remote images; tracking pictures; web bugs; Show pictures; Always show from this sender; privacy">
+<section id="pictures" data-title="Pictures from the web" data-index="images; remote images; tracking pictures; web bugs; Show pictures; Always show from this sender; senders whose pictures always show; picture senders; import picture senders; export picture senders; address book pictures; privacy">
 <h1>Pictures from the web</h1>
 <p>Many messages load pictures from the web. Loading them can tell the sender when you opened the message, so Eudora doesn't load them until you say so. A bar above the message says how many aren't shown:</p>
 <ul>
@@ -89,6 +89,16 @@
 <li><b>Always show from &lt;address&gt;</b>: pictures from this sender load by themselves from now on.</li>
 </ul>
 <p>Eudora fetches the pictures itself and puts them into the message; the message never goes online. In <span class="ui">Settings ▸ Mail ▸ Pictures from the web</span> you can choose to keep fetched pictures on this computer (they then show offline, and after the sender deletes them), and remove senders from the "always show" list.</p>
+<h2>Senders whose pictures always show</h2>
+<p><span class="ui">Settings ▸ Mail ▸ Pictures from the web</span> has a button, <b>Senders whose pictures always show…</b>, that opens the list in a window of its own:</p>
+<ul>
+<li><b>Find</b> narrows the list as you type. Each sender has <b>Remove</b>, and their messages ask first again from then on.</li>
+<li><b>Add</b> puts an address on the list, or <code>@example.com</code> for everyone at that domain.</li>
+<li><b>Import…</b> adds the addresses in a text or CSV file (any number a line, separated by commas, semicolons, or spaces; "Name &lt;address&gt;" is read as its address; lines starting with # are skipped). Addresses already on the list aren't added twice.</li>
+<li><b>Export…</b> saves the list as <code>Eudora picture senders.txt</code> in the folder you choose, one address a line, ready to import on another computer or into another program.</li>
+</ul>
+<p><b>Also show pictures from people in my Address Book</b>, a checkbox on the same page, lets pictures load by themselves from anyone in your <a href="#contacts">Address Book</a>, without adding each one to the list.</p>
+<p>The list and the checkbox travel to your other computers with your settings. A message Eudora takes for a fraud never loads its pictures, whoever sent it.</p>
 </section>
 
 <section id="views" data-title="Views" data-index="Views; Red Alert; Maybe Spam; Payments Received; Payments Sent; Receipts; Invoices; Renewals; Bank Transactions; New Accounts; Verification Codes; 2FA; Legal; Government; Travel; Why in these Views; security notices">

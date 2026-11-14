@@ -123,6 +123,11 @@ impl Library {
         let (mut queued, mut back) = (0, 0);
         self.in_transaction(|| {
             for (message, from, item, here, path) in &rows {
+                // an account whose mail is kept local (`local_only`): its archive stays as it is
+                let account: i64 = self.conn.query_row("SELECT account FROM folders WHERE id = ?1", params![here], |r| r.get(0))?;
+                if self.local_only_account(account, crate::local_only::Service::Mail)? {
+                    continue;
+                }
                 if PUT_BACK.contains(&path.to_lowercase().as_str()) {
                     self.conn.execute("UPDATE OR IGNORE locations SET folder = ?3, server_id = ?4 WHERE message = ?1 AND folder = ?2", params![message, here, from, item])?;
                     self.conn.execute("INSERT OR IGNORE INTO index_pending (message) VALUES (?1)", params![message])?;

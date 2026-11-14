@@ -247,8 +247,8 @@ mod timing {
         println!("left out: {} messages, worked out in {:?}", set.len(), t.elapsed());
         for q in ["invoice", "the", "from:alex", "meeting tomorrow", "budget"] {
             for _ in 0..2 {
-                let a = l.index.search_filtered(q, 200, crate::SortOrder::Newest, None, None).unwrap();
-                let b = l.index.search_filtered(q, 200, crate::SortOrder::Newest, None, Some(set.clone())).unwrap();
+                let a = l.index.search_filtered(q, 200, crate::SortOrder::Newest, None, None, None).unwrap();
+                let b = l.index.search_filtered(q, 200, crate::SortOrder::Newest, None, Some(set.clone()), None).unwrap();
                 println!("{q:18} everything: {:>9} in {:>7.1?}   leaving out: {:>9} (+{} hidden) in {:>7.1?}", a.total, a.took, b.total, b.hidden, b.took);
             }
         }

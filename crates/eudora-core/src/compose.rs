@@ -312,6 +312,82 @@ pub struct Seed {
     pub redirect_of: Option<String>,
     /// Start as plain text (a reply to a message written in plain text).
     pub plain: bool,
+    /// Written below the original (classic Eudora's quoting: "> " lines, the reply under them),
+    /// so the message window puts the cursor, and the signature, at the end.
+    pub bottom: bool,
+}
+
+/// How replies quote the original (Settings ▸ Mail, setting `reply-quoting`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Quoting {
+    /// The original in a quote block (a line down its side) below, the reply written above it.
+    #[default]
+    Modern,
+    /// Classic Eudora's: plain text, "> " before each line of the original, the reply below it.
+    Classic,
+}
+
+impl Quoting {
+    pub const SETTING: &'static str = "reply-quoting";
+
+    /// From the setting's value ("classic" / "modern", JSON-quoted or not).
+    pub fn from_setting(value: Option<&str>) -> Quoting {
+        match value.map(|v| v.trim().trim_matches('"')) {
+            Some("classic") => Quoting::Classic,
+            _ => Quoting::Modern,
+        }
+    }
+
+    /// What a reply asks for ("classic", "modern", or "swap": the other way than `setting`; none:
+    /// as `setting` says).
+    pub fn resolve(asked: Option<&str>, setting: Option<&str>) -> Quoting {
+        let usual = Quoting::from_setting(setting);
+        match asked.map(|a| a.trim().trim_matches('"')) {
+            Some("swap") => usual.other(),
+            Some(a @ ("classic" | "modern")) => Quoting::from_setting(Some(a)),
+            _ => usual,
+        }
+    }
+
+    pub fn other(self) -> Quoting {
+        match self {
+            Quoting::Modern => Quoting::Classic,
+            Quoting::Classic => Quoting::Modern,
+        }
+    }
+}
+
+/// The original's text as classic Eudora quoted it: "> " before each line (">" before a line
+/// already quoted, so ">> " nests), long lines wrapped at 76 characters first.
+pub fn quote_lines(text: &str) -> String {
+    const WIDTH: usize = 74;
+    let mut out = String::new();
+    for line in text.replace("\r\n", "\n").trim_end().lines() {
+        let line = line.trim_end();
+        if line.starts_with('>') {
+            out.push('>');
+            out.push_str(line);
+            out.push('\n');
+            continue;
+        }
+        let mut current = String::new();
+        for word in line.split(' ') {
+            if !current.is_empty() && current.chars().count() + 1 + word.chars().count() > WIDTH {
+                out.push_str("> ");
+                out.push_str(&current);
+                out.push('\n');
+                current.clear();
+            }
+            if !current.is_empty() {
+                current.push(' ');
+            }
+            current.push_str(word);
+        }
+        out.push_str(if current.is_empty() { ">" } else { "> " });
+        out.push_str(&current);
+        out.push('\n');
+    }
+    out
 }
 
 fn person(a: &Addr) -> String {
@@ -352,6 +428,11 @@ fn prefixed(prefix: &str, subject: &str) -> String {
 /// A reply to `raw` (to everyone with `all`). `mine`: the user's addresses (left out of a
 /// Reply to All; the one it was sent to answers it).
 pub fn reply(raw: &[u8], all: bool, mine: &[String]) -> Seed {
+    reply_as(raw, all, mine, Quoting::Modern)
+}
+
+/// A reply quoting the original as `quoting` says.
+pub fn reply_as(raw: &[u8], all: bool, mine: &[String], quoting: Quoting) -> Seed {
     let d = parse::display(raw, crate::library::now());
     let p = &d.parsed;
     let is_mine = |a: &str| mine.iter().any(|m| m.eq_ignore_ascii_case(a));
@@ -368,12 +449,24 @@ pub fn reply(raw: &[u8], all: bool, mine: &[String]) -> Seed {
     to.dedup();
     let to_me = p.to.iter().chain(&p.cc).find(|a| is_mine(&a.address)).map(|a| a.address.clone());
     let sender = p.from.first().map(|a| if a.name.is_empty() { a.address.clone() } else { a.name.clone() }).unwrap_or_default();
-    let html = format!(
-        "<p><br></p><p>At {}, {} wrote:</p><blockquote type=\"cite\" style=\"margin:0 0 0 .8ex;border-left:2px solid #1f5fae;padding-left:1ex\">{}</blockquote>",
-        when(p.date),
-        escape(&sender),
-        original_html(&d)
-    );
+    let attribution = format!("At {}, {} wrote:", when(p.date), sender);
+    let html = match quoting {
+        Quoting::Modern => format!(
+            "<div><br></div><div>{}</div><blockquote type=\"cite\" style=\"margin:0 0 0 .8ex;border-left:2px solid #1f5fae;padding-left:1ex\">{}</blockquote>",
+            escape(&attribution),
+            original_html(&d)
+        ),
+        // a line a <div>, as the message window writes plain text; the empty last one is where
+        // the reply is written
+        Quoting::Classic => {
+            let mut html = format!("<div>{}</div>", escape(&attribution));
+            for line in quote_lines(&d.text).lines() {
+                html.push_str(&format!("<div>{}</div>", escape(line)));
+            }
+            html.push_str("<div><br></div><div class=\"eudora-reply-here\"><br></div>");
+            html
+        }
+    };
     let mut references: Vec<String> = p.references.clone();
     if !p.message_id_made {
         references.push(p.message_id.clone());
@@ -388,7 +481,8 @@ pub fn reply(raw: &[u8], all: bool, mine: &[String]) -> Seed {
         references,
         forwarded: Vec::new(),
         redirect_of: None,
-        plain: d.html.is_none(),
+        plain: d.html.is_none() || quoting == Quoting::Classic,
+        bottom: quoting == Quoting::Classic,
     }
 }
 
@@ -405,7 +499,7 @@ pub fn forward(id: i64, raw: &[u8], mine: &[String]) -> Seed {
         escape(&list(&p.to)),
         if p.cc.is_empty() { String::new() } else { format!("<br>Cc: {}", escape(&list(&p.cc))) }
     );
-    let html = format!("<p><br></p><p>{header}</p>{}", original_html(&d));
+    let html = format!("<div><br></div><div>{header}</div>{}", original_html(&d));
     let is_mine = |a: &str| mine.iter().any(|m| m.eq_ignore_ascii_case(a));
     Seed {
         to_me: p.to.iter().chain(&p.cc).find(|a| is_mine(&a.address)).map(|a| a.address.clone()),
@@ -489,7 +583,7 @@ pub fn forward_many(messages: &[(i64, Vec<u8>)], mine: &[String]) -> Seed {
         0 | 1 => prefixed("Fwd:", &first_subject),
         n => format!("{} (and {} more)", prefixed("Fwd:", &first_subject), n - 1),
     };
-    let html = format!("<p><br></p><p>Forwarded {} messages (attached):</p><ul>{}</ul>", messages.len(), lines.join(""));
+    let html = format!("<div><br></div><div>Forwarded {} messages (attached):</div><ul>{}</ul>", messages.len(), lines.join(""));
     Seed { to_me, subject, html, forwarded, ..Default::default() }
 }
 
@@ -669,6 +763,25 @@ mod tests {
         assert!(String::from_utf8_lossy(&mime).contains("X-Priority: 1"));
 
         assert!(build_mime(&Draft { from: "a@b.c".into(), ..Default::default() }, &[], local(0)).is_err(), "no recipients");
+    }
+
+    #[test]
+    fn classic_quoting_puts_marks_before_each_line_and_the_reply_below() {
+        let raw = b"From: Ann Smith <ann@example.com>\r\nTo: pat@example.com\r\nSubject: Lunch\r\nDate: Fri, 31 Dec 1999 17:29:00 +0000\r\nMessage-ID: <a@b>\r\n\r\nShall we meet at noon?\r\n> earlier words\r\n";
+        let r = reply_as(raw, false, &["pat@example.com".into()], Quoting::Classic);
+        assert!(r.plain && r.bottom);
+        assert!(r.html.contains("Ann Smith wrote:</div><div>&gt; Shall we meet at noon?</div><div>&gt;&gt; earlier words</div>"), "{}", r.html);
+        assert!(r.html.ends_with("<div class=\"eudora-reply-here\"><br></div>"));
+        let modern = reply_as(raw, false, &[], Quoting::Modern);
+        assert!(!modern.bottom && modern.html.contains("<blockquote"));
+        let long = quote_lines(&"word ".repeat(40));
+        assert!(long.lines().all(|l| l.starts_with("> ") && l.chars().count() <= 76), "{long}");
+        assert_eq!(Quoting::from_setting(Some("\"classic\"")), Quoting::Classic);
+        assert_eq!(Quoting::from_setting(None), Quoting::Modern);
+        assert_eq!(Quoting::resolve(Some("swap"), Some("classic")), Quoting::Modern);
+        assert_eq!(Quoting::resolve(Some("swap"), None), Quoting::Classic);
+        assert_eq!(Quoting::resolve(None, Some("classic")), Quoting::Classic);
+        assert_eq!(Quoting::resolve(Some("modern"), Some("classic")), Quoting::Modern);
     }
 
     #[test]

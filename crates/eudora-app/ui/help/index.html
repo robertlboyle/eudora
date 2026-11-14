@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Eudora Help</title>
 <link rel="stylesheet" href="help.css">
+<script src="../zoom.js"></script>
 </head>
 <body>
+<div id="said" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 <header id="bar">
   <button id="menu-btn" type="button" aria-label="Contents">☰</button>
   <a id="home" href="#welcome">Eudora Help</a>
@@ -14,7 +16,7 @@
 </header>
 <div id="wrap">
   <nav id="toc" aria-label="Contents"></nav>
-  <main id="page" tabindex="-1">
+  <main id="page" tabindex="-1" aria-live="off">
     <p class="loading">Loading the manual…</p>
   </main>
 </div>
